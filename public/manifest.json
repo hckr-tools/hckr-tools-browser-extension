@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "hckr — Dev Toolkit",
+  "version": "1.0.0",
+  "description": "11 essential developer utilities in your browser side panel. JSON formatter, Base64, UUID, timestamps, JWT decoder & more. Fully offline, privacy-first.",
+  "action": {},
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/detector.js"],
+      "css": ["content/widget.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "contextMenus",
+    "activeTab"
+  ],
+  "icons": {}
+}
