@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>hckr Test Fixture Page</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+    .box { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+    pre, code { background: #222; color: #fff; padding: 10px; display: block; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>hckr Content Script Test Page</h1>
+
+  <div class="box">
+    <h2>JSON Sample</h2>
+    <pre id="json-sample">{"name":"hckr","version":"1.0.0","active":true,"features":["json","jwt","base64"]}</pre>
+  </div>
+
+  <div class="box">
+    <h2>JWT Sample</h2>
+    <code id="jwt-sample">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE5MTYyMzkwMjJ9.4pcPyMD09olUV_AlzA51NN4jGsacEzppmQ85TBRRF60</code>
+  </div>
+
+  <div class="box">
+    <h2>Base64 Sample</h2>
+    <code id="base64-sample">SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IG1lc3NhZ2UgZm9yIGhja3IgZGV2IHRvb2xraXQh</code>
+  </div>
+</body>
+</html>

@@ -113,8 +113,8 @@ function createWidget(detection: Detection): void {
 
 // Run detection after page is idle
 function init(): void {
-  // Only run on http/https pages
-  if (!location.protocol.startsWith('http')) return;
+  // Only run on http/https or file pages
+  if (!location.protocol.startsWith('http') && location.protocol !== 'file:') return;
 
   const detections = detectContent();
 

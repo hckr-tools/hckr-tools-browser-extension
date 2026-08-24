@@ -12,6 +12,7 @@ export interface HckrPreferences {
   activeToolId: string;
   pinnedTools: string[];
   toolHistory: Record<string, ToolState>;
+  theme: 'dark' | 'light';
 }
 
 const PREFS_KEY = 'hckr_prefs';
@@ -21,11 +22,14 @@ const PREFS_KEY = 'hckr_prefs';
  */
 export async function loadPreferences(): Promise<HckrPreferences> {
   const result = await chrome.storage.local.get(PREFS_KEY);
-  return result[PREFS_KEY] ?? {
-    activeToolId: 'json-formatter',
-    pinnedTools: [],
-    toolHistory: {},
-  };
+  return (
+    result[PREFS_KEY] ?? {
+      activeToolId: 'json-formatter',
+      pinnedTools: [],
+      toolHistory: {},
+      theme: 'dark',
+    }
+  );
 }
 
 /**

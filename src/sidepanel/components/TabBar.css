@@ -1,15 +1,62 @@
 .tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
+  padding: 0 20px;
   flex-shrink: 0;
+  height: 58px;
+  gap: 16px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.tab-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand-icon {
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.brand-title {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+.brand-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 2px 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
 }
 
 .tab-bar-scroll {
   display: flex;
+  align-items: center;
+  gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  padding: 4px 4px 0;
+  padding: 4px 0;
+  height: 100%;
 }
 
 .tab-bar-scroll::-webkit-scrollbar {
@@ -18,39 +65,114 @@
 
 .tab-item {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 8px 10px 6px;
-  min-width: 60px;
-  border: none;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
   transition: all var(--transition);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .tab-item:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   background: var(--bg-hover);
+  border-color: var(--border);
 }
 
 .tab-item.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  color: var(--accent-text);
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .tab-icon {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
 }
 
 .tab-label {
-  font-weight: 500;
   letter-spacing: 0.2px;
+}
+
+.tab-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.theme-toggle-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-focus);
+}
+
+.theme-toggle-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.theme-toggle-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 9999px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.status-text {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--success);
+}
+
+@media (max-width: 840px) {
+  .brand-tag,
+  .theme-toggle-label,
+  .status-indicator {
+    display: none;
+  }
 }

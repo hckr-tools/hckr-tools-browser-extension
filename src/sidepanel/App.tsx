@@ -3,7 +3,7 @@ import TabBar, { ToolTab } from './components/TabBar';
 import { loadPreferences, savePreferences, getPendingInput } from '../shared/storage';
 import './App.css';
 
-// Lazy-load all tools for better initial load
+// Lazy-load all tools for fast initial load
 const JsonFormatter = lazy(() => import('./tools/JsonFormatter'));
 const Base64Tool = lazy(() => import('./tools/Base64Tool'));
 const UuidGenerator = lazy(() => import('./tools/UuidGenerator'));
@@ -46,14 +46,18 @@ const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initi
 
 const App: React.FC = () => {
   const [activeToolId, setActiveToolId] = useState('json-formatter');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [initialInput, setInitialInput] = useState<string | undefined>(undefined);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load saved active tool on mount
+  // Load saved active tool and theme on mount
   useEffect(() => {
     (async () => {
       const prefs = await loadPreferences();
+      const initialTheme = prefs.theme || 'dark';
       setActiveToolId(prefs.activeToolId);
+      setTheme(initialTheme);
+      document.documentElement.setAttribute('data-theme', initialTheme);
       setIsLoaded(true);
     })();
   }, []);
@@ -73,7 +77,7 @@ const App: React.FC = () => {
 
     checkPending();
 
-    // Also listen for storage changes (when new pending input arrives while panel is open)
+    // Also listen for storage changes (when new pending input arrives while page is open)
     const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.pendingInput?.newValue) {
         checkPending();
@@ -86,9 +90,16 @@ const App: React.FC = () => {
 
   const handleSelectTool = useCallback(async (toolId: string) => {
     setActiveToolId(toolId);
-    setInitialInput(undefined); // Clear initial input when switching manually
+    setInitialInput(undefined);
     await savePreferences({ activeToolId: toolId });
   }, []);
+
+  const handleToggleTheme = useCallback(async () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    await savePreferences({ theme: nextTheme });
+  }, [theme]);
 
   const ActiveComponent = TOOL_COMPONENTS[activeToolId];
 
@@ -106,12 +117,16 @@ const App: React.FC = () => {
         tools={TOOLS}
         activeToolId={activeToolId}
         onSelectTool={handleSelectTool}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
-      <div className="tool-content">
-        <Suspense fallback={<div className="tool-loading">Loading...</div>}>
-          {ActiveComponent && <ActiveComponent initialInput={initialInput} />}
-        </Suspense>
-      </div>
+      <main className="tool-content">
+        <div className="tool-container-inner">
+          <Suspense fallback={<div className="tool-loading">Loading tool...</div>}>
+            {ActiveComponent && <ActiveComponent initialInput={initialInput} />}
+          </Suspense>
+        </div>
+      </main>
     </div>
   );
 };

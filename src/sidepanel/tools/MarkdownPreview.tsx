@@ -100,7 +100,7 @@ export function parseInline(text: string): string {
   let processed = text.replace(/`([^`]+)`/g, (_match, code) => {
     const idx = inlineCodes.length;
     inlineCodes.push(`<code>${escapeHtml(code)}</code>`);
-    return `___INLINE_CODE_${idx}___`;
+    return `%%INLINECODE${idx}%%`;
   });
 
   // 2. Images: ![alt](url "title")
@@ -126,7 +126,7 @@ export function parseInline(text: string): string {
   processed = parseInlineFormatted(processed);
 
   // 5. Restore inline codes
-  processed = processed.replace(/___INLINE_CODE_(\d+)___/g, (_match, idx) => {
+  processed = processed.replace(/%%INLINECODE(\d+)%%/g, (_match, idx) => {
     return inlineCodes[Number(idx)] || '';
   });
 

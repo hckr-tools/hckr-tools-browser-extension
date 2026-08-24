@@ -3,12 +3,22 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--bg-primary);
 }
 
 .tool-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  padding: 16px 20px 32px;
+}
+
+.tool-container-inner {
+  width: 100%;
+  max-width: 1100px;
+  min-height: 100%;
 }
 
 .app-loading {
@@ -20,7 +30,7 @@
 }
 
 .loading-icon {
-  font-size: 32px;
+  font-size: 36px;
   animation: pulse 1s ease infinite;
 }
 
@@ -28,12 +38,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 60px 20px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-family: var(--font-mono);
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 0.5; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (max-width: 768px) {
+  .tool-content {
+    padding: 10px;
+  }
 }

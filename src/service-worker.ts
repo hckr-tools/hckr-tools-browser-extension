@@ -1,10 +1,38 @@
 /// <reference types="chrome" />
 
-// Open side panel when extension icon is clicked
-chrome.action.onClicked.addListener(async (tab) => {
-  if (tab.windowId) {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
+const APP_PATH = 'src/sidepanel/index.html';
+
+/**
+ * Open or focus the hckr full-page tab.
+ */
+async function openOrFocusAppTab(targetToolId?: string, text?: string): Promise<void> {
+  if (targetToolId && text) {
+    await chrome.storage.local.set({
+      pendingInput: {
+        toolId: targetToolId,
+        text,
+        timestamp: Date.now(),
+      },
+    });
   }
+
+  const appUrl = chrome.runtime.getURL(APP_PATH);
+  const allTabs = await chrome.tabs.query({});
+  const existingTab = allTabs.find((t) => t.url && t.url.startsWith(appUrl));
+
+  if (existingTab && existingTab.id) {
+    await chrome.tabs.update(existingTab.id, { active: true });
+    if (existingTab.windowId) {
+      await chrome.windows.update(existingTab.windowId, { focused: true });
+    }
+  } else {
+    await chrome.tabs.create({ url: appUrl });
+  }
+}
+
+// Open full-page tab when extension icon is clicked
+chrome.action.onClicked.addListener(async () => {
+  await openOrFocusAppTab();
 });
 
 // Register context menu items on install
@@ -40,43 +68,19 @@ const menuToTool: Record<string, string> = {
   'hckr-test-regex': 'regex-tester',
 };
 
-// Handle context menu clicks
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+// Handle context menu clicks -> open/focus full tab with data
+chrome.contextMenus.onClicked.addListener(async (info) => {
   const toolId = menuToTool[info.menuItemId as string];
   if (!toolId || !info.selectionText) return;
 
-  // Store the selected text and target tool for the side panel to pick up
-  await chrome.storage.local.set({
-    pendingInput: {
-      toolId,
-      text: info.selectionText,
-      timestamp: Date.now(),
-    },
-  });
-
-  // Open side panel
-  if (tab?.windowId) {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
-  }
+  await openOrFocusAppTab(toolId, info.selectionText);
 });
 
-// Handle messages from content script
+// Handle messages from content script widget -> open/focus full tab with data
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'SEND_TO_TOOL') {
     (async () => {
-      await chrome.storage.local.set({
-        pendingInput: {
-          toolId: message.toolId,
-          text: message.text,
-          timestamp: Date.now(),
-        },
-      });
-
-      const window = await chrome.windows.getLastFocused();
-      if (window.id) {
-        await chrome.sidePanel.open({ windowId: window.id });
-      }
-
+      await openOrFocusAppTab(message.toolId, message.text);
       sendResponse({ success: true });
     })();
     return true; // keeps channel open for async response

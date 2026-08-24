@@ -11,12 +11,28 @@ interface TabBarProps {
   tools: ToolTab[];
   activeToolId: string;
   onSelectTool: (id: string) => void;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
-const TabBar: React.FC<TabBarProps> = ({ tools, activeToolId, onSelectTool }) => {
+const TabBar: React.FC<TabBarProps> = ({
+  tools,
+  activeToolId,
+  onSelectTool,
+  theme,
+  onToggleTheme,
+}) => {
   return (
-    <div className="tab-bar">
-      <div className="tab-bar-scroll">
+    <header className="tab-bar">
+      <div className="tab-bar-brand">
+        <div className="brand-logo">
+          <span className="brand-icon">⚡</span>
+          <span className="brand-title">hckr</span>
+        </div>
+        <span className="brand-tag">DEV TOOLKIT</span>
+      </div>
+
+      <nav className="tab-bar-scroll" aria-label="Developer utilities navigation">
         {tools.map((tool) => (
           <button
             key={tool.id}
@@ -28,8 +44,29 @@ const TabBar: React.FC<TabBarProps> = ({ tools, activeToolId, onSelectTool }) =>
             <span className="tab-label">{tool.label}</span>
           </button>
         ))}
+      </nav>
+
+      <div className="tab-bar-actions">
+        <button
+          className="theme-toggle-btn"
+          onClick={onToggleTheme}
+          title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+          aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+        >
+          <span className="theme-toggle-icon">
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </span>
+          <span className="theme-toggle-label">
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </span>
+        </button>
+
+        <span className="status-indicator" title="Fully local, 100% offline">
+          <span className="status-dot" />
+          <span className="status-text">OFFLINE</span>
+        </span>
       </div>
-    </div>
+    </header>
   );
 };
 
