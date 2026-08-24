@@ -1,159 +1,189 @@
-# hckr-tools — Developer Utility Toolkit ⚡
+# hckr-tools — Developer Utility Toolkit Browser Extension ⚡
 
-[![CI](https://github.com/hckr-tools/hckr-tools-browser-extension/actions/workflows/ci.yml/badge.svg)](https://github.com/hckr-tools/hckr-tools-browser-extension/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-brightgreen.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Website](https://img.shields.io/badge/Website-hckr--tools.github.io-cyan.svg)](https://hckr-tools.github.io)
+[![React 18](https://img.shields.io/badge/React-18-blue.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF.svg)](https://vitejs.dev/)
+[![Playwright](https://img.shields.io/badge/Playwright-E2E%20Tested-45ba4b.svg)](https://playwright.dev/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**hckr-tools** is a privacy-first, offline developer utility toolkit built as a Chrome Manifest V3 browser extension. It provides 11 essential developer tools right inside your browser side panel or dedicated workspace tab, eliminating the need to paste sensitive data into random online websites.
+An essential, privacy-first developer utility toolkit built right into your browser. Instant access to 11 daily developer tools, context menu integrations, on-page smart payload detection, and lightning-fast MRU tab switching.
 
----
-
-## 🚀 Key Highlights
-
-- 🔒 **100% Privacy-First & Offline**: Everything executes locally in the browser runtime. Zero tracking, zero telemetry, and zero network calls.
-- ⚡ **11 Built-in Developer Tools**: Instant access to JSON formatters, JWT decoders, regex testers, hash generators, and more.
-- 🎯 **Page Content Detection**: Automatically detects JSON, JWT, and Base64 strings in web pages (API responses, `<pre>`, `<code>`) with an inline quick-open widget.
-- 🖱️ **Context Menu Integration**: Highlight any text on any webpage, right-click, and instantly send it into any tool.
-- 🔄 **Previous Active Tab Switcher (`Alt+Q`)**: Fast keyboard shortcut to toggle back and forth between your code and your browser tab.
-- 🎨 **Dark & Light Theme**: Cyberpunk dark mode by default with clean light mode toggle.
+**100% Offline • Zero Analytics • Zero Tracking • Privacy by Design**
 
 ---
 
-## 🛠️ Included Developer Tools
+## 🚀 Features
 
-| Tool | Icon | Description |
-| :--- | :---: | :--- |
-| **JSON Formatter & Validator** | `{ }` | Beautify, minify, validate, and inspect JSON with syntax highlighting and instant error diagnostics. |
-| **Base64 Encoder / Decoder** | `🔤` | Encode/decode ASCII, Unicode text, and raw data with URL-safe variant support. |
-| **JWT Decoder** | `🔐` | Parse JWT headers and payloads, inspect claims, format timestamps, and check expiration dates. |
-| **UUID Generator** | `🆔` | Generate bulk UUID v4 identifiers with custom hyphens and uppercase options. |
-| **Timestamp Converter** | `⏰` | Convert between Unix epoch timestamps (seconds/ms) and human-readable UTC/local date formats with live clock. |
-| **URL Encoder / Decoder** | `🔗` | Encode and decode query strings, full URLs, and inspect parsed query parameters. |
-| **Hash Generator** | `#️⃣` | Instant MD5, SHA-1, SHA-256, and SHA-512 cryptographic hash computation. |
-| **Regex Tester** | `🔍` | Real-time JavaScript regular expression evaluator with match highlighting and capture group breakdown. |
-| **Dummy Data Generator** | `📋` | Generate realistic mock names, emails, UUIDs, IPv4/IPv6 addresses, dates, and structured test datasets. |
-| **Diff Checker** | `📊` | Side-by-side or unified difference comparison for text snippets and code with line-by-line diffing. |
-| **Markdown Preview** | `📝` | Live Markdown editor and previewer with GitHub-flavored Markdown and code highlighting. |
+### 🧰 11 Built-in Developer Tools
+
+| Tool | Description |
+| :--- | :--- |
+| **`{ }` JSON Formatter** | Parse, format, minify, validate, and inspect JSON with interactive collapsible tree views, path search, and syntax validation. |
+| **`🔤` Base64 Encoder / Decoder** | Encode and decode plain text or binary files, with support for standard and URL-safe Base64 modes. |
+| **`🆔` UUID / NanoID Generator** | Generate UUID v1, v4, v7, and custom-length NanoIDs in single or batch mode with instant copy. |
+| **`⏰` Timestamp Converter** | Convert Unix epoch timestamps (seconds & milliseconds) to ISO 8601, UTC, and local date/time with relative time calculations. |
+| **`🔗` URL Encoder / Decoder** | Encode/decode URIs and component strings, parse query parameters into key-value tables, and edit query strings live. |
+| **`🔐` JWT Decoder** | Decode JSON Web Tokens to inspect headers, payload claims, and signature info with expiration status badges. |
+| **`#️⃣` Hash Generator** | Generate MD5, SHA-1, SHA-256, and SHA-512 cryptographic hashes and checksums directly on the client. |
+| **`🔍` Regex Tester** | Test regular expressions in real-time with flag controls (`g`, `i`, `m`, `s`, `u`), match highlighting, and capture group tables. |
+| **`📋` Dummy Data Generator** | Generate realistic mock data including names, emails, addresses, UUIDs, dates, numbers, and structured JSON schemas. |
+| **`📊` Diff Checker** | Compare two text blocks or JSON snippets side-by-side or unified with granular character/line difference highlighting. |
+| **`📝` Markdown Previewer** | Real-time GitHub Flavored Markdown (GFM) editor with live preview, syntax highlighting, and export options. |
 
 ---
 
-## 📦 Installation & Setup
+### ⚡ Extension Superpowers
 
-### Prerequisites
+- **Smart On-Page Content Detection**: Automatically detects JSON, JWT, and Base64 strings inside `<pre>` and `<code>` blocks on any webpage (API responses, log viewers, documentation) and displays a 1-click **⚡ Open in hckr** widget.
+- **Context Menu Integration**: Select any text on any page and right-click to instantly send it to the appropriate tool (Format JSON, Decode JWT, Test Regex, etc.).
+- **Quick Tab Switcher (`Alt+Q`)**: Keyboard shortcut to cycle between your most recently used tabs within the current window.
+- **Fast MRU State & Preferences**: Automatically preserves your active tool, inputs, and theme across sessions using `chrome.storage`.
+- **Dark & Light Mode**: Built-in sleek dark theme and crisp light theme designed for coding environments.
+- **Privacy-First**: No data leaves your machine. All computation is executed locally inside your browser sandbox.
 
-- **Node.js**: `v20.x` or `v22.x` (LTS recommended)
-- **npm**: `v10+` (Standard package manager)
+---
 
-### 1. Clone the Repository
+## 📦 Installation & Loading into Chrome
 
+### 1. Build the Extension
 ```bash
+# Clone the repository
 git clone https://github.com/hckr-tools/hckr-tools-browser-extension.git
 cd hckr-tools-browser-extension
-```
 
-### 2. Install Dependencies
-
-```bash
+# Install dependencies
 npm install
-# or
-make install
-```
 
-### 3. Build Extension
-
-```bash
-# Build production bundle in dist/
+# Build the extension
 npm run build
-# or
-make build
 ```
 
-### 4. Load into Chrome
-
-1. Open Google Chrome and navigate to `chrome://extensions`.
-2. Toggle **Developer mode** in the top-right corner.
-3. Click **Load unpacked** in the top-left corner.
-4. Select the `dist/` directory inside this repository.
+### 2. Load into Chrome / Chromium
+1. Open Google Chrome (or any Chromium browser: Brave, Edge, Arc, Opera, Vivaldi).
+2. Navigate to `chrome://extensions/`.
+3. Toggle on **Developer mode** in the top-right corner.
+4. Click **Load unpacked** in the top-left corner.
+5. Select the **`dist/`** directory created inside this project.
+6. The `hckr-tools` icon will appear in your extension toolbar. Click it or pin it to open.
 
 ---
 
-## 💻 Development Workflow
+## 🛠️ Development Workflow
 
-### Available Commands
+We provide both `npm` scripts and a `Makefile` for streamlined development:
 
-| Command | Make Target | Description |
-| :--- | :--- | :--- |
-| `npm run dev` | `make dev` | Starts Vite in watch mode to automatically recompile `dist/` on code changes |
-| `npm run build` | `make build` | Runs TypeScript typecheck (`tsc`) and compiles optimized production bundle |
-| `npm run lint` | `make lint` | Validates TypeScript strict typing across the project without emitting code |
-| `npm run test:e2e` | `make test-e2e` | Runs Playwright end-to-end integration tests headlessly |
-| `npm run test:e2e:headed` | `make test-e2e-headed` | Runs Playwright tests with visible Chrome browser window |
-| `npm run test:e2e:ui` | `make test-e2e-ui` | Opens the interactive Playwright test runner UI |
-| `npm run zip` | `make zip` | Packages `dist/` into `hckr-tools-browser-extension.zip` for Chrome Web Store upload |
-| `npm run clean` | `make clean` | Cleans `dist/` build artifacts and generated zip files |
+```bash
+# Install dependencies
+make install        # or: npm install
 
-### Tmux Multi-Pane Dev Environment
+# Start Vite build in watch mode (updates dist/ on save)
+make dev            # or: npm run dev
 
-If you use `tmux`, you can launch the watch build, test watcher, and a dev shell in a tiled layout:
+# Run TypeScript typechecks
+make lint           # or: npm run lint
 
+# Build production bundle in dist/
+make build          # or: npm run build
+
+# Package extension zip for Chrome Web Store distribution
+make zip            # or: npm run zip
+
+# Clean build artifacts
+make clean          # or: npm run clean
+```
+
+### 💻 Tmux Dev Environment
+For a full multi-pane terminal setup with watch builds, automated test triggers, and a dev shell:
 ```bash
 make dev-tmux
 ```
 
 ---
 
-## 🏛️ Architecture Overview
+## 🧪 Testing
 
-```
-hckr-browser-ext/
-├── Makefile                     # Developer task automation
-├── package.json                 # Project dependencies & npm scripts
-├── vite.config.ts               # Vite multi-entry build configuration
-├── tsconfig.json                # TypeScript compiler configuration
-├── playwright.config.ts         # Playwright test configuration
-├── public/
-│   ├── manifest.json            # Chrome Manifest V3 definition
-│   └── icons/                   # Extension icons (16x16, 48x48, 128x128)
-├── src/
-│   ├── service-worker.ts        # Background service worker (tabs, context menu, MRU history)
-│   ├── content/
-│   │   ├── detector.ts          # Content script: auto-detects JSON/JWT/Base64 on pages
-│   │   └── widget.css           # Floating inline badge styling
-│   ├── shared/
-│   │   ├── clipboard.ts         # Async clipboard copy/paste utilities
-│   │   ├── messaging.ts         # Type-safe IPC messaging helpers
-│   │   └── storage.ts           # chrome.storage preference abstractions
-│   └── sidepanel/
-│       ├── index.html           # Sidepanel / full-tab HTML entry
-│       ├── main.tsx             # React DOM root mounting
-│       ├── App.tsx              # Tool navigation & lazy-loaded view router
-│       ├── components/          # TabBar, navigation, common inputs
-│       ├── styles/              # Theme variables, cyberpunk color scheme
-│       └── tools/               # 11 Developer utility tool components
-├── e2e/                         # Playwright E2E browser tests
-└── dist/                        # Compiled unpacked extension distribution
+End-to-End tests are implemented using **Playwright** to verify tool calculations, content script widget injection, service worker tab navigation, and storage persistence.
+
+```bash
+# Run all E2E tests headless
+make test-e2e           # or: npm run test:e2e
+
+# Run E2E tests in a visible browser window
+make test-e2e-headed    # or: npm run test:e2e:headed
+
+# Open interactive Playwright UI Test Runner
+make test-e2e-ui        # or: npm run test:e2e:ui
 ```
 
 ---
 
-## 🧪 Testing
+## 🏗️ Architecture & Project Structure
 
-End-to-end testing is powered by [Playwright](https://playwright.dev/) with automated browser context launch and extension loading:
+The extension is structured around Manifest V3 best practices, separating the UI layer, background service worker, content scripts, and shared utilities:
 
-```bash
-# Run all E2E tests
-npm run test:e2e
-
-# Run tests in headed browser mode
-npm run test:e2e:headed
-
-# Run tests with UI inspector
-npm run test:e2e:ui
+```text
+hckr-browser-ext/
+├── e2e/                      # Playwright end-to-end test suites
+│   ├── fixtures/             # HTML test fixtures & helpers
+│   ├── content-script.spec.ts
+│   ├── navigation-storage.spec.ts
+│   ├── tools-core.spec.ts
+│   └── tools-advanced.spec.ts
+├── public/
+│   └── manifest.json         # Manifest V3 configuration
+├── src/
+│   ├── content/              # Content scripts injected into web pages
+│   │   ├── detector.ts       # On-page JSON/JWT/Base64 detector
+│   │   └── widget.css        # Injected widget styling
+│   ├── service-worker.ts     # Background service worker (tabs, context menu, IPC)
+│   ├── shared/               # Shared cross-context utilities
+│   │   ├── clipboard.ts      # Clipboard copy/read helpers
+│   │   ├── messaging.ts      # Chrome runtime IPC types & handlers
+│   │   └── storage.ts        # Type-safe chrome.storage wrapper
+│   └── sidepanel/            # Extension UI (React application)
+│       ├── components/       # Common UI components (TabBar, etc.)
+│       ├── styles/           # Theme variables & base CSS
+│       ├── tools/            # Individual tool implementations (11 tools)
+│       ├── App.tsx           # Main application root & tool router
+│       ├── index.html        # HTML entry point for the extension app
+│       └── main.tsx          # React DOM root mounting
+├── Makefile                  # Build & automation commands
+├── package.json              # Dependencies and scripts
+├── playwright.config.ts      # Playwright test configuration
+├── tsconfig.json             # TypeScript configuration
+└── vite.config.ts            # Vite bundler configuration
 ```
+
+---
+
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Description |
+| :--- | :--- |
+| <kbd>Alt</kbd> + <kbd>Q</kbd> | Switch to the previously active tab in the current window |
+
+*(You can customize shortcut keys at `chrome://extensions/shortcuts`)*
+
+---
+
+## 🔒 Privacy Guarantee
+
+- **No Remote Servers**: Every conversion, formatting, hashing, and decoding action runs client-side inside your browser.
+- **No Analytics / Telemetry**: We do not include Google Analytics, Sentry, Mixpanel, or any third-party tracking scripts.
+- **No Data Storage Outside Your Machine**: Data is kept in memory or `chrome.storage.local` on your device.
+- **Minimal Permissions**: We only request permissions necessary for core features (`storage`, `contextMenus`, `tabs`, `activeTab`).
+
+---
+
+## 🌐 Documentation & Related Links
+
+- **Documentation & User Guide**: [https://hckr-tools.github.io](https://hckr-tools.github.io)
+- **Documentation Source Code**: [hckr-tools.github.io Repository](https://github.com/hckr-tools/hckr-tools.github.io)
+- **Chrome Web Store**: *Coming soon*
 
 ---
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+MIT License. See [LICENSE](LICENSE) for details.
