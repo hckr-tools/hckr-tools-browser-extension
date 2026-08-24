@@ -37,19 +37,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'yarn'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Type check
-        run: yarn lint
+        run: npm run lint
 
       - name: Build extension bundle
-        run: yarn build
+        run: npm run build
 
       - name: Package extension (.zip)
-        run: yarn zip
+        run: npm run zip
 
       - name: Generate SHA-256 Checksums
         run: |
