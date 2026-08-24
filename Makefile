@@ -25,7 +25,7 @@ build: ## Typecheck and build production extension bundle in dist/
 clean: ## Remove build outputs and packaging archives
 	$(NPM) run clean
 
-zip: build ## Build and create Chrome Web Store distribution zip (hckr-extension.zip)
+zip: build ## Build and create Chrome Web Store distribution zip (hckr-tools-browser-extension.zip)
 	$(NPM) run zip
 
 lint: ## Run TypeScript typecheck

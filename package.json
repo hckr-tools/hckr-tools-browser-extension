@@ -1,18 +1,18 @@
 {
-  "name": "hckr-browser-ext",
+  "name": "hckr-tools-browser-extension",
   "version": "1.0.0",
-  "description": "hckr — Developer Utility Toolkit Browser Extension",
+  "description": "hckr-tools — Developer Utility Toolkit Browser Extension",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
     "build": "tsc && vite build && cp public/manifest.json dist/ && cp src/content/widget.css dist/content/",
-    "clean": "rm -rf dist hckr-extension.zip",
+    "clean": "rm -rf dist hckr-tools-browser-extension.zip",
     "lint": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "zip": "cd dist && zip -r ../hckr-extension.zip ."
+    "zip": "cd dist && zip -r ../hckr-tools-browser-extension.zip ."
   },
   "dependencies": {
     "react": "^18.3.1",
