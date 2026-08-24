@@ -2,6 +2,11 @@
 node_modules/
 .pnp
 .pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
 # Build Outputs & Extension Packages
 dist/
@@ -10,12 +15,24 @@ dist-ssr/
 *.zip
 *.crx
 *.pem
-.docusaurus/
-.docusaurus-developer/
-build-developer/
+*.xpi
+checksums*.txt
 
-# TypeScript
+# Build & Tooling Caches
 *.tsbuildinfo
+.vite/
+.cache/
+.parcel-cache/
+.turbo/
+.eslintcache
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
 
 # Logs
 npm-debug.log*
@@ -23,8 +40,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log
 
-# Environment files
+# Environment & Secrets
 .env
 .env.local
 .env.development.local
@@ -32,7 +50,7 @@ lerna-debug.log*
 .env.production.local
 *.env.local
 
-# Editor & IDE directories
+# Editor & IDE Directories
 .idea/
 .vscode/*
 !.vscode/settings.json
@@ -47,12 +65,10 @@ lerna-debug.log*
 *.sln
 *.swp
 *.swo
+*.swn
+*~
 
-# Testing & Coverage
-coverage/
-.nyc_output/
-
-# OS generated files
+# OS Generated Files
 .DS_Store
 .DS_Store?
 ._*
@@ -60,3 +76,4 @@ coverage/
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
