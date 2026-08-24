@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "tsc && vite build && cp public/manifest.json dist/ && cp src/content/widget.css dist/content/",
+    "clean": "rm -rf dist hckr-extension.zip",
+    "lint": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",

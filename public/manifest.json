@@ -23,5 +23,14 @@
     "contextMenus",
     "tabs",
     "activeTab"
-  ]
+  ],
+  "commands": {
+    "switch-to-previous-tab": {
+      "suggested_key": {
+        "default": "Alt+Q",
+        "mac": "Alt+Q"
+      },
+      "description": "Switch to previously active tab"
+    }
+  }
 }
