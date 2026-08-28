@@ -15,6 +15,7 @@ const RegexTester = lazy(() => import('./tools/RegexTester'));
 const DummyDataGenerator = lazy(() => import('./tools/DummyDataGenerator'));
 const DiffChecker = lazy(() => import('./tools/DiffChecker'));
 const MarkdownPreview = lazy(() => import('./tools/MarkdownPreview'));
+const TabsNavigator = lazy(() => import('./tools/TabsNavigator'));
 
 const TOOLS: ToolTab[] = [
   { id: 'json-formatter', label: 'JSON', icon: '{ }' },
@@ -28,6 +29,7 @@ const TOOLS: ToolTab[] = [
   { id: 'dummy-data', label: 'Data', icon: '📋' },
   { id: 'diff-checker', label: 'Diff', icon: '📊' },
   { id: 'markdown', label: 'MD', icon: '📝' },
+  { id: 'tabs', label: 'Tabs', icon: '↔️' },
 ];
 
 const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initialInput?: string }>>> = {
@@ -42,6 +44,7 @@ const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initi
   'dummy-data': DummyDataGenerator,
   'diff-checker': DiffChecker,
   'markdown': MarkdownPreview,
+  tabs: TabsNavigator,
 };
 
 const App: React.FC = () => {

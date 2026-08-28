@@ -165,6 +165,10 @@ hckr-browser-ext/
 
 *(You can customize shortcut keys at `chrome://extensions/shortcuts`)*
 
+## ↔️ Tabs
+
+Open **Tabs** in the hckr-tools navigation to see the open browser tabs in your current window. Select a tab in the list to jump to it. For a quick toggle back to the last tab you used, press <kbd>Alt</kbd> + <kbd>Q</kbd> (or configure a different shortcut at `chrome://extensions/shortcuts`).
+
 ---
 
 ## 🔒 Privacy Guarantee

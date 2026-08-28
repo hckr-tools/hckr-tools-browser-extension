@@ -44,7 +44,7 @@ export const config = {
 
 const SAMPLE_MODIFIED = `// User service configuration
 export const config = {
-  appName: "hckr-toolkit",
+  appName: "hckr-tools",
   version: "1.1.0",
   mode: "production",
   features: [

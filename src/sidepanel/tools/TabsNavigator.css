@@ -1,0 +1,135 @@
+.tabs-navigator {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.tabs-navigator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.tool-eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.9px;
+}
+
+.tabs-navigator h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 24px;
+}
+
+.tabs-navigator-description {
+  max-width: 640px;
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.tabs-navigator kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.tabs-refresh-button {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tabs-refresh-button:hover:not(:disabled) {
+  border-color: var(--border-focus);
+  background: var(--bg-hover);
+}
+
+.tabs-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.tabs-list {
+  display: grid;
+  gap: 8px;
+}
+
+.browser-tab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 16px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.browser-tab:hover,
+.browser-tab.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.browser-tab-title,
+.browser-tab-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-tab-title {
+  font-weight: 600;
+}
+
+.browser-tab-url {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.browser-tab-current {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tabs-message {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.tabs-error {
+  color: var(--danger, #ef4444);
+}
+
+@media (max-width: 600px) {
+  .tabs-navigator-header {
+    flex-direction: column;
+  }
+}

@@ -119,6 +119,7 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
   }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'MD' }).click();
     await expect(sidepanelPage.locator('.md-tool-root')).toBeVisible();
+    await expect(sidepanelPage.locator('.md-workspace-split')).toHaveCSS('flex-direction', 'row');
 
     const editor = sidepanelPage.locator('textarea.md-textarea');
     await editor.fill('# Hello HCKR\n\nThis is **bold** and *italic* text with `code`.');

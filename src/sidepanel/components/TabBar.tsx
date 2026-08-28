@@ -27,7 +27,7 @@ const TabBar: React.FC<TabBarProps> = ({
       <div className="tab-bar-brand">
         <div className="brand-logo">
           <span className="brand-icon">⚡</span>
-          <span className="brand-title">hckr</span>
+          <span className="brand-title">hckr-tools</span>
         </div>
         <span className="brand-tag">DEV TOOLKIT</span>
       </div>

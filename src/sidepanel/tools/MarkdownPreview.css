@@ -50,11 +50,21 @@
   overflow: hidden;
 }
 
+.md-workspace-split {
+  flex-direction: row;
+}
+
 .md-pane {
   display: flex;
   flex-direction: column;
   min-height: 0;
   flex: 1;
+}
+
+@media (max-width: 860px) {
+  .md-workspace-split {
+    flex-direction: column;
+  }
 }
 
 .md-pane-header {

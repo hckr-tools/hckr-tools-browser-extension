@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures';
 
 test.describe('Navigation & Storage Persistence', () => {
-  test('renders all 11 tool tabs in TabBar', async ({ sidepanelPage }) => {
+  test('renders all 12 tool tabs in TabBar', async ({ sidepanelPage }) => {
     const tabs = sidepanelPage.locator('.tab-item');
-    await expect(tabs).toHaveCount(11);
+    await expect(tabs).toHaveCount(12);
 
     const expectedLabels = [
       'JSON',
@@ -17,6 +17,7 @@ test.describe('Navigation & Storage Persistence', () => {
       'Data',
       'Diff',
       'MD',
+      'Tabs',
     ];
 
     for (let i = 0; i < expectedLabels.length; i++) {
@@ -46,6 +47,13 @@ test.describe('Navigation & Storage Persistence', () => {
     await hashTab.click();
     await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('Hash');
     await expect(sidepanelPage.locator('.hash-generator')).toBeVisible();
+
+    const tabsTab = sidepanelPage.locator('.tab-item', { hasText: 'Tabs' });
+    await tabsTab.click();
+    await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('Tabs');
+    await expect(sidepanelPage.locator('.tabs-navigator')).toBeVisible();
+    await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Jump between tabs');
+    await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Alt + Q');
   });
 
   test('persists active tool preference across side panel reloads', async ({
