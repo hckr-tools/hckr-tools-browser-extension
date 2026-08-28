@@ -4,7 +4,6 @@ import {
   getTabHistory,
   MAX_HISTORY_PER_WINDOW,
   saveTabHistory,
-  sortTabsByLastUsed,
 } from './shared/tabHistory';
 
 const APP_PATH = 'src/sidepanel/index.html';
@@ -104,7 +103,6 @@ chrome.action.onClicked.addListener(async () => {
 
 // Register context menu items on install
 chrome.runtime.onInstalled.addListener(() => {
-  void hydrateTabHistory();
   const menuItems = [
     { id: 'hckr-format-json', title: 'hckr: Format JSON' },
     { id: 'hckr-decode-base64', title: 'hckr: Decode Base64' },
@@ -170,47 +168,39 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 /**
  * Record a tab activation event into the window's MRU stack.
  */
+let historyCache: Record<number, number[]> | null = null;
+let historyLoading: Promise<Record<number, number[]>> | null = null;
+let historyWriteTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function history(): Promise<Record<number, number[]>> {
+  if (historyCache) return historyCache;
+  historyLoading ??= getTabHistory().then((stored) => (historyCache = stored));
+  return historyLoading;
+}
+
+function scheduleHistorySave(): void {
+  if (historyWriteTimer) clearTimeout(historyWriteTimer);
+  historyWriteTimer = setTimeout(() => {
+    historyWriteTimer = null;
+    if (historyCache) void saveTabHistory(historyCache);
+  }, 250);
+}
+
 async function recordTabActivation(windowId: number, tabId: number): Promise<void> {
-  const history = await getTabHistory();
-  const currentStack = history[windowId] || [];
-  history[windowId] = [tabId, ...currentStack.filter((id) => id !== tabId)].slice(
-    0,
-    MAX_HISTORY_PER_WINDOW
-  );
-  await saveTabHistory(history);
+  const stored = await history();
+  const currentStack = stored[windowId] || [];
+  stored[windowId] = [tabId, ...currentStack.filter((id) => id !== tabId)].slice(0, MAX_HISTORY_PER_WINDOW);
+  scheduleHistorySave();
 }
 
-async function hydrateTabHistory(): Promise<void> {
-  const windows = await chrome.windows.getAll({ populate: true });
-  const history = await getTabHistory();
-
-  for (const win of windows) {
-    if (win.id === undefined || !win.tabs) {
-      continue;
-    }
-
-    const knownOrder = history[win.id] || [];
-    history[win.id] = sortTabsByLastUsed(
-      win.tabs.filter((tab) => tab.id !== undefined),
-      knownOrder
-    )
-      .map((tab) => tab.id)
-      .filter((tabId): tabId is number => tabId !== undefined);
-  }
-
-  await saveTabHistory(history);
-}
 async function removeTabFromHistory(tabId: number, windowId?: number): Promise<void> {
-  const history = await getTabHistory();
-  if (windowId && history[windowId]) {
-    history[windowId] = history[windowId].filter((id) => id !== tabId);
+  const stored = await history();
+  if (windowId && stored[windowId]) {
+    stored[windowId] = stored[windowId].filter((id) => id !== tabId);
   } else {
-    for (const winId of Object.keys(history)) {
-      const numericWinId = Number(winId);
-      history[numericWinId] = history[numericWinId].filter((id) => id !== tabId);
-    }
+    for (const winId of Object.keys(stored)) stored[Number(winId)] = stored[Number(winId)].filter((id) => id !== tabId);
   }
-  await saveTabHistory(history);
+  scheduleHistorySave();
 }
 
 /**
@@ -222,8 +212,8 @@ async function switchToPreviousTab(): Promise<void> {
     if (!currentWindow.id) return;
 
     const windowId = currentWindow.id;
-    const history = await getTabHistory();
-    const stack = history[windowId] || [];
+    const stored = await history();
+    const stack = stored[windowId] || [];
 
     // stack[0] is the current tab; find the first valid previous tab in stack[1..]
     let targetTabId: number | null = null;
@@ -246,8 +236,8 @@ async function switchToPreviousTab(): Promise<void> {
 
     // Clean up any stale tab IDs found
     if (invalidTabIds.length > 0) {
-      history[windowId] = stack.filter((id) => !invalidTabIds.includes(id));
-      await saveTabHistory(history);
+      stored[windowId] = stack.filter((id) => !invalidTabIds.includes(id));
+      scheduleHistorySave();
     }
 
     if (targetTabId !== null) {
@@ -271,23 +261,23 @@ chrome.tabs.onRemoved.addListener((tabId, { windowId }) => {
 // Clean up when tabs are replaced (e.g. prerendering)
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
   (async () => {
-    const history = await getTabHistory();
-    for (const winId of Object.keys(history)) {
+    const stored = await history();
+    for (const winId of Object.keys(stored)) {
       const numericWinId = Number(winId);
-      history[numericWinId] = history[numericWinId].map((id) =>
+      stored[numericWinId] = stored[numericWinId].map((id) =>
         id === removedTabId ? addedTabId : id
       );
     }
-    await saveTabHistory(history);
+    scheduleHistorySave();
   })();
 });
 
 // Clean up history when a window is closed
 chrome.windows.onRemoved.addListener(async (windowId) => {
-  const history = await getTabHistory();
-  if (history[windowId]) {
-    delete history[windowId];
-    await saveTabHistory(history);
+  const stored = await history();
+  if (stored[windowId]) {
+    delete stored[windowId];
+    scheduleHistorySave();
   }
 });
 
@@ -300,6 +290,3 @@ chrome.commands.onCommand.addListener((command) => {
     void openTabSwitcher();
   }
 });
-
-void hydrateTabHistory();
-

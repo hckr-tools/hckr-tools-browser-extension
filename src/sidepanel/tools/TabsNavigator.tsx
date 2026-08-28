@@ -37,12 +37,17 @@ const TabsNavigator: React.FC = () => {
       window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
         void loadTabs(false);
-      }, 80);
+      }, 200);
     };
 
     chrome.tabs.onCreated.addListener(scheduleRefresh);
     chrome.tabs.onRemoved.addListener(scheduleRefresh);
-    chrome.tabs.onUpdated.addListener(scheduleRefresh);
+    const handleUpdated = (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo) => {
+      if (changeInfo.title !== undefined || changeInfo.url !== undefined || changeInfo.favIconUrl !== undefined) {
+        scheduleRefresh();
+      }
+    };
+    chrome.tabs.onUpdated.addListener(handleUpdated);
     chrome.tabs.onActivated.addListener(scheduleRefresh);
     chrome.tabs.onMoved.addListener(scheduleRefresh);
 
@@ -50,7 +55,7 @@ const TabsNavigator: React.FC = () => {
       window.clearTimeout(timeoutId);
       chrome.tabs.onCreated.removeListener(scheduleRefresh);
       chrome.tabs.onRemoved.removeListener(scheduleRefresh);
-      chrome.tabs.onUpdated.removeListener(scheduleRefresh);
+      chrome.tabs.onUpdated.removeListener(handleUpdated);
       chrome.tabs.onActivated.removeListener(scheduleRefresh);
       chrome.tabs.onMoved.removeListener(scheduleRefresh);
     };

@@ -8,6 +8,8 @@ export interface ToolState {
   options?: Record<string, unknown>;
 }
 
+const MAX_PERSISTED_TEXT_CHARS = 250_000;
+
 export interface HckrPreferences {
   activeToolId: string;
   pinnedTools: string[];
@@ -46,6 +48,9 @@ export async function savePreferences(prefs: Partial<HckrPreferences>): Promise<
  * Save tool-specific state.
  */
 export async function saveToolState(toolId: string, state: ToolState): Promise<void> {
+  if ((state.input?.length ?? 0) > MAX_PERSISTED_TEXT_CHARS || (state.secondaryInput?.length ?? 0) > MAX_PERSISTED_TEXT_CHARS) {
+    return;
+  }
   const prefs = await loadPreferences();
   prefs.toolHistory[toolId] = state;
   await chrome.storage.local.set({ [PREFS_KEY]: prefs });

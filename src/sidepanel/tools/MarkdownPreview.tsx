@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { saveToolState, loadToolState } from '../../shared/storage';
+import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import './MarkdownPreview.css';
 
 export interface MarkdownPreviewProps {
@@ -513,6 +514,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ initialInput }) => {
 
   // Render and sanitize markdown
   const renderedHtml = useMemo(() => {
+    if (exceedsLiveTextLimit(markdown)) return '';
     const raw = parseMarkdown(markdown);
     return sanitizeHtml(raw);
   }, [markdown]);
@@ -666,7 +668,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ initialInput }) => {
                 />
               ) : (
                 <div className="md-empty-preview">
-                  <span>Nothing to preview. Start typing markdown in the editor.</span>
+                  <span>{exceedsLiveTextLimit(markdown) ? `Preview paused above ${MAX_LIVE_TEXT_CHARS.toLocaleString()} characters to keep this panel responsive.` : 'Nothing to preview. Start typing markdown in the editor.'}</span>
                 </div>
               )}
             </div>

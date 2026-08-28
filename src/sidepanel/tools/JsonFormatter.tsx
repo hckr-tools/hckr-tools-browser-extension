@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import './JsonFormatter.css';
 
 interface JsonFormatterProps {
@@ -288,6 +289,11 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
 
   // Parse JSON helper
   const processJson = useCallback((raw: string) => {
+    if (exceedsLiveTextLimit(raw)) {
+      setParsedData(null);
+      setError({ message: `Live formatting is limited to ${MAX_LIVE_TEXT_CHARS.toLocaleString()} characters.` });
+      return;
+    }
     const trimmed = raw.trim();
     if (!trimmed) {
       setParsedData(null);
@@ -454,6 +460,8 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
             </button>
           </div>
         </div>
+
+        {exceedsLiveTextLimit(input) && <p className="json-limit-notice">Large input kept locally. Live formatting and persistence are paused above {MAX_LIVE_TEXT_CHARS.toLocaleString()} characters.</p>}
 
         <div className="json-input-wrapper">
           <textarea

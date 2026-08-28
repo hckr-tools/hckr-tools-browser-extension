@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { MAX_REGEX_TEST_CHARS } from '../../shared/inputLimits';
 import './RegexTester.css';
 
 interface RegexTesterProps {
@@ -156,6 +157,9 @@ const RegexTester: React.FC<RegexTesterProps> = ({ initialInput }) => {
 
   // Compute matches and errors
   const { matches, error, hitLimit } = useMemo(() => {
+    if (testString.length > MAX_REGEX_TEST_CHARS) {
+      return { matches: [], error: `Live regex testing is limited to ${MAX_REGEX_TEST_CHARS.toLocaleString()} characters.`, hitLimit: false };
+    }
     if (!pattern) {
       return { matches: [], error: null, hitLimit: false };
     }

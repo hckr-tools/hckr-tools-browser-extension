@@ -1,5 +1,5 @@
 export const TAB_HISTORY_KEY = 'hckr_tab_history';
-export const MAX_HISTORY_PER_WINDOW = 200;
+export const MAX_HISTORY_PER_WINDOW = 50;
 
 type TabHistoryMap = Record<number, number[]>;
 

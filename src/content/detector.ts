@@ -1,3 +1,5 @@
+import widgetCss from './widget.css?inline';
+
 /**
  * Content script: detects JSON, JWT, and Base64 content on web pages
  * and offers a floating "Send to hckr" widget.
@@ -20,6 +22,10 @@ const JWT_REGEX = /^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 // Base64 pattern: at least 20 chars, valid base64 alphabet
 const BASE64_REGEX = /^[A-Za-z0-9+/]{20,}={0,2}$/;
+const MAX_CANDIDATES = 100;
+const MAX_CANDIDATE_CHARS = 128 * 1024;
+const MAX_TOTAL_CANDIDATE_CHARS = 512 * 1024;
+const WIDGET_STYLE_ID = 'hckr-widget-styles';
 
 function isJSON(text: string): boolean {
   const trimmed = text.trim();
@@ -53,9 +59,12 @@ function detectContent(): Detection[] {
 
   // Check <pre> and <code> elements for JSON
   const codeElements = document.querySelectorAll('pre, code');
-  codeElements.forEach((el) => {
+  let scannedChars = 0;
+  for (const el of Array.from(codeElements).slice(0, MAX_CANDIDATES)) {
     const text = el.textContent?.trim();
-    if (!text || text.length < 2) return;
+    if (!text || text.length < 2 || text.length > MAX_CANDIDATE_CHARS) continue;
+    if (scannedChars + text.length > MAX_TOTAL_CANDIDATE_CHARS) break;
+    scannedChars += text.length;
 
     if (isJSON(text)) {
       detections.push({ type: 'json', text, element: el });
@@ -64,12 +73,14 @@ function detectContent(): Detection[] {
     } else if (isBase64(text)) {
       detections.push({ type: 'base64', text, element: el });
     }
-  });
+    if (detections.length >= 5) break;
+  }
 
   // Check if the entire page body is JSON (like API response pages)
-  if (detections.length === 0) {
+  const bodyIsSmallRawContent = document.body?.children.length === 1;
+  if (detections.length === 0 && (document.contentType.includes('json') || bodyIsSmallRawContent)) {
     const bodyText = document.body?.textContent?.trim();
-    if (bodyText && isJSON(bodyText)) {
+    if (bodyText && bodyText.length <= MAX_CANDIDATE_CHARS && isJSON(bodyText)) {
       detections.push({ type: 'json', text: bodyText, element: document.body });
     }
   }
@@ -80,6 +91,13 @@ function detectContent(): Detection[] {
 function createWidget(detection: Detection): void {
   // Avoid duplicates
   if (detection.element.querySelector('.hckr-widget')) return;
+
+  if (!document.getElementById(WIDGET_STYLE_ID)) {
+    const style = document.createElement('style');
+    style.id = WIDGET_STYLE_ID;
+    style.textContent = widgetCss;
+    document.documentElement.appendChild(style);
+  }
 
   const widget = document.createElement('div');
   widget.className = 'hckr-widget';

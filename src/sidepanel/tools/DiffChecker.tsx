@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
+import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import './DiffChecker.css';
 
 interface DiffCheckerProps {
@@ -200,6 +201,10 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
 
   // Compute diff function
   const handleCompare = useCallback(() => {
+    if (exceedsLiveTextLimit(originalText) || exceedsLiveTextLimit(modifiedText)) {
+      setDiffResult(null);
+      return;
+    }
     const result = computeLcsDiff(originalText, modifiedText, {
       ignoreWhitespace,
       ignoreCase,
@@ -207,6 +212,8 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
     });
     setDiffResult(result);
   }, [originalText, modifiedText, ignoreWhitespace, ignoreCase, trimLines]);
+
+  const exceedsLimit = exceedsLiveTextLimit(originalText) || exceedsLiveTextLimit(modifiedText);
 
   // Auto-compare on mount if initial input is provided or when sample is loaded
   useEffect(() => {
@@ -356,6 +363,8 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
         </div>
       </div>
 
+      {exceedsLimit && <p className="diff-empty-state">Large inputs stay in this page but comparison is paused above {MAX_LIVE_TEXT_CHARS.toLocaleString()} characters.</p>}
+
       {/* Diff Result Section */}
       <div className="section flex-1 diff-output-section">
         <div className="diff-output-header">
@@ -391,7 +400,7 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
         </div>
 
         {/* Output Content */}
-        {!diffResult || (!originalText && !modifiedText) ? (
+        {exceedsLimit ? null : !diffResult || (!originalText && !modifiedText) ? (
           <div className="diff-empty-state">
             <span className="diff-empty-icon">📊</span>
             <p>Enter text in Original and Modified fields above to compare.</p>
