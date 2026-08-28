@@ -71,6 +71,17 @@ test.describe('Navigation & Storage Persistence', () => {
     const switcher = sidepanelPage.getByRole('dialog', { name: 'hckr-tools tab switcher' });
     await expect(switcher).toBeVisible();
 
+    await expect(switcher.locator('.tab-switcher-item').first().locator('.tab-switcher-shortcut')).toHaveText('1');
+
+    const fixtureRow = switcher.locator('.tab-switcher-item', { hasText: 'hckr Test Fixture Page' });
+    const shortcut = (await fixtureRow.locator('.tab-switcher-shortcut').innerText()).trim();
+    await sidepanelPage.keyboard.press(shortcut);
+    await expect.poll(async () => fixturePage.evaluate(() => document.visibilityState)).toBe('visible');
+
+    await sidepanelPage.bringToFront();
+    await sidepanelPage.keyboard.press('Control+k');
+    await expect(switcher).toBeVisible();
+
     const search = sidepanelPage.getByRole('searchbox', { name: 'Search open tabs' });
     await search.fill('hckr Test Fixture Page');
     await expect(switcher.locator('.tab-switcher-item')).toHaveCount(1);

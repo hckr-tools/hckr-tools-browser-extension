@@ -15,6 +15,28 @@ interface TabSwitcherProps {
   standalone?: boolean;
 }
 
+const MAX_NUMBER_SHORTCUTS = 9;
+
+function shortcutIndexForKey(key: string): number | null {
+  if (key >= '1' && key <= '9') {
+    return Number(key) - 1;
+  }
+  if (key === '0') {
+    return 9;
+  }
+  return null;
+}
+
+function shortcutLabelForIndex(index: number): string | null {
+  if (index >= 0 && index < MAX_NUMBER_SHORTCUTS) {
+    return String(index + 1);
+  }
+  if (index === 9) {
+    return '0';
+  }
+  return null;
+}
+
 const TabSwitcher: React.FC<TabSwitcherProps> = ({
   open,
   onClose,
@@ -102,8 +124,26 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
       if (tab) {
         void selectTab(tab.id);
       }
+      return;
     }
-  }, [filteredTabs, onClose, selectTab, selectedIndex]);
+
+    if (event.metaKey || event.ctrlKey || event.altKey) {
+      return;
+    }
+
+    const shortcutIndex = shortcutIndexForKey(event.key);
+    if (shortcutIndex === null || query.trim()) {
+      return;
+    }
+
+    const tab = filteredTabs[shortcutIndex];
+    if (!tab) {
+      return;
+    }
+
+    event.preventDefault();
+    void selectTab(tab.id);
+  }, [filteredTabs, onClose, query, selectTab, selectedIndex]);
 
   if (!open) {
     return null;
@@ -123,17 +163,17 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="tab-switcher-title"
-        onKeyDown={handleKeyDown}
+        onKeyDownCapture={handleKeyDown}
       >
         <div className="tab-switcher-header">
-          <p id="tab-switcher-title" className="tab-switcher-kicker">hckr-tools tab switcher</p>
+          <h2 id="tab-switcher-title" className="tab-switcher-sr-only">hckr-tools tab switcher</h2>
           <input
             ref={inputRef}
-            className="input tab-switcher-input"
+            className="tab-switcher-input"
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search open tabs"
+            placeholder="Search open tabs…"
             aria-label="Search open tabs"
             autoComplete="off"
           />
@@ -147,8 +187,14 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
           </p>
         )}
 
+        {filteredTabs.length > 0 && (
+          <p className="tab-switcher-section">Recent</p>
+        )}
+
         <div className="tab-switcher-list" role="listbox" aria-label="Open browser tabs">
-          {filteredTabs.map((tab, index) => (
+          {filteredTabs.map((tab, index) => {
+            const shortcut = query.trim() ? null : shortcutLabelForIndex(index);
+            return (
             <button
               key={tab.id}
               role="option"
@@ -161,18 +207,23 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
               <span className="tab-favicon">
                 <TabFavicon tab={tab} />
               </span>
-              <span className="tab-switcher-copy">
-                <span className="tab-switcher-title">{tab.title}</span>
+              <span className="tab-switcher-title">{tab.title}</span>
+              <span className="tab-switcher-meta">
                 <span className="tab-switcher-url">{tab.location || tab.url}</span>
+                {tab.active && <span className="tab-switcher-badge">Current</span>}
+                {shortcut && <span className="tab-switcher-shortcut">{shortcut}</span>}
               </span>
-              {tab.active && <span className="tab-switcher-badge">Current</span>}
             </button>
-          ))}
+            );
+          })}
         </div>
 
-        <p className="tab-switcher-hint">
-          <kbd>↑</kbd> <kbd>↓</kbd> to move · <kbd>Enter</kbd> to jump · <kbd>Esc</kbd> to close
-        </p>
+        <div className="tab-switcher-hint">
+          <span><span className="tab-switcher-hint-key">1–9</span> Jump</span>
+          <span><span className="tab-switcher-hint-key">↑↓</span> Select</span>
+          <span><span className="tab-switcher-hint-key">↵</span> Open</span>
+          <span><span className="tab-switcher-hint-key">esc</span> Close</span>
+        </div>
       </div>
     </div>
   );

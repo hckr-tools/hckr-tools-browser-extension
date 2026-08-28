@@ -164,6 +164,7 @@ hckr-browser-ext/
 | :--- | :--- |
 | <kbd>Alt</kbd> + <kbd>Q</kbd> | Switch to the previously active tab in the current window |
 | <kbd>⌘</kbd> + <kbd>K</kbd> / <kbd>Ctrl</kbd> + <kbd>K</kbd> | Open the hckr-tools tab switcher |
+| <kbd>1</kbd>–<kbd>9</kbd> | Jump to that tab in the switcher (<kbd>1</kbd> is the most recently used) |
 
 *(You can customize shortcut keys at `chrome://extensions/shortcuts`. Chrome may reserve <kbd>Ctrl</kbd>+<kbd>K</kbd> for the address bar on some platforms; assign it there if the default does not take effect.)*
 
