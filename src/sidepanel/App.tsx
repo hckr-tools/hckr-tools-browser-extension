@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import TabBar, { ToolTab } from './components/TabBar';
+import TabSwitcher from './components/TabSwitcher';
 import { loadPreferences, savePreferences, getPendingInput } from '../shared/storage';
+import { isOpenTabSwitcherHotkey } from '../shared/browserTabs';
 import './App.css';
 
 // Lazy-load all tools for fast initial load
@@ -52,6 +54,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [initialInput, setInitialInput] = useState<string | undefined>(undefined);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [tabSwitcherOpen, setTabSwitcherOpen] = useState(false);
 
   // Load saved active tool and theme on mount
   useEffect(() => {
@@ -104,6 +107,20 @@ const App: React.FC = () => {
     await savePreferences({ theme: nextTheme });
   }, [theme]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isOpenTabSwitcherHotkey(event)) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      setTabSwitcherOpen((open) => !open);
+    };
+
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, []);
+
   const ActiveComponent = TOOL_COMPONENTS[activeToolId];
 
   if (!isLoaded) {
@@ -130,6 +147,7 @@ const App: React.FC = () => {
           </Suspense>
         </div>
       </main>
+      <TabSwitcher open={tabSwitcherOpen} onClose={() => setTabSwitcherOpen(false)} />
     </div>
   );
 };

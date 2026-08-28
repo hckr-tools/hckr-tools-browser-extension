@@ -31,6 +31,13 @@
         "mac": "Alt+Q"
       },
       "description": "Switch to previously active tab"
+    },
+    "open-tab-switcher": {
+      "suggested_key": {
+        "default": "Ctrl+K",
+        "mac": "Command+K"
+      },
+      "description": "Open the hckr-tools tab switcher"
     }
   }
 }

@@ -1,5 +1,12 @@
 /// <reference types="chrome" />
 
+import {
+  getTabHistory,
+  MAX_HISTORY_PER_WINDOW,
+  saveTabHistory,
+  sortTabsByLastUsed,
+} from './shared/tabHistory';
+
 const APP_PATH = 'src/sidepanel/index.html';
 
 /**
@@ -30,6 +37,66 @@ async function openOrFocusAppTab(targetToolId?: string, text?: string): Promise<
   }
 }
 
+const SWITCHER_POPUP_WIDTH = 560;
+const SWITCHER_POPUP_HEIGHT = 520;
+let switcherOpenInFlight = false;
+
+/**
+ * Open or focus the Cmd+K tab jump palette over the last used browser window.
+ */
+async function openTabSwitcher(): Promise<void> {
+  if (switcherOpenInFlight) {
+    return;
+  }
+  switcherOpenInFlight = true;
+
+  try {
+    const focusedWindow = await chrome.windows.getLastFocused();
+    const appUrl = chrome.runtime.getURL(APP_PATH);
+    const switcherMarker = 'switcher=1';
+
+    if (focusedWindow.type !== 'popup') {
+      const [activeTab] = await chrome.tabs.query({
+        active: true,
+        windowId: focusedWindow.id,
+      });
+      if (activeTab?.url?.startsWith(appUrl) && !activeTab.url.includes(switcherMarker)) {
+        return;
+      }
+    }
+
+    const allTabs = await chrome.tabs.query({});
+    const existingSwitcher = allTabs.find((tab) => tab.url?.startsWith(appUrl) && tab.url.includes(switcherMarker));
+
+    if (existingSwitcher?.windowId) {
+      await chrome.windows.update(existingSwitcher.windowId, { focused: true });
+      return;
+    }
+
+    const sourceWindow = focusedWindow.type === 'normal'
+      ? focusedWindow
+      : await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+    const windowId = sourceWindow.id;
+    const left = Math.round((sourceWindow.left ?? 0) + ((sourceWindow.width ?? SWITCHER_POPUP_WIDTH) - SWITCHER_POPUP_WIDTH) / 2);
+    const top = Math.round((sourceWindow.top ?? 0) + 96);
+    const switcherUrl = `${appUrl}?${switcherMarker}${windowId ? `&windowId=${windowId}` : ''}`;
+
+    await chrome.windows.create({
+      url: switcherUrl,
+      type: 'popup',
+      width: SWITCHER_POPUP_WIDTH,
+      height: SWITCHER_POPUP_HEIGHT,
+      focused: true,
+      left: Math.max(left, sourceWindow.left ?? 0),
+      top: Math.max(top, sourceWindow.top ?? 0),
+    });
+  } catch (err) {
+    console.error('Failed to open tab switcher:', err);
+  } finally {
+    switcherOpenInFlight = false;
+  }
+}
+
 // Open full-page tab when extension icon is clicked
 chrome.action.onClicked.addListener(async () => {
   await openOrFocusAppTab();
@@ -37,6 +104,7 @@ chrome.action.onClicked.addListener(async () => {
 
 // Register context menu items on install
 chrome.runtime.onInstalled.addListener(() => {
+  void hydrateTabHistory();
   const menuItems = [
     { id: 'hckr-format-json', title: 'hckr: Format JSON' },
     { id: 'hckr-decode-base64', title: 'hckr: Decode Base64' },
@@ -85,38 +153,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true; // keeps channel open for async response
   }
+
+  if (message.type === 'OPEN_TAB_SWITCHER') {
+    (async () => {
+      await openTabSwitcher();
+      sendResponse({ success: true });
+    })();
+    return true;
+  }
 });
 
 /* ==========================================================================
    Tab Switcher (Previous Active Tab Toggle)
    ========================================================================== */
-
-const sessionStorageArea = chrome.storage?.session ?? chrome.storage?.local;
-const TAB_HISTORY_KEY = 'hckr_tab_history';
-const MAX_HISTORY_PER_WINDOW = 10;
-
-/**
- * Load tab history map (windowId -> tabId[]) from session storage.
- */
-async function getTabHistory(): Promise<Record<number, number[]>> {
-  try {
-    const result = await sessionStorageArea.get(TAB_HISTORY_KEY);
-    return (result[TAB_HISTORY_KEY] as Record<number, number[]>) || {};
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Save tab history map to session storage.
- */
-async function saveTabHistory(history: Record<number, number[]>): Promise<void> {
-  try {
-    await sessionStorageArea.set({ [TAB_HISTORY_KEY]: history });
-  } catch (err) {
-    console.error('Failed to save tab history:', err);
-  }
-}
 
 /**
  * Record a tab activation event into the window's MRU stack.
@@ -124,17 +173,33 @@ async function saveTabHistory(history: Record<number, number[]>): Promise<void> 
 async function recordTabActivation(windowId: number, tabId: number): Promise<void> {
   const history = await getTabHistory();
   const currentStack = history[windowId] || [];
-  const updatedStack = [tabId, ...currentStack.filter((id) => id !== tabId)].slice(
+  history[windowId] = [tabId, ...currentStack.filter((id) => id !== tabId)].slice(
     0,
     MAX_HISTORY_PER_WINDOW
   );
-  history[windowId] = updatedStack;
   await saveTabHistory(history);
 }
 
-/**
- * Remove a closed or replaced tab from history.
- */
+async function hydrateTabHistory(): Promise<void> {
+  const windows = await chrome.windows.getAll({ populate: true });
+  const history = await getTabHistory();
+
+  for (const win of windows) {
+    if (win.id === undefined || !win.tabs) {
+      continue;
+    }
+
+    const knownOrder = history[win.id] || [];
+    history[win.id] = sortTabsByLastUsed(
+      win.tabs.filter((tab) => tab.id !== undefined),
+      knownOrder
+    )
+      .map((tab) => tab.id)
+      .filter((tabId): tabId is number => tabId !== undefined);
+  }
+
+  await saveTabHistory(history);
+}
 async function removeTabFromHistory(tabId: number, windowId?: number): Promise<void> {
   const history = await getTabHistory();
   if (windowId && history[windowId]) {
@@ -229,7 +294,12 @@ chrome.windows.onRemoved.addListener(async (windowId) => {
 // Handle keyboard shortcuts
 chrome.commands.onCommand.addListener((command) => {
   if (command === 'switch-to-previous-tab') {
-    switchToPreviousTab();
+    void switchToPreviousTab();
+  }
+  if (command === 'open-tab-switcher') {
+    void openTabSwitcher();
   }
 });
+
+void hydrateTabHistory();
 

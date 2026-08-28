@@ -111,10 +111,27 @@ function createWidget(detection: Detection): void {
   detection.element.appendChild(widget);
 }
 
+function isTabSwitcherHotkey(event: KeyboardEvent): boolean {
+  return (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k' && !event.altKey && !event.shiftKey;
+}
+
+function initTabSwitcherHotkey(): void {
+  window.addEventListener('keydown', (event) => {
+    if (!isTabSwitcherHotkey(event)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    chrome.runtime.sendMessage({ type: 'OPEN_TAB_SWITCHER' });
+  }, true);
+}
+
 // Run detection after page is idle
 function init(): void {
   // Only run on http/https or file pages
   if (!location.protocol.startsWith('http') && location.protocol !== 'file:') return;
+
+  initTabSwitcherHotkey();
 
   const detections = detectContent();
 

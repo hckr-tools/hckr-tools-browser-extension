@@ -131,4 +131,71 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await expect(previewPane.locator('em').first()).toHaveText('italic');
     await expect(previewPane.locator('code').first()).toHaveText('code');
   });
+
+  test('Tabs navigator: lists open tabs and filters by title', async ({
+    sidepanelPage,
+    context,
+    serverUrl,
+  }) => {
+    const fixturePage = await context.newPage();
+    await fixturePage.goto(serverUrl);
+    await expect(fixturePage).toHaveTitle('hckr Test Fixture Page');
+
+    await sidepanelPage.locator('.tab-item', { hasText: 'Tabs' }).click();
+    await expect(sidepanelPage.locator('.tabs-navigator')).toBeVisible();
+
+    const filter = sidepanelPage.getByRole('searchbox', { name: 'Filter open tabs' });
+    await expect(filter).toBeVisible();
+    await expect(sidepanelPage.locator('.browser-tab', { hasText: 'hckr Test Fixture Page' })).toBeVisible();
+
+    await filter.fill('hckr Test Fixture Page');
+    await expect(sidepanelPage.locator('.browser-tab')).toHaveCount(1);
+    await expect(sidepanelPage.locator('.browser-tab-title')).toHaveText('hckr Test Fixture Page');
+    await expect(sidepanelPage.locator('.browser-tab-url')).toContainText('127.0.0.1');
+
+    await sidepanelPage.locator('.browser-tab', { hasText: 'hckr Test Fixture Page' }).click();
+    await expect.poll(async () => fixturePage.evaluate(() => document.visibilityState)).toBe('visible');
+    await sidepanelPage.bringToFront();
+
+    await filter.fill('zzzz-no-such-tab');
+    await expect(sidepanelPage.locator('.browser-tab')).toHaveCount(0);
+    await expect(sidepanelPage.locator('.tabs-message')).toContainText('No tabs match');
+
+    await fixturePage.close();
+  });
+
+  test('Tabs navigator: lists tabs in last-used order', async ({
+    sidepanelPage,
+    context,
+    serverUrl,
+  }) => {
+    const firstPage = await context.newPage();
+    await firstPage.goto(serverUrl);
+    await firstPage.evaluate(() => {
+      document.title = 'MRU First Tab';
+    });
+    await expect(firstPage).toHaveTitle('MRU First Tab');
+
+    const secondPage = await context.newPage();
+    await secondPage.goto(serverUrl);
+    await secondPage.evaluate(() => {
+      document.title = 'MRU Second Tab';
+    });
+    await expect(secondPage).toHaveTitle('MRU Second Tab');
+
+    await firstPage.bringToFront();
+    await secondPage.bringToFront();
+    await sidepanelPage.bringToFront();
+
+    await sidepanelPage.locator('.tab-item', { hasText: 'Tabs' }).click();
+    const titles = sidepanelPage.locator('.browser-tab-title');
+    await expect.poll(async () => titles.allTextContents()).toEqual(
+      expect.arrayContaining(['MRU Second Tab', 'MRU First Tab'])
+    );
+    const listed = await titles.allTextContents();
+    expect(listed.indexOf('MRU Second Tab')).toBeLessThan(listed.indexOf('MRU First Tab'));
+
+    await firstPage.close();
+    await secondPage.close();
+  });
 });

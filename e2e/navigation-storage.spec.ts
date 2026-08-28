@@ -54,6 +54,32 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(sidepanelPage.locator('.tabs-navigator')).toBeVisible();
     await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Jump between tabs');
     await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Alt + Q');
+    await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Ctrl');
+  });
+
+  test('opens the tab switcher with Control+K, filters tabs, and closes with Escape', async ({
+    sidepanelPage,
+    context,
+    serverUrl,
+  }) => {
+    const fixturePage = await context.newPage();
+    await fixturePage.goto(serverUrl);
+    await expect(fixturePage).toHaveTitle('hckr Test Fixture Page');
+    await sidepanelPage.bringToFront();
+
+    await sidepanelPage.keyboard.press('Control+k');
+    const switcher = sidepanelPage.getByRole('dialog', { name: 'hckr-tools tab switcher' });
+    await expect(switcher).toBeVisible();
+
+    const search = sidepanelPage.getByRole('searchbox', { name: 'Search open tabs' });
+    await search.fill('hckr Test Fixture Page');
+    await expect(switcher.locator('.tab-switcher-item')).toHaveCount(1);
+    await expect(switcher.locator('.tab-switcher-title')).toHaveText('hckr Test Fixture Page');
+
+    await sidepanelPage.keyboard.press('Escape');
+    await expect(switcher).toHaveCount(0);
+
+    await fixturePage.close();
   });
 
   test('persists active tool preference across side panel reloads', async ({

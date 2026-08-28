@@ -4,6 +4,7 @@
 
 export type MessageType =
   | 'SEND_TO_TOOL'
+  | 'OPEN_TAB_SWITCHER'
   | 'TOOL_OPENED'
   | 'PING';
 
