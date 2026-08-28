@@ -10,11 +10,13 @@
     "service_worker": "service-worker.js",
     "type": "module"
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content/detector.js"],
-      "css": ["content/widget.css"],
       "run_at": "document_idle"
     }
   ],

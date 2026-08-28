@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { readFileSync } from 'node:fs';
 
 test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', () => {
   test('JWT Decoder: decodes valid and expired JWT tokens and shows claims', async ({
@@ -67,30 +68,47 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await expect(sidepanelPage.locator('.regex-match-status')).toContainText('2 matches found');
   });
 
-  test('Dummy Data Generator: generates placeholder names, emails, and lorem ipsum', async ({
+  test('Data workspace generates an editable tabular email dataset', async ({
     sidepanelPage,
   }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
     await expect(sidepanelPage.locator('.dummy-data-tool')).toBeVisible();
 
-    // 1. Select Emails
     const emailsBtn = sidepanelPage.locator('button.dummy-type-btn', { hasText: 'Emails' });
     await emailsBtn.click();
 
-    // 2. Select Count = 5 using exact button matching
-    const count5Chip = sidepanelPage.locator('.dummy-presets').getByRole('button', { name: '5', exact: true });
-    if (await count5Chip.isVisible()) {
-      await count5Chip.click();
-    }
+    await sidepanelPage.locator('input.data-count-input').fill('5');
 
-    // 3. Click Generate
-    const generateBtn = sidepanelPage.locator('button', { hasText: 'Generate' });
+    const generateBtn = sidepanelPage.getByRole('button', { name: 'Generate 5 rows' });
     await generateBtn.click();
 
-    const items = sidepanelPage.locator('.dummy-list-item');
+    const items = sidepanelPage.locator('.data-table tbody tr');
     await expect(items).toHaveCount(5);
-    const firstEmail = await items.first().locator('.dummy-item-content').innerText();
+    const firstEmail = await items.first().locator('td').innerText();
     expect(firstEmail).toContain('@');
+  });
+
+  test('Data workspace exports and reads back an Avro dataset', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
+    await sidepanelPage.locator('input.data-count-input').fill('2');
+    await sidepanelPage.getByRole('button', { name: 'Generate 2 rows' }).click();
+
+    const avroDownloadPromise = sidepanelPage.waitForEvent('download');
+    await sidepanelPage.getByRole('button', { name: '↓ AVRO' }).click();
+    const avroDownload = await avroDownloadPromise;
+    expect(avroDownload.suggestedFilename()).toBe('generated-data.avro');
+
+    await sidepanelPage.getByRole('button', { name: 'Read files' }).click();
+    const avroPath = await avroDownload.path();
+    expect(avroPath).not.toBeNull();
+    await sidepanelPage.locator('input.data-file-input').setInputFiles({
+      name: 'generated-data.avro',
+      mimeType: 'application/avro',
+      buffer: readFileSync(avroPath!),
+    });
+    await expect(sidepanelPage.locator('.data-file-summary')).toContainText('Avro');
+    await expect(sidepanelPage.locator('.data-table tbody tr')).toHaveCount(2);
+
   });
 
   test('Diff Checker: computes line-by-line diff between original and modified text', async ({

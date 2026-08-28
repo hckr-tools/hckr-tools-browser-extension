@@ -18,6 +18,8 @@
   max-height: none;
   flex: 1;
 }
+
+.json-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -1,675 +1,117 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { tableFromArrays, tableFromIPC, tableToIPC } from 'apache-arrow';
+import initParquet, { Table as ParquetTable, readParquet, writeParquet } from 'parquet-wasm/esm';
+import parquetWasmUrl from 'parquet-wasm/esm/parquet_wasm_bg.wasm?url';
 import { copyToClipboard } from '../../shared/clipboard';
 import './DummyDataGenerator.css';
 
-interface DummyDataGeneratorProps {
-  initialInput?: string;
-}
+type FieldKind = 'name' | 'email' | 'phone' | 'address' | 'number' | 'lorem' | 'uuid' | 'boolean' | 'date' | 'datetime';
+type ExportFormat = 'csv' | 'json' | 'ndjson' | 'avro' | 'parquet' | 'javascript' | 'typescript' | 'python' | 'java' | 'scala' | 'spark-scala' | 'spark-pyspark' | 'sql';
+type DataField = { id: string; name: string; kind: FieldKind };
+type DataRow = Record<string, string | number | boolean>;
+type LoadedData = { name: string; format: 'Avro' | 'Parquet'; rows: DataRow[]; fields: string[]; size: number };
 
-type DataType = 'lorem' | 'names' | 'emails' | 'phones' | 'addresses' | 'numbers';
-type LoremSubtype = 'words' | 'sentences' | 'paragraphs';
-type NameSubtype = 'full' | 'first' | 'last';
-type PhoneFormat = 'us' | 'international' | 'dashed' | 'digits';
-type AddressSubtype = 'full' | 'street' | 'city-state-zip';
-type NumberType = 'integer' | 'decimal';
-
-// --- Data Pools ---
-const LOREM_WORDS = [
-  'ad', 'adipiscing', 'aliqua', 'aliquip', 'amet', 'anim', 'aute', 'cillum',
-  'commodo', 'consectetur', 'consequat', 'culpa', 'cupidatat', 'deserunt', 'do',
-  'dolor', 'dolore', 'duis', 'ea', 'eiusmod', 'elit', 'enim', 'esse',
-  'est', 'et', 'eu', 'ex', 'excepteur', 'exercitation', 'fugiat', 'id',
-  'in', 'incididunt', 'ipsum', 'irure', 'labore', 'laboris', 'laborum', 'lorem',
-  'magna', 'minim', 'mollit', 'nisi', 'non', 'nostrud', 'nulla', 'occaecat',
-  'officia', 'pariatur', 'proident', 'qui', 'quis', 'reprehenderit', 'sed', 'sint',
-  'sit', 'sunt', 'tempor', 'ullamco', 'ut', 'velit', 'veniam', 'voluptate'
+const MAX_ROWS = 10000;
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const PAGE_SIZE = 25;
+const FIRST_NAMES = ['Amelia', 'Noah', 'Olivia', 'Liam', 'Emma', 'Ethan', 'Ava', 'Oliver', 'Maya', 'Henry'];
+const LAST_NAMES = ['Patel', 'Kim', 'Garcia', 'Miller', 'Wilson', 'Zhang', 'Brooks', 'Quinn', 'Carter', 'Morgan'];
+const DOMAINS = ['example.com', 'test.dev', 'mail.local', 'sample.io'];
+const STREETS = ['Maple St', 'Oak Avenue', 'Cedar Road', 'Lake Drive', 'Park Lane'];
+const CITIES = ['Seattle, WA', 'Austin, TX', 'Boston, MA', 'Denver, CO', 'Miami, FL'];
+const LOREM = ['lorem ipsum', 'developer tools', 'sample record', 'local data', 'quick brown fox'];
+const FIELD_OPTIONS: { kind: FieldKind; label: string }[] = [
+  { kind: 'name', label: 'Full name' }, { kind: 'email', label: 'Email' }, { kind: 'phone', label: 'Phone' }, { kind: 'address', label: 'Address' }, { kind: 'number', label: 'Number' }, { kind: 'lorem', label: 'Text' }, { kind: 'uuid', label: 'UUID' }, { kind: 'boolean', label: 'Boolean' }, { kind: 'date', label: 'ISO date' }, { kind: 'datetime', label: 'ISO datetime' },
 ];
-
-const FIRST_NAMES = [
-  'Alexander', 'Amelia', 'Benjamin', 'Charlotte', 'Daniel', 'Eleanor', 'Ethan',
-  'Emma', 'Gabriel', 'Grace', 'Henry', 'Hannah', 'Isaac', 'Isabella',
-  'Jack', 'Julia', 'Liam', 'Lucas', 'Maya', 'Mason', 'Noah', 'Nora',
-  'Oliver', 'Olivia', 'Peter', 'Penelope', 'Quinn', 'Rachel', 'Samuel',
-  'Sophia', 'Thomas', 'Victoria', 'William', 'Zoe', 'Adrian', 'Clara',
-  'Julian', 'Elena', 'Marcus', 'Stella', 'Leo', 'Ava', 'Nathan', 'Chloe'
+const STARTER_SCHEMAS: { label: string; fields: Omit<DataField, 'id'>[] }[] = [
+  { label: 'Names', fields: [{ name: 'name', kind: 'name' }] }, { label: 'Emails', fields: [{ name: 'email', kind: 'email' }] }, { label: 'Contact', fields: [{ name: 'name', kind: 'name' }, { name: 'email', kind: 'email' }, { name: 'phone', kind: 'phone' }] }, { label: 'Person', fields: [{ name: 'id', kind: 'uuid' }, { name: 'name', kind: 'name' }, { name: 'email', kind: 'email' }, { name: 'created_at', kind: 'datetime' }] },
 ];
-
-const LAST_NAMES = [
-  'Anderson', 'Baker', 'Carter', 'Davis', 'Evans', 'Foster', 'Garcia',
-  'Harris', 'Jackson', 'Johnson', 'Kim', 'Lee', 'Martin', 'Miller',
-  'Nelson', "O'Connor", 'Patel', 'Parker', 'Quinn', 'Reed', 'Roberts',
-  'Smith', 'Taylor', 'Thomas', 'Turner', 'Walker', 'White', 'Williams',
-  'Wilson', 'Wright', 'Young', 'Zhang', 'Brooks', 'Cooper', 'Morgan',
-  'Murphy', 'Price', 'Ross', 'Sanders', 'Wood'
-];
-
-const DOMAINS = [
-  'example.com', 'mail.com', 'test.org', 'devmail.io', 'domain.net',
-  'company.co', 'inbox.dev', 'techcorp.io', 'webmail.app', 'cloudnet.org',
-  'sample.co', 'fastmail.dev', 'appdev.net', 'coderhub.org'
-];
-
-const STREET_NAMES = [
-  'Maple', 'Oak', 'Pine', 'Cedar', 'Elm', 'Washington', 'Lake', 'Hill',
-  'Park', 'Main', 'Market', 'Chestnut', 'Walnut', 'Highland', 'Sunset',
-  'Spring', 'Willow', 'Lincoln', 'Madison', 'Jackson', 'River', 'Forest',
-  'Valley', 'Meadow', 'Broad', 'Church', 'Center', 'North', 'Ridge', 'Beacon'
-];
-
-const STREET_SUFFIXES = ['St', 'Ave', 'Blvd', 'Rd', 'Dr', 'Ln', 'Way', 'Ct', 'Pl', 'Terrace'];
-
-const CITIES_AND_STATES = [
-  { city: 'New York', state: 'NY', zipPrefix: '100' },
-  { city: 'Los Angeles', state: 'CA', zipPrefix: '900' },
-  { city: 'Chicago', state: 'IL', zipPrefix: '606' },
-  { city: 'Houston', state: 'TX', zipPrefix: '770' },
-  { city: 'Phoenix', state: 'AZ', zipPrefix: '850' },
-  { city: 'Philadelphia', state: 'PA', zipPrefix: '191' },
-  { city: 'San Antonio', state: 'TX', zipPrefix: '782' },
-  { city: 'San Diego', state: 'CA', zipPrefix: '921' },
-  { city: 'Dallas', state: 'TX', zipPrefix: '752' },
-  { city: 'Austin', state: 'TX', zipPrefix: '787' },
-  { city: 'San Jose', state: 'CA', zipPrefix: '951' },
-  { city: 'Seattle', state: 'WA', zipPrefix: '981' },
-  { city: 'Denver', state: 'CO', zipPrefix: '802' },
-  { city: 'Boston', state: 'MA', zipPrefix: '021' },
-  { city: 'Portland', state: 'OR', zipPrefix: '972' },
-  { city: 'Atlanta', state: 'GA', zipPrefix: '303' },
-  { city: 'Miami', state: 'FL', zipPrefix: '331' },
-  { city: 'San Francisco', state: 'CA', zipPrefix: '941' },
-  { city: 'Nashville', state: 'TN', zipPrefix: '372' },
-  { city: 'Minneapolis', state: 'MN', zipPrefix: '554' }
-];
-
-const AREA_CODES = ['212', '310', '415', '617', '312', '702', '512', '206', '303', '404', '718', '650'];
-
-// --- Helper Functions ---
-function getRandomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+const random = <T,>(values: readonly T[]): T => values[Math.floor(Math.random() * values.length)];
+const fieldId = () => `field-${crypto.randomUUID()}`;
+const cleanName = (name: string) => name.trim().replace(/[^A-Za-z0-9_]/g, '_');
+const csvEscape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const serializeCsv = (rows: DataRow[], fields: string[]) => [fields.map(csvEscape).join(','), ...rows.map((row) => fields.map((field) => csvEscape(row[field])).join(','))].join('\r\n');
+const serializeJson = (rows: DataRow[]) => JSON.stringify(rows, null, 2);
+const serializeNdjson = (rows: DataRow[]) => rows.map((row) => JSON.stringify(row)).join('\n');
+const codeFormats: ExportFormat[] = ['javascript', 'typescript', 'python', 'java', 'scala', 'spark-scala', 'spark-pyspark', 'sql'];
+const fieldType = (field: string, rows: DataRow[]) => {
+  const value = rows.find((row) => row[field] !== undefined)?.[field];
+  return typeof value === 'boolean' ? 'boolean' : typeof value === 'number' ? 'number' : 'string';
+};
+function serializeCode(rows: DataRow[], fields: string[], format: ExportFormat): string {
+  const json = JSON.stringify(rows, null, 2);
+  const values = (row: DataRow) => fields.map((field) => JSON.stringify(row[field])).join(', ');
+  const fieldNames = fields.map((field) => JSON.stringify(field)).join(', ');
+  if (format === 'javascript') return `const data = ${json};\n\nexport default data;\n`;
+  if (format === 'typescript') return `type Row = {\n${fields.map((field) => `  ${field}: ${fieldType(field, rows)};`).join('\n')}\n};\n\nconst data: Row[] = ${json};\n\nexport default data;\n`;
+  if (format === 'python') return `import json\n\ndata = json.loads('''${json.replace(/'/g, "\\'")}''')\n`;
+  if (format === 'java') return `// Jackson example\nString json = \"\"\"\n${json}\n\"\"\";\nList<Map<String, Object>> data = new ObjectMapper().readValue(json, new TypeReference<>() {});\n`;
+  if (format === 'scala') return `val data = Seq(\n${rows.map((row) => `  Map(${fields.map((field) => `${JSON.stringify(field)} -> ${JSON.stringify(String(row[field]))}`).join(', ')})`).join(',\n')}\n)\n`;
+  if (format === 'spark-scala') return `import org.apache.spark.sql.SparkSession\nimport spark.implicits._\n\nval data = Seq(\n${rows.map((row) => `  (${values(row)})`).join(',\n')}\n).toDF(${fieldNames})\n\ndata.show(false)\n`;
+  if (format === 'spark-pyspark') return `from pyspark.sql import SparkSession\n\nspark = SparkSession.builder.getOrCreate()\ndata = ${json}\ndf = spark.createDataFrame(data)\ndf.show(truncate=False)\n`;
+  if (format === 'sql') return `CREATE TABLE sample_data (\n${fields.map((field) => `  ${field} ${fieldType(field, rows) === 'number' ? 'DOUBLE' : fieldType(field, rows) === 'boolean' ? 'BOOLEAN' : 'VARCHAR(255)'}`).join(',\n')}\n);\n\n${rows.map((row) => `INSERT INTO sample_data (${fields.join(', ')}) VALUES (${fields.map((field) => typeof row[field] === 'string' ? `'${String(row[field]).replace(/'/g, "''")}'` : String(row[field])).join(', ')});`).join('\n')}\n`;
+  return json;
 }
-
-function getRandomItem<T>(arr: readonly T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function capitalize(str: string): string {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function generateLoremSentence(startWithLorem = false): string {
-  const wordCount = getRandomInt(7, 14);
-  const words: string[] = [];
-
-  if (startWithLorem) {
-    words.push('Lorem', 'ipsum', 'dolor', 'sit', 'amet');
-    while (words.length < wordCount) {
-      words.push(getRandomItem(LOREM_WORDS));
-    }
-  } else {
-    for (let i = 0; i < wordCount; i++) {
-      words.push(getRandomItem(LOREM_WORDS));
-    }
-    words[0] = capitalize(words[0]);
-  }
-
-  // Insert a comma in the middle occasionally for realism
-  if (words.length > 8 && Math.random() > 0.4) {
-    const commaPos = getRandomInt(3, words.length - 4);
-    words[commaPos] = words[commaPos] + ',';
-  }
-
-  return words.join(' ') + '.';
-}
-
-function generateLoremParagraph(isFirstParagraph = false): string {
-  const sentenceCount = getRandomInt(3, 6);
-  const sentences: string[] = [];
-
-  for (let i = 0; i < sentenceCount; i++) {
-    const isStart = isFirstParagraph && i === 0;
-    sentences.push(generateLoremSentence(isStart));
-  }
-
-  return sentences.join(' ');
-}
-
-export const DummyDataGenerator: React.FC<DummyDataGeneratorProps> = () => {
-  // Config state
-  const [dataType, setDataType] = useState<DataType>('lorem');
-  const [count, setCount] = useState<number>(5);
-
-  // Subtype configs
-  const [loremSubtype, setLoremSubtype] = useState<LoremSubtype>('paragraphs');
-  const [startWithLorem, setStartWithLorem] = useState<boolean>(true);
-  const [nameSubtype, setNameSubtype] = useState<NameSubtype>('full');
-  const [phoneFormat, setPhoneFormat] = useState<PhoneFormat>('us');
-  const [addressSubtype, setAddressSubtype] = useState<AddressSubtype>('full');
-  const [numberType, setNumberType] = useState<NumberType>('integer');
-  const [numMin, setNumMin] = useState<number>(1);
-  const [numMax, setNumMax] = useState<number>(100);
-  const [decimalPlaces, setDecimalPlaces] = useState<number>(2);
-
-  // Output items state
-  const [generatedItems, setGeneratedItems] = useState<string[]>([]);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-  // Generate data handler
-  const handleGenerate = useCallback(() => {
-    const safeCount = Math.max(1, Math.min(100, count || 1));
-    const items: string[] = [];
-
-    switch (dataType) {
-      case 'lorem': {
-        if (loremSubtype === 'words') {
-          for (let i = 0; i < safeCount; i++) {
-            items.push(getRandomItem(LOREM_WORDS));
-          }
-        } else if (loremSubtype === 'sentences') {
-          for (let i = 0; i < safeCount; i++) {
-            items.push(generateLoremSentence(startWithLorem && i === 0));
-          }
-        } else {
-          for (let i = 0; i < safeCount; i++) {
-            items.push(generateLoremParagraph(startWithLorem && i === 0));
-          }
-        }
-        break;
-      }
-      case 'names': {
-        for (let i = 0; i < safeCount; i++) {
-          const first = getRandomItem(FIRST_NAMES);
-          const last = getRandomItem(LAST_NAMES);
-          if (nameSubtype === 'first') {
-            items.push(first);
-          } else if (nameSubtype === 'last') {
-            items.push(last);
-          } else {
-            items.push(`${first} ${last}`);
-          }
-        }
-        break;
-      }
-      case 'emails': {
-        for (let i = 0; i < safeCount; i++) {
-          const first = getRandomItem(FIRST_NAMES).toLowerCase();
-          const last = getRandomItem(LAST_NAMES).toLowerCase().replace(/['\s]/g, '');
-          const domain = getRandomItem(DOMAINS);
-          const pattern = getRandomInt(1, 4);
-
-          let username = '';
-          if (pattern === 1) {
-            username = `${first}.${last}`;
-          } else if (pattern === 2) {
-            username = `${first[0]}${last}`;
-          } else if (pattern === 3) {
-            username = `${first}_${last}${getRandomInt(10, 99)}`;
-          } else {
-            username = `${first}${getRandomInt(100, 999)}`;
-          }
-
-          items.push(`${username}@${domain}`);
-        }
-        break;
-      }
-      case 'phones': {
-        for (let i = 0; i < safeCount; i++) {
-          const area = getRandomItem(AREA_CODES);
-          const prefix = String(getRandomInt(200, 999));
-          const line = String(getRandomInt(1000, 9999));
-
-          if (phoneFormat === 'us') {
-            items.push(`(${area}) ${prefix}-${line}`);
-          } else if (phoneFormat === 'international') {
-            items.push(`+1 (${area}) ${prefix}-${line}`);
-          } else if (phoneFormat === 'dashed') {
-            items.push(`${area}-${prefix}-${line}`);
-          } else {
-            items.push(`+1${area}${prefix}${line}`);
-          }
-        }
-        break;
-      }
-      case 'addresses': {
-        for (let i = 0; i < safeCount; i++) {
-          const streetNum = getRandomInt(100, 9999);
-          const streetName = getRandomItem(STREET_NAMES);
-          const streetSuffix = getRandomItem(STREET_SUFFIXES);
-          const location = getRandomItem(CITIES_AND_STATES);
-          const zipLast = String(getRandomInt(10, 99));
-          const zip = `${location.zipPrefix}${zipLast}`;
-
-          if (addressSubtype === 'street') {
-            items.push(`${streetNum} ${streetName} ${streetSuffix}`);
-          } else if (addressSubtype === 'city-state-zip') {
-            items.push(`${location.city}, ${location.state} ${zip}`);
-          } else {
-            items.push(`${streetNum} ${streetName} ${streetSuffix}, ${location.city}, ${location.state} ${zip}`);
-          }
-        }
-        break;
-      }
-      case 'numbers': {
-        const minVal = Math.min(numMin, numMax);
-        const maxVal = Math.max(numMin, numMax);
-        for (let i = 0; i < safeCount; i++) {
-          if (numberType === 'integer') {
-            items.push(String(getRandomInt(minVal, maxVal)));
-          } else {
-            const rawVal = Math.random() * (maxVal - minVal) + minVal;
-            items.push(rawVal.toFixed(decimalPlaces));
-          }
-        }
-        break;
-      }
-    }
-
-    setGeneratedItems(items);
-  }, [
-    dataType,
-    count,
-    loremSubtype,
-    startWithLorem,
-    nameSubtype,
-    phoneFormat,
-    addressSubtype,
-    numberType,
-    numMin,
-    numMax,
-    decimalPlaces,
-  ]);
-
-  // Initial generation on mount
-  useEffect(() => {
-    handleGenerate();
-  }, [handleGenerate]);
-
-  // Copy all handler
-  const handleCopyAll = useCallback(() => {
-    if (generatedItems.length === 0) return;
-    const delimiter = dataType === 'lorem' && loremSubtype === 'paragraphs' ? '\n\n' : '\n';
-    const textToCopy = generatedItems.join(delimiter);
-    copyToClipboard(textToCopy);
-  }, [generatedItems, dataType, loremSubtype]);
-
-  // Copy single item handler
-  const handleCopyItem = useCallback((item: string, index: number) => {
-    copyToClipboard(item);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 1500);
-  }, []);
-
-  // Clear handler
-  const handleClear = useCallback(() => {
-    setGeneratedItems([]);
-  }, []);
-
-  const countPresets = useMemo(() => [1, 5, 10, 25, 50], []);
-
-  return (
-    <div className="tool-container dummy-data-tool">
-      {/* Type Selector */}
-      <div className="section">
-        <label className="label">Data Category</label>
-        <div className="dummy-category-grid">
-          <button
-            type="button"
-            className={`dummy-type-btn ${dataType === 'lorem' ? 'active' : ''}`}
-            onClick={() => setDataType('lorem')}
-          >
-            <span className="dummy-type-icon">📝</span>
-            <span>Lorem Ipsum</span>
-          </button>
-          <button
-            type="button"
-            className={`dummy-type-btn ${dataType === 'names' ? 'active' : ''}`}
-            onClick={() => setDataType('names')}
-          >
-            <span className="dummy-type-icon">👤</span>
-            <span>Names</span>
-          </button>
-          <button
-            type="button"
-            className={`dummy-type-btn ${dataType === 'emails' ? 'active' : ''}`}
-            onClick={() => setDataType('emails')}
-          >
-            <span className="dummy-type-icon">✉️</span>
-            <span>Emails</span>
-          </button>
-          <button
-            type="button"
-            className={`dummy-type-btn ${dataType === 'phones' ? 'active' : ''}`}
-            onClick={() => setDataType('phones')}
-          >
-            <span className="dummy-type-icon">📞</span>
-            <span>Phone</span>
-          </button>
-          <button
-            type="button"
-            className={`dummy-type-btn ${dataType === 'addresses' ? 'active' : ''}`}
-            onClick={() => setDataType('addresses')}
-          >
-            <span className="dummy-type-icon">🏠</span>
-            <span>Addresses</span>
-          </button>
-          <button
-            type="button"
-            className={`dummy-type-btn ${dataType === 'numbers' ? 'active' : ''}`}
-            onClick={() => setDataType('numbers')}
-          >
-            <span className="dummy-type-icon">🔢</span>
-            <span>Numbers</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Category Specific Options */}
-      <div className="section dummy-options-section">
-        <label className="label">Options</label>
-
-        {dataType === 'lorem' && (
-          <div className="dummy-opt-row">
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${loremSubtype === 'paragraphs' ? 'active' : ''}`}
-                onClick={() => setLoremSubtype('paragraphs')}
-              >
-                Paragraphs
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${loremSubtype === 'sentences' ? 'active' : ''}`}
-                onClick={() => setLoremSubtype('sentences')}
-              >
-                Sentences
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${loremSubtype === 'words' ? 'active' : ''}`}
-                onClick={() => setLoremSubtype('words')}
-              >
-                Words
-              </button>
-            </div>
-
-            {loremSubtype !== 'words' && (
-              <label className="dummy-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={startWithLorem}
-                  onChange={(e) => setStartWithLorem(e.target.checked)}
-                />
-                <span>Start with &quot;Lorem ipsum&quot;</span>
-              </label>
-            )}
-          </div>
-        )}
-
-        {dataType === 'names' && (
-          <div className="dummy-opt-row">
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${nameSubtype === 'full' ? 'active' : ''}`}
-                onClick={() => setNameSubtype('full')}
-              >
-                Full Name
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${nameSubtype === 'first' ? 'active' : ''}`}
-                onClick={() => setNameSubtype('first')}
-              >
-                First Name
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${nameSubtype === 'last' ? 'active' : ''}`}
-                onClick={() => setNameSubtype('last')}
-              >
-                Last Name
-              </button>
-            </div>
-          </div>
-        )}
-
-        {dataType === 'emails' && (
-          <div className="dummy-opt-row">
-            <span className="dummy-hint-text">
-              Generates randomized developer & corporate emails from human names.
-            </span>
-          </div>
-        )}
-
-        {dataType === 'phones' && (
-          <div className="dummy-opt-row">
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${phoneFormat === 'us' ? 'active' : ''}`}
-                onClick={() => setPhoneFormat('us')}
-              >
-                (555) 123-4567
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${phoneFormat === 'international' ? 'active' : ''}`}
-                onClick={() => setPhoneFormat('international')}
-              >
-                +1 (555)...
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${phoneFormat === 'dashed' ? 'active' : ''}`}
-                onClick={() => setPhoneFormat('dashed')}
-              >
-                555-123-4567
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${phoneFormat === 'digits' ? 'active' : ''}`}
-                onClick={() => setPhoneFormat('digits')}
-              >
-                +15551234567
-              </button>
-            </div>
-          </div>
-        )}
-
-        {dataType === 'addresses' && (
-          <div className="dummy-opt-row">
-            <div className="toggle-group">
-              <button
-                type="button"
-                className={`toggle-btn ${addressSubtype === 'full' ? 'active' : ''}`}
-                onClick={() => setAddressSubtype('full')}
-              >
-                Full Address
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${addressSubtype === 'street' ? 'active' : ''}`}
-                onClick={() => setAddressSubtype('street')}
-              >
-                Street Only
-              </button>
-              <button
-                type="button"
-                className={`toggle-btn ${addressSubtype === 'city-state-zip' ? 'active' : ''}`}
-                onClick={() => setAddressSubtype('city-state-zip')}
-              >
-                City, State, Zip
-              </button>
-            </div>
-          </div>
-        )}
-
-        {dataType === 'numbers' && (
-          <div className="dummy-opt-row flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <div className="toggle-group">
-                <button
-                  type="button"
-                  className={`toggle-btn ${numberType === 'integer' ? 'active' : ''}`}
-                  onClick={() => setNumberType('integer')}
-                >
-                  Integer
-                </button>
-                <button
-                  type="button"
-                  className={`toggle-btn ${numberType === 'decimal' ? 'active' : ''}`}
-                  onClick={() => setNumberType('decimal')}
-                >
-                  Decimal
-                </button>
-              </div>
-
-              {numberType === 'decimal' && (
-                <div className="flex items-center gap-2">
-                  <span className="dummy-field-label">Decimals:</span>
-                  <input
-                    type="number"
-                    min={1}
-                    max={6}
-                    value={decimalPlaces}
-                    onChange={(e) => setDecimalPlaces(Math.max(1, Math.min(6, parseInt(e.target.value) || 2)))}
-                    className="input dummy-num-input"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <span className="dummy-field-label">Min:</span>
-                <input
-                  type="number"
-                  value={numMin}
-                  onChange={(e) => setNumMin(parseInt(e.target.value) || 0)}
-                  className="input dummy-num-input"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="dummy-field-label">Max:</span>
-                <input
-                  type="number"
-                  value={numMax}
-                  onChange={(e) => setNumMax(parseInt(e.target.value) || 100)}
-                  className="input dummy-num-input"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Count Selector */}
-        <div className="dummy-count-control">
-          <div className="flex items-center justify-between">
-            <span className="dummy-field-label">Count (1-100):</span>
-            <div className="dummy-presets">
-              {countPresets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  className={`btn btn-sm ${count === preset ? 'btn-primary' : ''}`}
-                  onClick={() => setCount(preset)}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min={1}
-              max={100}
-              value={count}
-              onChange={(e) => setCount(parseInt(e.target.value) || 1)}
-              className="dummy-range-slider flex-1"
-            />
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={count}
-              onChange={(e) => setCount(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
-              className="input dummy-count-input"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Action Toolbar */}
-      <div className="toolbar justify-between">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={handleGenerate}
-        >
-          <span>⚡</span> Generate
-        </button>
-
-        <div className="flex gap-2">
-          {generatedItems.length > 0 && (
-            <button
-              type="button"
-              className="btn"
-              onClick={handleCopyAll}
-              title="Copy all items to clipboard"
-            >
-              📋 Copy All
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={handleClear}
-            title="Clear output"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-
-      {/* Output Area */}
-      <div className="section flex-1 dummy-output-section">
-        <div className="flex items-center justify-between dummy-output-header">
-          <label className="label" style={{ marginBottom: 0 }}>
-            Generated Output ({generatedItems.length})
-          </label>
-          {generatedItems.length > 0 && (
-            <span className="badge">{dataType}</span>
-          )}
-        </div>
-
-        {generatedItems.length === 0 ? (
-          <div className="dummy-empty-state">
-            <span className="dummy-empty-icon">🎲</span>
-            <p>No data generated yet. Click &quot;Generate&quot; to create items.</p>
-          </div>
-        ) : (
-          <div className="dummy-list-container">
-            {generatedItems.map((item, index) => (
-              <div key={index} className="dummy-list-item">
-                <span className="dummy-item-index">#{index + 1}</span>
-                <div className="dummy-item-content">{item}</div>
-                <button
-                  type="button"
-                  className="btn btn-sm dummy-item-copy-btn"
-                  onClick={() => handleCopyItem(item, index)}
-                  title="Copy this item"
-                >
-                  {copiedIndex === index ? '✓' : 'Copy'}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+let parquetReady: Promise<void> | undefined;
+const ensureParquet = () => {
+  parquetReady ??= initParquet(parquetWasmUrl).then(() => undefined);
+  return parquetReady;
 };
 
+function makeValue(kind: FieldKind): string | number | boolean {
+  const first = random(FIRST_NAMES); const last = random(LAST_NAMES);
+  switch (kind) {
+    case 'name': return `${first} ${last}`;
+    case 'email': return `${first}.${last}`.toLowerCase() + '@' + random(DOMAINS);
+    case 'phone': return `(${Math.floor(200 + Math.random() * 700)}) ${Math.floor(200 + Math.random() * 700)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    case 'address': return `${Math.floor(100 + Math.random() * 9900)} ${random(STREETS)}, ${random(CITIES)}`;
+    case 'number': return Number((Math.random() * 1000).toFixed(2));
+    case 'lorem': return random(LOREM);
+    case 'uuid': return crypto.randomUUID();
+    case 'boolean': return Math.random() >= 0.5;
+    case 'date': return new Date(Date.now() - Math.floor(Math.random() * 365 * 86400000)).toISOString().slice(0, 10);
+    case 'datetime': return new Date(Date.now() - Math.floor(Math.random() * 365 * 86400000)).toISOString();
+  }
+}
+function generateRows(fields: DataField[], count: number): DataRow[] { return Array.from({ length: count }, () => Object.fromEntries(fields.map((field) => [field.name, makeValue(field.kind)]))); }
+function avroSchema(fields: DataField[]) { return { type: 'record', name: 'GeneratedRecord', fields: fields.map((field) => ({ name: field.name, type: field.kind === 'boolean' ? 'boolean' : field.kind === 'number' ? 'double' : 'string' })) }; }
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
+function encodeAvroLong(value: number): number[] { let encoded = (BigInt(Math.trunc(value)) << 1n) ^ BigInt(Math.trunc(value) >> 31); const bytes: number[] = []; while (encoded & ~0x7fn) { bytes.push(Number((encoded & 0x7fn) | 0x80n)); encoded >>= 7n; } bytes.push(Number(encoded)); return bytes; }
+function decodeAvroLong(bytes: Uint8Array, offset: number): [number, number] { let result = 0n; let shift = 0n; let cursor = offset; while (cursor < bytes.length) { const byte = bytes[cursor++]; result |= BigInt(byte & 0x7f) << shift; if (!(byte & 0x80)) return [Number((result >> 1n) ^ -(result & 1n)), cursor]; shift += 7n; } throw new Error('Unexpected end of Avro integer.'); }
+function encodeAvroString(value: string): number[] { const bytes = textEncoder.encode(value); return [...encodeAvroLong(bytes.length), ...bytes]; }
+function decodeAvroString(bytes: Uint8Array, offset: number): [string, number] { const [length, cursor] = decodeAvroLong(bytes, offset); if (length < 0 || cursor + length > bytes.length) throw new Error('Invalid Avro string length.'); return [textDecoder.decode(bytes.slice(cursor, cursor + length)), cursor + length]; }
+function encodeAvroRecord(row: DataRow, fields: DataField[]): number[] { const output: number[] = []; for (const field of fields) { const value = row[field.name]; if (field.kind === 'boolean') output.push(value ? 1 : 0); else if (field.kind === 'number') { const buffer = new ArrayBuffer(8); new DataView(buffer).setFloat64(0, Number(value), true); output.push(...new Uint8Array(buffer)); } else output.push(...encodeAvroString(String(value))); } return output; }
+async function encodeAvro(rows: DataRow[], fields: DataField[]): Promise<Blob> { const schema = JSON.stringify(avroSchema(fields)); const sync = crypto.getRandomValues(new Uint8Array(16)); const header = [...textEncoder.encode('Obj\u0001'), ...encodeAvroLong(2), ...encodeAvroString('avro.schema'), ...encodeAvroString(schema), ...encodeAvroString('avro.codec'), ...encodeAvroString('null'), ...encodeAvroLong(0), ...sync]; const records = rows.flatMap((row) => encodeAvroRecord(row, fields)); const block = rows.length ? [...encodeAvroLong(rows.length), ...encodeAvroLong(records.length), ...records, ...sync] : []; return new Blob([new Uint8Array([...header, ...block])], { type: 'application/avro' }); }
+async function decodeAvro(file: File): Promise<DataRow[]> { const bytes = new Uint8Array(await file.arrayBuffer()); if (textDecoder.decode(bytes.slice(0, 4)) !== 'Obj\u0001') throw new Error('This is not an Avro object container file.'); let cursor = 4; const [entryCount, afterCount] = decodeAvroLong(bytes, cursor); cursor = afterCount; let schemaText = ''; let codec = 'null'; for (let index = 0; index < entryCount; index++) { const [key, afterKey] = decodeAvroString(bytes, cursor); const [value, afterValue] = decodeAvroString(bytes, afterKey); cursor = afterValue; if (key === 'avro.schema') schemaText = value; if (key === 'avro.codec') codec = value; } const [, afterMap] = decodeAvroLong(bytes, cursor); cursor = afterMap; if (codec !== 'null') throw new Error(`Avro codec “${codec}” is not supported by the local reader.`); const schema = JSON.parse(schemaText) as { fields?: { name: string; type: string }[] }; if (!schema.fields?.every((field) => ['string', 'boolean', 'double', 'float', 'int', 'long'].includes(field.type))) throw new Error('Only flat primitive Avro records are supported.'); const sync = bytes.slice(cursor, cursor + 16); cursor += 16; const rows: DataRow[] = []; while (cursor < bytes.length && rows.length < MAX_ROWS) { const [count, afterBlockCount] = decodeAvroLong(bytes, cursor); cursor = afterBlockCount; if (!count) break; const [blockSize, afterSize] = decodeAvroLong(bytes, cursor); cursor = afterSize; const end = cursor + blockSize; for (let rowIndex = 0; rowIndex < count && cursor < end && rows.length < MAX_ROWS; rowIndex++) { const row: DataRow = {}; for (const field of schema.fields) { if (field.type === 'boolean') row[field.name] = bytes[cursor++] === 1; else if (field.type === 'double') { row[field.name] = new DataView(bytes.buffer, bytes.byteOffset + cursor, 8).getFloat64(0, true); cursor += 8; } else if (field.type === 'float') { row[field.name] = new DataView(bytes.buffer, bytes.byteOffset + cursor, 4).getFloat32(0, true); cursor += 4; } else if (field.type === 'int' || field.type === 'long') { const [value, next] = decodeAvroLong(bytes, cursor); row[field.name] = value; cursor = next; } else { const [value, next] = decodeAvroString(bytes, cursor); row[field.name] = value; cursor = next; } } rows.push(row); } cursor = end; if (bytes.slice(cursor, cursor + 16).some((byte, index) => byte !== sync[index])) throw new Error('Invalid Avro block marker.'); cursor += 16; } return rows; }
+async function encodeParquet(rows: DataRow[], fields: DataField[]): Promise<Blob> { await ensureParquet(); const columns = Object.fromEntries(fields.map((field) => [field.name, rows.map((row) => row[field.name])])) as Record<string, (string | number | boolean)[]>; const wasmTable = ParquetTable.fromIPCStream(tableToIPC(tableFromArrays(columns), 'stream')); try { const bytes = writeParquet(wasmTable); return new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: 'application/vnd.apache.parquet' }); } finally { wasmTable.free(); } }
+async function decodeParquet(file: File): Promise<DataRow[]> { await ensureParquet(); const wasmTable = readParquet(new Uint8Array(await file.arrayBuffer()), { limit: MAX_ROWS }); try { const table = tableFromIPC(wasmTable.intoIPCStream()); return Array.from(table).map((row) => Object.fromEntries(table.schema.fields.map((field) => [field.name, (row as Record<string, unknown>)[field.name] as string | number | boolean]))); } finally { wasmTable.free(); } }
+function download(blob: Blob, filename: string) { const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click(); window.setTimeout(() => URL.revokeObjectURL(url), 0); }
+
+export const DummyDataGenerator: React.FC = () => {
+  const [mode, setMode] = useState<'generate' | 'read'>('generate'); const [fields, setFields] = useState<DataField[]>(STARTER_SCHEMAS[3].fields.map((field) => ({ ...field, id: fieldId() }))); const [count, setCount] = useState(25); const [format, setFormat] = useState<ExportFormat>('json'); const [rows, setRows] = useState<DataRow[]>([]); const [page, setPage] = useState(0); const [error, setError] = useState<string | null>(null); const [loaded, setLoaded] = useState<LoadedData | null>(null); const [busy, setBusy] = useState(false); const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeRows = mode === 'generate' ? rows : loaded?.rows || []; const activeFields = mode === 'generate' ? fields.map((field) => field.name) : loaded?.fields || []; const pageRows = activeRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE); const validSchema = fields.length > 0 && fields.every((field) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(field.name)) && new Set(fields.map((field) => field.name)).size === fields.length;
+  useEffect(() => {
+    const select = document.querySelector<HTMLSelectElement>('#data-format');
+    if (!select || select.querySelector('[label="Programming languages"]')) return;
+    const languageGroup = document.createElement('optgroup');
+    languageGroup.label = 'Programming languages';
+    const sparkGroup = document.createElement('optgroup');
+    sparkGroup.label = 'Apache Spark';
+    const options: [ExportFormat, string, HTMLOptGroupElement][] = [
+      ['javascript', 'JavaScript', languageGroup], ['typescript', 'TypeScript', languageGroup], ['python', 'Python', languageGroup], ['java', 'Java', languageGroup], ['scala', 'Scala', languageGroup], ['sql', 'SQL', languageGroup], ['spark-pyspark', 'PySpark', sparkGroup], ['spark-scala', 'Spark Scala', sparkGroup],
+    ];
+    options.forEach(([value, label, group]) => { const option = new Option(label, value); group.appendChild(option); });
+    select.add(languageGroup, null);
+    select.add(sparkGroup, null);
+  }, []);
+  const applyStarter = (starter: typeof STARTER_SCHEMAS[number]) => { setFields(starter.fields.map((field) => ({ ...field, id: fieldId() }))); setRows([]); setPage(0); setError(null); };
+  const updateField = (id: string, patch: Partial<DataField>) => setFields((current) => current.map((field) => field.id === id ? { ...field, ...patch } : field));
+  const moveField = (index: number, direction: -1 | 1) => setFields((current) => { const target = index + direction; if (target < 0 || target >= current.length) return current; const next = [...current]; [next[index], next[target]] = [next[target], next[index]]; return next; });
+  const generate = () => { if (!validSchema) { setError('Each field needs a unique name using letters, numbers, and underscores, beginning with a letter or underscore.'); return; } setRows(generateRows(fields, Math.max(1, Math.min(MAX_ROWS, count)))); setPage(0); setError(null); };
+  const outputText = useMemo(() => format === 'csv' ? serializeCsv(activeRows, activeFields) : format === 'ndjson' ? serializeNdjson(activeRows) : codeFormats.includes(format) ? serializeCode(activeRows, activeFields, format) : serializeJson(activeRows), [activeFields, activeRows, format]);
+  const exportRows = async (target: ExportFormat) => { if (!activeRows.length) return; setBusy(true); setError(null); try { const base = mode === 'read' ? loaded?.name.replace(/\.[^.]+$/, '') || 'dataset' : 'generated-data'; if (codeFormats.includes(target)) { const extension = target === 'javascript' ? 'js' : target === 'typescript' ? 'ts' : target === 'python' || target === 'spark-pyspark' ? 'py' : target === 'sql' ? 'sql' : target === 'java' ? 'java' : 'scala'; download(new Blob([serializeCode(activeRows, activeFields, target)], { type: 'text/plain' }), `${base}.${extension}`); } else if (target === 'csv') download(new Blob([serializeCsv(activeRows, activeFields)], { type: 'text/csv' }), `${base}.csv`); else if (target === 'json') download(new Blob([serializeJson(activeRows)], { type: 'application/json' }), `${base}.json`); else if (target === 'ndjson') download(new Blob([serializeNdjson(activeRows)], { type: 'application/x-ndjson' }), `${base}.ndjson`); else if (target === 'avro') download(await encodeAvro(activeRows, fields), `${base}.avro`); else download(await encodeParquet(activeRows, fields), `${base}.parquet`); } catch (cause) { setError(`Unable to create ${target.toUpperCase()}: ${cause instanceof Error ? cause.message : 'unknown codec error'}`); } finally { setBusy(false); } };
+  const openFile = async (file: File) => { setError(null); if (file.size > MAX_FILE_BYTES) { setError('Files larger than 50 MB are not opened to protect browser memory.'); return; } const lower = file.name.toLowerCase(); if (!lower.endsWith('.avro') && !lower.endsWith('.parquet')) { setError('Choose an .avro or .parquet file.'); return; } setBusy(true); try { const decoded = lower.endsWith('.avro') ? await decodeAvro(file) : await decodeParquet(file); const safeRows = decoded.slice(0, MAX_ROWS); setLoaded({ name: file.name, format: lower.endsWith('.avro') ? 'Avro' : 'Parquet', rows: safeRows, fields: safeRows.length ? Object.keys(safeRows[0]) : [], size: file.size }); setPage(0); if (decoded.length > MAX_ROWS) setError('Only the first 10,000 rows can be previewed.'); } catch (cause) { setLoaded(null); setError(`Unable to read this file: ${cause instanceof Error ? cause.message : 'unsupported or malformed data'}`); } finally { setBusy(false); } };
+  return <div className="tool-container dummy-data-tool data-workspace"><header className="data-workspace-header"><div><span className="tool-eyebrow">Local dataset workspace</span><h2>Data</h2><p>Create flat test records or inspect Avro and Parquet files without uploading them.</p></div><div className="toggle-group"><button className={`toggle-btn ${mode === 'generate' ? 'active' : ''}`} onClick={() => { setMode('generate'); setPage(0); }}>Generate</button><button className={`toggle-btn ${mode === 'read' ? 'active' : ''}`} onClick={() => { setMode('read'); setPage(0); }}>Read files</button></div></header>{error && <p className="error-msg" role="alert">{error}</p>}{mode === 'generate' ? <section className="section data-schema-section"><div className="data-section-header"><div><span className="label">Starter schemas</span><div className="dummy-category-grid data-starter-grid">{STARTER_SCHEMAS.map((starter) => <button key={starter.label} className="dummy-type-btn" onClick={() => applyStarter(starter)}>{starter.label}</button>)}</div></div><div className="data-export-settings"><label className="label" htmlFor="data-format">Output format</label><select id="data-format" className="input" value={format} onChange={(event) => setFormat(event.target.value as ExportFormat)}>{(['csv', 'json', 'ndjson', 'avro', 'parquet'] as ExportFormat[]).map((value) => <option key={value} value={value}>{value.toUpperCase()}</option>)}</select></div></div><div className="data-fields" aria-label="Dataset fields">{fields.map((field, index) => <div className="data-field-row" key={field.id}><input className="input" aria-label={`Field ${index + 1} name`} value={field.name} onChange={(event) => updateField(field.id, { name: cleanName(event.target.value) })} /><select className="input" aria-label={`${field.name || 'Field'} generator`} value={field.kind} onChange={(event) => updateField(field.id, { kind: event.target.value as FieldKind })}>{FIELD_OPTIONS.map((option) => <option value={option.kind} key={option.kind}>{option.label}</option>)}</select><div className="data-field-actions"><button className="btn btn-sm" aria-label={`Move ${field.name} up`} onClick={() => moveField(index, -1)} disabled={index === 0}>↑</button><button className="btn btn-sm" aria-label={`Move ${field.name} down`} onClick={() => moveField(index, 1)} disabled={index === fields.length - 1}>↓</button><button className="btn btn-sm btn-danger" aria-label={`Remove ${field.name}`} onClick={() => setFields((current) => current.filter((item) => item.id !== field.id))}>×</button></div></div>)}</div><button className="btn" onClick={() => setFields((current) => [...current, { id: fieldId(), name: `field_${current.length + 1}`, kind: 'lorem' }])}>+ Add field</button><div className="data-generate-actions"><label><span className="label">Rows (1–10,000)</span><input className="input data-count-input" type="number" min={1} max={MAX_ROWS} value={count} onChange={(event) => setCount(Math.max(1, Math.min(MAX_ROWS, Number(event.target.value) || 1)))} /></label><div className="dummy-presets">{[25, 100, 1000, 10000].map((preset) => <button className={`btn btn-sm ${count === preset ? 'btn-primary' : ''}`} onClick={() => setCount(preset)} key={preset}>{preset}</button>)}</div><button className="btn btn-primary" onClick={generate}>Generate {count.toLocaleString()} rows</button></div></section> : <section className="section data-reader-section"><input ref={fileInputRef} className="data-file-input" type="file" accept=".avro,.parquet,application/octet-stream" onChange={(event) => { const file = event.target.files?.[0]; if (file) void openFile(file); event.currentTarget.value = ''; }} /><button className="data-drop-zone" onClick={() => fileInputRef.current?.click()} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const file = event.dataTransfer.files[0]; if (file) void openFile(file); }}><strong>Open Avro or Parquet</strong><span>Drop a file here or choose from your device · 50 MB maximum</span></button>{loaded && <div className="data-file-summary"><span className="badge">{loaded.format}</span><strong>{loaded.name}</strong><span>{loaded.rows.length.toLocaleString()} rows · {(loaded.size / 1024).toFixed(1)} KB · {loaded.fields.length} fields</span></div>}</section>}<section className="section data-preview-section"><div className="data-section-header"><div><span className="label">{mode === 'read' ? 'Decoded preview' : 'Generated preview'}</span><span className="data-preview-meta">{activeRows.length.toLocaleString()} rows · {activeFields.length} fields {mode === 'generate' && rows.length ? `· ${new Blob([outputText]).size.toLocaleString()} B ${format.toUpperCase()} preview` : ''}</span></div><div className="toolbar"><button className="btn btn-sm" disabled={!activeRows.length} onClick={() => copyToClipboard(outputText)}>Copy {format.toUpperCase()}</button>{(['csv', 'json', 'ndjson'] as ExportFormat[]).map((target) => <button className="btn btn-sm" disabled={!activeRows.length || busy} onClick={() => void exportRows(target)} key={target}>↓ {target.toUpperCase()}</button>)}{mode === 'generate' && <><button className="btn btn-sm" disabled={!rows.length || busy} onClick={() => void exportRows('avro')}>↓ AVRO</button><button className="btn btn-sm" disabled={!rows.length || busy} onClick={() => void exportRows('parquet')}>↓ PARQUET</button></>}</div></div>{pageRows.length ? <><div className="data-table-wrap"><table className="data-table"><thead><tr>{activeFields.map((field) => <th key={field}>{field}</th>)}</tr></thead><tbody>{pageRows.map((row, index) => <tr key={index}>{activeFields.map((field) => <td key={field}>{String(row[field] ?? '')}</td>)}</tr>)}</tbody></table></div><footer className="data-pagination"><button className="btn btn-sm" disabled={page === 0} onClick={() => setPage((current) => current - 1)}>Previous</button><span>Rows {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, activeRows.length)} of {activeRows.length.toLocaleString()}</span><button className="btn btn-sm" disabled={(page + 1) * PAGE_SIZE >= activeRows.length} onClick={() => setPage((current) => current + 1)}>Next</button></footer></> : <div className="dummy-empty-state"><span className="dummy-empty-icon">▦</span><span>{mode === 'generate' ? 'Configure fields, then generate a local dataset.' : 'Choose an Avro or Parquet file to inspect it locally.'}</span></div>}</section></div>;
+};
 export default DummyDataGenerator;

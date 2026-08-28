@@ -10,13 +10,13 @@ test.describe('Navigation & Storage Persistence', () => {
     const expectedLabels = [
       'JSON',
       'Base64',
-      'UUID',
-      'Time',
       'URL',
       'JWT',
       'Hash',
-      'Regex',
+      'UUID',
+      'Time',
       'Data',
+      'Regex',
       'Diff',
       'MD',
       'Tabs',
@@ -26,8 +26,9 @@ test.describe('Navigation & Storage Persistence', () => {
       await expect(tabs.nth(i).locator('.tab-label')).toHaveText(expectedLabels[i]);
     }
 
-    await expect(sidepanelPage.locator('.status-indicator')).toHaveText('Local');
+    await expect(sidepanelPage.locator('.status-indicator')).toContainText('Local only');
     await expect(sidepanelPage.locator('button.theme-toggle-btn')).toBeVisible();
+    await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Transform', 'Create', 'Inspect', 'Browser']);
   });
 
   test('switches tools when clicking tabs', async ({ sidepanelPage }) => {
@@ -60,6 +61,28 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Jump between tabs');
     await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Alt + Q');
     await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Ctrl');
+  });
+
+  test('opens the tool command palette with Control+Shift+K and switches tools', async ({ sidepanelPage }) => {
+    await sidepanelPage.keyboard.press('Control+Shift+k');
+    const palette = sidepanelPage.getByRole('dialog', { name: 'Search developer tools' });
+    await expect(palette).toBeVisible();
+
+    const search = palette.getByRole('searchbox', { name: 'Search tools' });
+    await search.fill('regex');
+    await expect(palette.getByRole('option')).toHaveCount(1);
+    await sidepanelPage.keyboard.press('Enter');
+
+    await expect(palette).toHaveCount(0);
+    await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('Regex');
+    await expect(sidepanelPage.locator('.regex-tester')).toBeVisible();
+  });
+
+  test('uses an accessible compact rail below the responsive breakpoint', async ({ sidepanelPage }) => {
+    await sidepanelPage.setViewportSize({ width: 860, height: 700 });
+    await expect(sidepanelPage.getByRole('button', { name: 'Search tools' })).toBeVisible();
+    await expect(sidepanelPage.locator('.tab-label').first()).toBeHidden();
+    await expect(sidepanelPage.locator('.tab-item').first()).toHaveAttribute('title', /JSON/);
   });
 
   test('opens the tab switcher with Control+K, filters tabs, and closes with Escape', async ({

@@ -27,7 +27,7 @@ An essential, privacy-first developer utility toolkit built right into your brow
 | **`🔐` JWT Decoder** | Decode JSON Web Tokens to inspect headers, payload claims, and signature info with expiration status badges. |
 | **`#️⃣` Hash Generator** | Generate MD5, SHA-1, SHA-256, and SHA-512 cryptographic hashes and checksums directly on the client. |
 | **`🔍` Regex Tester** | Test regular expressions in real-time with flag controls (`g`, `i`, `m`, `s`, `u`), match highlighting, and capture group tables. |
-| **`📋` Dummy Data Generator** | Generate realistic mock data including names, emails, addresses, UUIDs, dates, numbers, and structured JSON schemas. |
+| **`📋` Data Workspace** | Build ordered flat mock-data schemas in a field-grid workspace, generate CSV/JSON/NDJSON/Avro/Parquet datasets or JavaScript, TypeScript, Python, Java, Scala, SQL, and Apache Spark snippets, and inspect local Avro or Parquet files. |
 | **`📊` Diff Checker** | Compare two text blocks or JSON snippets side-by-side or unified with granular character/line difference highlighting. |
 | **`📝` Markdown Previewer** | Real-time GitHub Flavored Markdown (GFM) editor with live preview, syntax highlighting, and export options. |
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import TabBar, { ToolTab } from './components/TabBar';
 import TabSwitcher from './components/TabSwitcher';
+import ToolCommandPalette from './components/ToolCommandPalette';
 import { loadPreferences, savePreferences, getPendingInput } from '../shared/storage';
 import { isOpenTabSwitcherHotkey } from '../shared/browserTabs';
 import './App.css';
@@ -20,18 +21,18 @@ const MarkdownPreview = lazy(() => import('./tools/MarkdownPreview'));
 const TabsNavigator = lazy(() => import('./tools/TabsNavigator'));
 
 const TOOLS: ToolTab[] = [
-  { id: 'json-formatter', label: 'JSON', icon: '{ }' },
-  { id: 'base64', label: 'Base64', icon: '🔤' },
-  { id: 'uuid-generator', label: 'UUID', icon: '🆔' },
-  { id: 'timestamp', label: 'Time', icon: '⏰' },
-  { id: 'url-encoder', label: 'URL', icon: '🔗' },
-  { id: 'jwt-decoder', label: 'JWT', icon: '🔐' },
-  { id: 'hash-generator', label: 'Hash', icon: '#️⃣' },
-  { id: 'regex-tester', label: 'Regex', icon: '🔍' },
-  { id: 'dummy-data', label: 'Data', icon: '📋' },
-  { id: 'diff-checker', label: 'Diff', icon: '📊' },
-  { id: 'markdown', label: 'MD', icon: '📝' },
-  { id: 'tabs', label: 'Tabs', icon: '↔️' },
+  { id: 'json-formatter', label: 'JSON', icon: '{ }', category: 'Transform', description: 'Format, validate, and inspect JSON' },
+  { id: 'base64', label: 'Base64', icon: '↔', category: 'Transform', description: 'Encode and decode Base64 data' },
+  { id: 'url-encoder', label: 'URL', icon: '⌁', category: 'Transform', description: 'Encode, decode, and inspect URLs' },
+  { id: 'jwt-decoder', label: 'JWT', icon: '◇', category: 'Transform', description: 'Decode token claims locally' },
+  { id: 'hash-generator', label: 'Hash', icon: '#', category: 'Transform', description: 'Generate and compare hashes' },
+  { id: 'uuid-generator', label: 'UUID', icon: '◌', category: 'Create', description: 'Generate UUIDs and ULIDs' },
+  { id: 'timestamp', label: 'Time', icon: '◷', category: 'Create', description: 'Convert timestamps and dates' },
+  { id: 'dummy-data', label: 'Data', icon: '▦', category: 'Create', description: 'Generate realistic sample data' },
+  { id: 'regex-tester', label: 'Regex', icon: '.*', category: 'Inspect', description: 'Test expressions and matches' },
+  { id: 'diff-checker', label: 'Diff', icon: '±', category: 'Inspect', description: 'Compare text and code changes' },
+  { id: 'markdown', label: 'MD', icon: 'M↓', category: 'Inspect', description: 'Write and preview Markdown' },
+  { id: 'tabs', label: 'Tabs', icon: '↔', category: 'Browser', description: 'Jump between browser tabs' },
 ];
 
 const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initialInput?: string }>>> = {
@@ -55,6 +56,7 @@ const App: React.FC = () => {
   const [initialInput, setInitialInput] = useState<string | undefined>(undefined);
   const [isLoaded, setIsLoaded] = useState(false);
   const [tabSwitcherOpen, setTabSwitcherOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
   // Load saved active tool and theme on mount
   useEffect(() => {
@@ -109,6 +111,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'k' && !event.altKey) {
+        event.preventDefault();
+        event.stopPropagation();
+        setCommandPaletteOpen((open) => !open);
+        return;
+      }
       if (!isOpenTabSwitcherHotkey(event)) {
         return;
       }
@@ -137,6 +145,7 @@ const App: React.FC = () => {
         tools={TOOLS}
         activeToolId={activeToolId}
         onSelectTool={handleSelectTool}
+        onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -148,6 +157,7 @@ const App: React.FC = () => {
         </div>
       </main>
       <TabSwitcher open={tabSwitcherOpen} onClose={() => setTabSwitcherOpen(false)} />
+      <ToolCommandPalette open={commandPaletteOpen} tools={TOOLS} activeToolId={activeToolId} onClose={() => setCommandPaletteOpen(false)} onSelectTool={handleSelectTool} />
     </div>
   );
 };
