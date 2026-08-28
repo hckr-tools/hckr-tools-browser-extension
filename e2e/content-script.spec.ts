@@ -49,4 +49,54 @@ test.describe('Content Script & Page Content Detection', () => {
     await page.close();
     await appPage.close();
   });
+
+  test('clicking JWT widget opens JWT tool with token payload', async ({
+    context,
+    serverUrl,
+  }) => {
+    const page = await context.newPage();
+    await page.goto(`${serverUrl}/test-page.html`);
+    await page.waitForLoadState('networkidle');
+
+    const jwtWidget = page.locator('#jwt-sample .hckr-widget');
+    await expect(jwtWidget).toBeVisible({ timeout: 5000 });
+
+    const [appPage] = await Promise.all([
+      context.waitForEvent('page'),
+      jwtWidget.click(),
+    ]);
+
+    await appPage.waitForLoadState('domcontentloaded');
+    await expect(appPage.locator('.tab-item.active .tab-label')).toHaveText('JWT');
+    await expect(appPage.locator('textarea.jwt-textarea')).toHaveValue(/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9/);
+
+    await page.close();
+    await appPage.close();
+  });
+
+  test('clicking Base64 widget opens Base64 tool with encoded payload', async ({
+    context,
+    serverUrl,
+  }) => {
+    const page = await context.newPage();
+    await page.goto(`${serverUrl}/test-page.html`);
+    await page.waitForLoadState('networkidle');
+
+    const base64Widget = page.locator('#base64-sample .hckr-widget');
+    await expect(base64Widget).toBeVisible({ timeout: 5000 });
+
+    const [appPage] = await Promise.all([
+      context.waitForEvent('page'),
+      base64Widget.click(),
+    ]);
+
+    await appPage.waitForLoadState('domcontentloaded');
+    await expect(appPage.locator('.tab-item.active .tab-label')).toHaveText('Base64');
+    await expect(appPage.locator('textarea.base64-textarea')).toHaveValue(
+      /SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IG1lc3NhZ2UgZm9yIGhja3IgZGV2IHRvb2xraXQh/
+    );
+
+    await page.close();
+    await appPage.close();
+  });
 });

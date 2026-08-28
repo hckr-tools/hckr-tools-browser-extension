@@ -141,4 +141,138 @@ test.describe('Core Tools Suite (JSON, Base64, UUID, Time, URL)', () => {
     // Check parsed table / breakdown
     await expect(sidepanelPage.locator('input.url-component-input').first()).toHaveValue('https:');
   });
+
+  test('JSON: Tree View renders nested keys and Collapse All collapses root', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
+    const textarea = sidepanelPage.locator('textarea.json-textarea');
+    await textarea.fill('{"developer":{"name":"Ashish","skills":["TypeScript"]}}');
+
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'Tree View' }).click();
+    await expect(sidepanelPage.locator('.json-tree-view')).toBeVisible();
+    await expect(sidepanelPage.locator('.json-tree-key').filter({ hasText: '"developer"' })).toBeVisible();
+    await expect(sidepanelPage.locator('.json-tree-key').filter({ hasText: '"skills"' })).toBeVisible();
+
+    await sidepanelPage.locator('button', { hasText: 'Collapse All' }).click();
+    await expect(sidepanelPage.locator('.json-tree-count-badge').first()).toBeVisible();
+    await expect(sidepanelPage.locator('.json-tree-key').filter({ hasText: '"skills"' })).toHaveCount(0);
+  });
+
+  test('JSON: Minified view toggle shows single-line output', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
+    await sidepanelPage.locator('textarea.json-textarea').fill('{"foo":"bar","num":42}');
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'Minified' }).click();
+    await expect(sidepanelPage.locator('.json-code-view')).toContainText('{"foo":"bar","num":42}');
+    await expect(sidepanelPage.locator('.json-code-line')).toHaveCount(1);
+  });
+
+  test('Base64: URL-Safe encode replaces +/ and strips padding', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Base64' }).click();
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'Encode' }).click();
+    await sidepanelPage.locator('textarea.base64-textarea').fill('????');
+    await expect(sidepanelPage.locator('.base64-output-body')).toContainText('Pz8/Pw==');
+
+    await sidepanelPage.locator('label.base64-checkbox-label', { hasText: 'URL-Safe' }).click();
+    await expect(sidepanelPage.locator('.base64-output-body')).toContainText('Pz8_Pw');
+    await expect(sidepanelPage.locator('.base64-output-body')).not.toContainText('=');
+    await expect(sidepanelPage.locator('.base64-output-body')).not.toContainText('/');
+  });
+
+  test('Base64: Data URI prefix wraps output', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Base64' }).click();
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'Encode' }).click();
+    await sidepanelPage.locator('textarea.base64-textarea').fill('Hello World!');
+    await sidepanelPage.locator('label.base64-checkbox-label', { hasText: 'Data URI prefix' }).click();
+    await expect(sidepanelPage.locator('.base64-output-body')).toContainText(
+      'data:text/plain;charset=utf-8;base64,SGVsbG8gV29ybGQh'
+    );
+  });
+
+  test('Base64: swap button exchanges input and output and flips mode', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Base64' }).click();
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'Encode' }).click();
+    await sidepanelPage.locator('textarea.base64-textarea').fill('Hello');
+    await expect(sidepanelPage.locator('.base64-output-body')).toContainText('SGVsbG8=');
+
+    await sidepanelPage.locator('.base64-swap-btn').click();
+    await expect(sidepanelPage.locator('textarea.base64-textarea')).toHaveValue('SGVsbG8=');
+    await expect(sidepanelPage.locator('button.toggle-btn', { hasText: 'Decode' })).toHaveClass(/active/);
+    await expect(sidepanelPage.locator('.base64-output-body')).toContainText('Hello');
+  });
+
+  test('URL: Query Params tab lists keys and edits rebuild the URL', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'URL' }).click();
+    await sidepanelPage.locator('button.url-mode-btn', { hasText: 'Decode' }).click();
+    await sidepanelPage
+      .locator('textarea.url-textarea')
+      .fill('https://example.com/search?q=developer+tools&category=extension#results');
+
+    await sidepanelPage.locator('button.url-view-tab', { hasText: 'Query Params' }).click();
+    const qRow = sidepanelPage.locator('.url-param-row', { hasText: 'q' }).first();
+    await expect(qRow.locator('.url-param-input').nth(0)).toHaveValue('q');
+    await expect(qRow.locator('.url-param-input').nth(1)).toHaveValue('developer tools');
+
+    await qRow.locator('.url-param-input').nth(1).fill('playwright');
+    await expect(sidepanelPage.locator('textarea.url-textarea')).toHaveValue(/q=playwright/);
+  });
+
+  test('URL: encodeURI preserves :/? while encodeURIComponent encodes them', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'URL' }).click();
+    await sidepanelPage.locator('button.url-mode-btn', { hasText: 'Encode' }).click();
+    await sidepanelPage.locator('textarea.url-textarea').fill('https://example.com/a?b=c');
+
+    await sidepanelPage.locator('label.url-radio-label', { hasText: 'encodeURIComponent' }).click();
+    await expect(sidepanelPage.locator('.url-output-container')).toContainText(
+      'https%3A%2F%2Fexample.com%2Fa%3Fb%3Dc'
+    );
+
+    await sidepanelPage.locator('label.url-radio-label', { hasText: 'encodeURI' }).click();
+    await expect(sidepanelPage.locator('.url-output-container')).toContainText(
+      'https://example.com/a?b=c'
+    );
+  });
+
+  test('UUID: Uppercase and Hyphens off produce 32-char hex', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'UUID' }).click();
+    const clearBtn = sidepanelPage.locator('button[title="Clear all generated IDs"]');
+    if (await clearBtn.isVisible() && (await clearBtn.isEnabled())) {
+      await clearBtn.click();
+    }
+
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'UUID' }).click();
+    const uppercase = sidepanelPage.locator('.uuid-checkbox-label', { hasText: 'Uppercase' });
+    const hyphens = sidepanelPage.locator('.uuid-checkbox-label', { hasText: 'Hyphens' });
+    if (!(await uppercase.locator('input').isChecked())) {
+      await uppercase.click();
+    }
+    if (await hyphens.locator('input').isChecked()) {
+      await hyphens.click();
+    }
+
+    await sidepanelPage.getByRole('button', { name: '+ 1', exact: true }).click();
+    const value = await sidepanelPage.locator('.uuid-item-value').first().innerText();
+    expect(value.trim()).toMatch(/^[0-9A-F]{32}$/);
+  });
+
+  test('Time: Now ISO fills ISO string; Clear restores Live Clock; invalid input errors', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Time' }).click();
+    await sidepanelPage.locator('button', { hasText: 'Now (ISO)' }).click();
+    await expect(sidepanelPage.locator('input.timestamp-input')).toHaveValue(/^\d{4}-\d{2}-\d{2}T/);
+
+    await sidepanelPage.locator('button', { hasText: 'Clear' }).click();
+    await expect(sidepanelPage.locator('.timestamp-pulse-indicator')).toContainText('Live Clock');
+
+    await sidepanelPage.locator('input.timestamp-input').fill('not-a-date');
+    await expect(sidepanelPage.locator('.error-msg')).toContainText('Could not parse');
+    await expect(sidepanelPage.locator('.badge-error')).toContainText('Unrecognized');
+  });
 });

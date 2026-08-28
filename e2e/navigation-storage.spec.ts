@@ -163,4 +163,42 @@ test.describe('Navigation & Storage Persistence', () => {
     await themeToggleBtn.click();
     await expect(html).toHaveAttribute('data-theme', 'dark');
   });
+
+  test('persists JSON tool input across side panel reloads', async ({
+    sidepanelPage,
+    extensionId,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
+    const marker = '{"persistProbe":true,"source":"e2e-reload"}';
+    await sidepanelPage.locator('textarea.json-textarea').fill(marker);
+    await sidepanelPage.waitForTimeout(400);
+
+    await sidepanelPage.goto(`chrome-extension://${extensionId}/src/sidepanel/index.html`);
+    await sidepanelPage.waitForLoadState('domcontentloaded');
+    await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('JSON');
+    await expect(sidepanelPage.locator('textarea.json-textarea')).toHaveValue(marker);
+  });
+
+  test('standalone ?switcher=1 page lists open tabs', async ({
+    context,
+    extensionId,
+    serverUrl,
+  }) => {
+    const fixturePage = await context.newPage();
+    await fixturePage.goto(serverUrl);
+    await expect(fixturePage).toHaveTitle('hckr Test Fixture Page');
+
+    const switcherPage = await context.newPage();
+    await switcherPage.goto(
+      `chrome-extension://${extensionId}/src/sidepanel/index.html?switcher=1`
+    );
+    await switcherPage.waitForLoadState('domcontentloaded');
+
+    const switcher = switcherPage.getByRole('dialog', { name: 'hckr-tools tab switcher' });
+    await expect(switcher).toBeVisible();
+    await expect(switcher.locator('.tab-switcher-item', { hasText: 'hckr Test Fixture Page' })).toBeVisible();
+
+    await switcherPage.close();
+    await fixturePage.close();
+  });
 });
