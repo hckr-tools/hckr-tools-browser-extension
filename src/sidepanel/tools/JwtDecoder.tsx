@@ -404,6 +404,8 @@ const JwtDecoder: React.FC<JwtDecoderProps> = ({ initialInput }) => {
         </div>
       </div>
 
+      <div className="tool-split">
+      <div className="tool-split-col">
       {/* Input Section */}
       <div className="jwt-section">
         <textarea
@@ -438,7 +440,9 @@ const JwtDecoder: React.FC<JwtDecoderProps> = ({ initialInput }) => {
           <strong>Invalid JWT:</strong> {error}
         </div>
       )}
+      </div>
 
+      <div className="tool-split-col">
       {/* Token 3-Part Color Visualizer */}
       {decoded && (
         <div className="jwt-token-preview" title="Color-coded token components">
@@ -598,6 +602,8 @@ const JwtDecoder: React.FC<JwtDecoderProps> = ({ initialInput }) => {
           <div className="jwt-sig-block">{decoded.signatureRaw}</div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 };

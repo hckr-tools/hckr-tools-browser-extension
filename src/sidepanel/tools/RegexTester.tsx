@@ -480,6 +480,7 @@ const RegexTester: React.FC<RegexTesterProps> = ({ initialInput }) => {
       {/* Error Message */}
       {error && <div className="error-msg">{error}</div>}
 
+      <div className="tool-split">
       {/* Test String Input */}
       <div className="regex-section">
         <div className="regex-section-header">
@@ -500,6 +501,7 @@ const RegexTester: React.FC<RegexTesterProps> = ({ initialInput }) => {
         />
       </div>
 
+      <div className="tool-split-col">
       {/* Match Overview & Highlights */}
       <div className="regex-section">
         <div className="regex-summary-bar">
@@ -633,6 +635,8 @@ const RegexTester: React.FC<RegexTesterProps> = ({ initialInput }) => {
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 };

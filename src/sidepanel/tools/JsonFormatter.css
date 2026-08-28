@@ -7,7 +7,17 @@
   height: 100%;
 }
 
-.json-section-header {
+.json-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.json-split .json-textarea,
+.json-formatter .json-textarea {
+  min-height: 240px;
+  max-height: none;
+  flex: 1;
+}
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -29,6 +39,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .json-textarea {
@@ -38,6 +50,12 @@
   line-height: 1.5;
   font-family: var(--font-mono);
   tab-size: 2;
+}
+
+.json-formatter .tool-split .json-textarea {
+  min-height: 280px;
+  max-height: none;
+  height: 100%;
 }
 
 .json-status-badge {

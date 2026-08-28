@@ -6,6 +6,7 @@ test.describe('Core Tools Suite (JSON, Base64, UUID, Time, URL)', () => {
   }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
     await expect(sidepanelPage.locator('.json-formatter')).toBeVisible();
+    await expect(sidepanelPage.locator('.json-formatter .tool-split')).toBeVisible();
 
     const textarea = sidepanelPage.locator('textarea.json-textarea');
 

@@ -429,8 +429,9 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
 
   return (
     <div className="tool-container json-formatter">
+      <div className="tool-split">
       {/* Input Section */}
-      <div className="section">
+      <div className="section json-pane">
         <div className="json-section-header">
           <div className="json-section-title">
             <span>JSON Input</span>
@@ -463,29 +464,28 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
             spellCheck={false}
           />
         </div>
-      </div>
 
-      {/* Error Message Banner */}
-      {error && (
-        <div className="json-error-banner">
-          <span className="json-error-icon">⚠️</span>
-          <div className="json-error-body">
-            <div>
-              <strong>Syntax Error:</strong>{' '}
-              {error.line !== undefined && (
-                <span className="json-error-line-badge">
-                  Line {error.line}
-                  {error.column !== undefined ? `, Col ${error.column}` : ''}:
-                </span>
-              )}{' '}
-              {error.message}
+        {error && (
+          <div className="json-error-banner">
+            <span className="json-error-icon">⚠️</span>
+            <div className="json-error-body">
+              <div>
+                <strong>Syntax Error:</strong>{' '}
+                {error.line !== undefined && (
+                  <span className="json-error-line-badge">
+                    Line {error.line}
+                    {error.column !== undefined ? `, Col ${error.column}` : ''}:
+                  </span>
+                )}{' '}
+                {error.message}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Output Section */}
-      <div className="section flex-1 flex flex-col" style={{ minHeight: '260px' }}>
+      <div className="section flex-1 flex flex-col json-pane" style={{ minHeight: '260px' }}>
         <div className="json-section-header">
           <div className="toolbar">
             <span className="label" style={{ margin: 0 }}>View:</span>
@@ -592,6 +592,7 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ const TabBar: React.FC<TabBarProps> = ({
   onToggleTheme,
 }) => {
   return (
-    <header className="tab-bar">
+    <aside className="tab-bar">
       <div className="tab-bar-brand">
         <div className="brand-logo">
           <span className="brand-icon">⚡</span>
@@ -32,7 +32,7 @@ const TabBar: React.FC<TabBarProps> = ({
         <span className="brand-tag">DEV TOOLKIT</span>
       </div>
 
-      <nav className="tab-bar-scroll" aria-label="Developer utilities navigation">
+      <nav className="tab-bar-nav" aria-label="Developer utilities navigation">
         {tools.map((tool) => (
           <button
             key={tool.id}
@@ -47,26 +47,21 @@ const TabBar: React.FC<TabBarProps> = ({
       </nav>
 
       <div className="tab-bar-actions">
+        <span className="status-indicator" title="Runs fully locally. No data leaves this browser.">
+          Local
+        </span>
         <button
           className="theme-toggle-btn"
           onClick={onToggleTheme}
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
         >
-          <span className="theme-toggle-icon">
+          <span className="theme-toggle-icon" aria-hidden="true">
             {theme === 'dark' ? '☀️' : '🌙'}
           </span>
-          <span className="theme-toggle-label">
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </span>
         </button>
-
-        <span className="status-indicator" title="Fully local, 100% offline">
-          <span className="status-dot" />
-          <span className="status-text">OFFLINE</span>
-        </span>
       </div>
-    </header>
+    </aside>
   );
 };
 

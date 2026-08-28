@@ -4,6 +4,8 @@ test.describe('Navigation & Storage Persistence', () => {
   test('renders all 12 tool tabs in TabBar', async ({ sidepanelPage }) => {
     const tabs = sidepanelPage.locator('.tab-item');
     await expect(tabs).toHaveCount(12);
+    await expect(sidepanelPage.locator('.app')).toHaveCSS('flex-direction', 'row');
+    await expect(sidepanelPage.locator('aside.tab-bar')).toHaveCSS('flex-direction', 'column');
 
     const expectedLabels = [
       'JSON',
@@ -23,6 +25,9 @@ test.describe('Navigation & Storage Persistence', () => {
     for (let i = 0; i < expectedLabels.length; i++) {
       await expect(tabs.nth(i).locator('.tab-label')).toHaveText(expectedLabels[i]);
     }
+
+    await expect(sidepanelPage.locator('.status-indicator')).toHaveText('Local');
+    await expect(sidepanelPage.locator('button.theme-toggle-btn')).toBeVisible();
   });
 
   test('switches tools when clicking tabs', async ({ sidepanelPage }) => {

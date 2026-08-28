@@ -216,6 +216,8 @@ const HashGenerator: React.FC<HashGeneratorProps> = ({ initialInput }) => {
 
   return (
     <div className="hash-generator">
+      <div className="tool-split">
+      <div className="tool-split-col">
       {/* Input Section */}
       <div className="hash-section">
         <div className="hash-section-header">
@@ -300,6 +302,7 @@ const HashGenerator: React.FC<HashGeneratorProps> = ({ initialInput }) => {
           spellCheck={false}
         />
       </div>
+      </div>
 
       {/* Hash Results List */}
       <div className="hash-results-list">
@@ -346,6 +349,7 @@ const HashGenerator: React.FC<HashGeneratorProps> = ({ initialInput }) => {
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

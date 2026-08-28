@@ -381,6 +381,8 @@ const UrlEncoder: React.FC<UrlEncoderProps> = ({ initialInput }) => {
         </div>
       </div>
 
+      <div className="tool-split">
+      <div className="tool-split-col">
       {/* Input Section */}
       <div className="url-section">
         <div className="url-section-header">
@@ -439,7 +441,9 @@ const UrlEncoder: React.FC<UrlEncoderProps> = ({ initialInput }) => {
           <strong>Error:</strong> {error}
         </div>
       )}
+      </div>
 
+      <div className="tool-split-col">
       {/* Result & Breakdown Section */}
       <div className="url-section">
         <div className="url-section-header">
@@ -638,6 +642,8 @@ const UrlEncoder: React.FC<UrlEncoderProps> = ({ initialInput }) => {
             </div>
           </div>
         )}
+      </div>
+      </div>
       </div>
 
       {/* Stats Bar */}

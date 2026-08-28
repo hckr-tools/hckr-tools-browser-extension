@@ -358,14 +358,16 @@ const Base64Tool: React.FC<Base64ToolProps> = ({ initialInput }) => {
             </>
           )}
         </div>
+      </div>
 
+      <div className="tool-split">
+        <div className="tool-split-col">
         {/* Input Dropzone / Textarea */}
         <div
           className={`base64-dropzone ${isDragging ? 'dragging' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          style={{ marginTop: '8px' }}
         >
           {isDragging && (
             <div className="base64-drop-overlay">
@@ -425,7 +427,6 @@ const Base64Tool: React.FC<Base64ToolProps> = ({ initialInput }) => {
             </button>
           </div>
         )}
-      </div>
 
       {/* Auto-detect Hint Banner */}
       {isInputLikelyBase64 && (
@@ -449,6 +450,7 @@ const Base64Tool: React.FC<Base64ToolProps> = ({ initialInput }) => {
           <strong>Error:</strong> {error}
         </div>
       )}
+        </div>
 
       {/* Output Section */}
       <div className="section flex-1 flex flex-col">
@@ -507,6 +509,7 @@ const Base64Tool: React.FC<Base64ToolProps> = ({ initialInput }) => {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
