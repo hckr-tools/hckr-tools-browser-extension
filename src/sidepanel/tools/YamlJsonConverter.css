@@ -1,0 +1,125 @@
+.yaml-json-converter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.yaml-json-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.yaml-json-swap-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input, var(--surface-sunken));
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.yaml-json-swap-btn:hover:not(:disabled) {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.yaml-json-swap-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.yaml-json-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+}
+
+.yaml-json-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.yaml-json-pane-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.yaml-json-badge {
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.yaml-json-badge.valid {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.yaml-json-badge.invalid {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--error);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.yaml-json-badge.empty {
+  background: var(--bg-input, var(--surface-sunken));
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.yaml-json-textarea,
+.yaml-json-output {
+  flex: 1;
+  min-height: 260px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.yaml-json-output {
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input, var(--surface-sunken));
+  color: var(--text-primary);
+}
+
+.yaml-json-error {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  font-size: 12px;
+}
+
+.yaml-json-limit {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

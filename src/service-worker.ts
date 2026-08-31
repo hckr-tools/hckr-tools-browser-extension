@@ -105,11 +105,13 @@ chrome.action.onClicked.addListener(async () => {
 chrome.runtime.onInstalled.addListener(() => {
   const menuItems = [
     { id: 'hckr-format-json', title: 'hckr: Format JSON' },
+    { id: 'hckr-convert-yaml', title: 'hckr: Convert YAML / JSON' },
     { id: 'hckr-decode-base64', title: 'hckr: Decode Base64' },
     { id: 'hckr-decode-jwt', title: 'hckr: Decode JWT' },
     { id: 'hckr-encode-url', title: 'hckr: URL Encode/Decode' },
     { id: 'hckr-generate-uuid', title: 'hckr: Generate UUID' },
     { id: 'hckr-convert-timestamp', title: 'hckr: Convert Timestamp' },
+    { id: 'hckr-explain-cron', title: 'hckr: Explain Cron' },
     { id: 'hckr-generate-hash', title: 'hckr: Generate Hash' },
     { id: 'hckr-test-regex', title: 'hckr: Test Regex' },
   ];
@@ -125,11 +127,13 @@ chrome.runtime.onInstalled.addListener(() => {
 // Map context menu IDs to tool IDs
 const menuToTool: Record<string, string> = {
   'hckr-format-json': 'json-formatter',
+  'hckr-convert-yaml': 'yaml-json',
   'hckr-decode-base64': 'base64',
   'hckr-decode-jwt': 'jwt-decoder',
   'hckr-encode-url': 'url-encoder',
   'hckr-generate-uuid': 'uuid-generator',
   'hckr-convert-timestamp': 'timestamp',
+  'hckr-explain-cron': 'cron-explainer',
   'hckr-generate-hash': 'hash-generator',
   'hckr-test-regex': 'regex-tester',
 };

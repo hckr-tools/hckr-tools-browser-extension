@@ -46,6 +46,18 @@
   align-items: flex-end;
 }
 
+.data-schema-picker {
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.data-schema-picker .label { display: block; margin-bottom: 3px; }
+.data-schema-picker p { margin: 0; color: var(--text-muted); font-size: 12px; }
+.data-schema-picker .input { width: min(250px, 42vw); font-family: var(--font-sans); }
+
 .data-export-settings {
   width: 168px;
 }
@@ -88,12 +100,12 @@
 
 .data-fields::before {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) 118px;
+  grid-template-columns: minmax(180px, 1.25fr) minmax(150px, 1fr) minmax(220px, 1.2fr) 118px;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 8px 10px 8px 36px;
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
-  content: 'Property name                                      Data type                                      Actions';
+  content: 'Data type                         Property name                         Options                                      Actions';
   font-size: 10px;
   font-weight: 750;
   letter-spacing: .07em;
@@ -103,10 +115,11 @@
 
 .data-field-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) 118px;
+  grid-template-columns: minmax(180px, 1.25fr) minmax(150px, 1fr) minmax(220px, 1.2fr) 118px;
   gap: 8px;
   align-items: center;
-  padding: 7px 10px;
+  position: relative;
+  padding: 7px 10px 7px 36px;
   border-bottom: 1px solid var(--border);
   counter-increment: data-field;
 }
@@ -115,7 +128,10 @@
 .data-field-row:last-child { border-bottom: 0; }
 .data-field-row:hover { background: var(--surface-hover); }
 .data-field-row .input { min-height: 34px; }
-.data-field-actions { display: flex; justify-content: flex-end; gap: 4px; }
+.data-field-index { position: absolute; left: 13px; color: var(--text-muted); font-family: var(--font-mono); font-size: 11px; }
+.data-field-actions { display: flex; grid-column: 4; justify-content: flex-end; gap: 4px; }
+.data-field-option { display: block; min-width: 0; }
+.data-field-option .input { min-width: 0; }
 .data-count-input { width: 112px; }
 .dummy-presets { display: flex; gap: 5px; flex-wrap: wrap; }
 
@@ -137,6 +153,19 @@
 .data-drop-zone strong { color: var(--text-primary); font-size: 14px; }
 .data-drop-zone span { color: var(--text-muted); font-size: 12px; }
 .data-file-summary { justify-content: flex-start; flex-wrap: wrap; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-sunken); font-size: 12px; }
+.dummy-empty-state {
+  display: flex;
+  min-height: 128px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 18px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+.dummy-empty-state strong { color: var(--text-primary); }
 
 .data-table-wrap {
   overflow: auto;
@@ -179,57 +208,48 @@
 /* Preview is always the generated records. Export choices belong with the
    download actions, not with the schema being defined. */
 .data-export-settings { display: none; }
-.data-preview-section .toolbar::before {
-  content: 'Export as';
-  align-self: center;
-  color: #cfdae3;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-}
 
 .data-preview-section {
   min-height: 300px;
   padding: 0;
   overflow: hidden;
-  border: 1px solid #34485a;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: #203648;
-  box-shadow: none;
+  background: var(--surface-raised);
+  box-shadow: var(--card-shadow);
 }
-.data-preview-section .data-section-header { padding: 8px 10px; border-bottom: 1px solid rgba(223, 238, 249, 0.15); }
+.data-preview-section .data-section-header { padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .data-preview-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .data-preview-tabs { flex-shrink: 0; }
-.data-preview-section .label, .data-preview-section .data-preview-meta { color: #cfdae3; }
-.data-preview-section .btn, .data-preview-section .toggle-group { border-color: rgba(223, 238, 249, 0.25); }
-.data-preview-section .btn, .data-preview-section .toggle-btn { background: rgba(10, 24, 36, 0.32); color: #e0ebf3; }
-.data-preview-section .btn:hover, .data-preview-section .toggle-btn:hover { background: rgba(255, 255, 255, 0.12); }
-.data-code-format { display: flex; align-items: center; gap: 7px; color: #cfdae3; font-size: 10px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
-.data-code-format .input { width: 150px; min-height: 32px; padding: 5px 8px; background: rgba(10, 24, 36, 0.32); color: #e0ebf3; font-family: var(--font-sans); font-size: 12px; letter-spacing: 0; text-transform: none; }
-.data-code-output { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid rgba(223, 238, 249, 0.15); }
-.data-code-output-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 0; color: #aebfcc; font-size: 11px; }
-.data-code-preview { max-height: 320px; margin: 8px 10px 10px; border-color: rgba(223, 238, 249, 0.18); background: #132737; color: #e4edf2; }
+.data-preview-section.export-preview .data-preview-header-actions { flex-wrap: wrap; }
+.data-preview-section.export-preview .toolbar { width: 100%; justify-content: flex-end; padding-top: 10px; border-top: 1px solid var(--border); }
+.data-code-format { display: flex; align-items: center; gap: 7px; color: var(--text-muted); font-size: 10px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+.data-code-format .input { width: 150px; min-height: 32px; padding: 5px 8px; background: var(--surface-sunken); color: var(--text-primary); font-family: var(--font-sans); font-size: 12px; letter-spacing: 0; text-transform: none; }
+.data-code-output { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); }
+.data-code-output-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 0; color: var(--text-muted); font-size: 11px; }
+.data-code-preview { max-height: 320px; margin: 10px 12px 12px; border-color: var(--border); background: var(--surface-sunken); color: var(--text-primary); }
 .data-preview-section.data-preview .toolbar,
 .data-preview-section.data-preview .data-code-output { display: none; }
 .data-preview-section.export-preview .data-table-wrap,
 .data-preview-section.export-preview .data-pagination { display: none; }
 .data-table-wrap { border: 0; border-radius: 0; }
-.data-table th { border-bottom-color: rgba(223, 238, 249, 0.18); background: #203648; color: #cbdbe7; }
-.data-table td { border-bottom-color: rgba(223, 238, 249, 0.12); color: #edf4f8; }
-.data-table tbody tr:hover { background: rgba(255, 255, 255, 0.08); }
-.data-pagination { padding: 8px 10px; border-top: 1px solid rgba(223, 238, 249, 0.15); color: #cbdbe7; }
+.data-table th { border-bottom-color: var(--border); background: var(--surface); color: var(--text-secondary); }
+.data-table td { border-bottom-color: var(--border); color: var(--text-primary); }
+.data-table tbody tr:hover { background: var(--surface-hover); }
+.data-pagination { padding: 8px 10px; border-top: 1px solid var(--border); color: var(--text-muted); }
 
 @media (max-width: 760px) {
   .data-workspace-header,
   .data-section-header,
   .data-generate-actions { align-items: flex-start; flex-direction: column; }
   .data-export-settings { width: 100%; }
+  .data-schema-picker .input { width: 100%; }
   .data-code-format { width: 100%; justify-content: space-between; }
   .data-code-format .input { width: min(260px, 65vw); }
   .data-preview-header-actions { align-items: flex-start; flex-direction: column; width: 100%; }
   .data-starter-grid { grid-template-columns: repeat(2, 1fr); }
   .data-fields::before { display: none; }
   .data-field-row { grid-template-columns: 1fr; }
-  .data-field-actions { justify-content: flex-end; }
+  .data-field-index { display: none; }
+  .data-field-actions { grid-column: auto; justify-content: flex-end; }
 }

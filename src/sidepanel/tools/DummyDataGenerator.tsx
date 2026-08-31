@@ -19,7 +19,15 @@ type FieldKind =
   | 'uuid'
   | 'boolean'
   | 'date'
-  | 'datetime';
+  | 'datetime'
+  | 'company'
+  | 'url'
+  | 'color'
+  | 'constant'
+  | 'list'
+  | 'weighted-list'
+  | 'auto-increment'
+  | 'number-range';
 type ExportFormat =
   | 'csv'
   | 'json'
@@ -34,7 +42,7 @@ type ExportFormat =
   | 'spark-scala'
   | 'spark-pyspark'
   | 'sql';
-type DataField = { id: string; name: string; kind: FieldKind };
+type DataField = { id: string; name: string; kind: FieldKind; config?: string };
 type DataRow = Record<string, string | number | boolean>;
 type LoadedData = {
   name: string;
@@ -93,6 +101,14 @@ const LOREM = [
   'local data',
   'quick brown fox',
 ];
+const COMPANIES = [
+  'Acme Labs',
+  'Northstar Systems',
+  'Pioneer Works',
+  'Brightline Co',
+  'Vertex Studio',
+];
+const COLORS = ['#2563eb', '#16a34a', '#dc2626', '#9333ea', '#ea580c'];
 const FIELD_OPTIONS: { kind: FieldKind; label: string }[] = [
   { kind: 'name', label: 'Full name' },
   { kind: 'email', label: 'Email' },
@@ -104,7 +120,29 @@ const FIELD_OPTIONS: { kind: FieldKind; label: string }[] = [
   { kind: 'boolean', label: 'Boolean' },
   { kind: 'date', label: 'ISO date' },
   { kind: 'datetime', label: 'ISO datetime' },
+  { kind: 'company', label: 'Company' },
+  { kind: 'url', label: 'URL' },
+  { kind: 'color', label: 'Colour' },
+  { kind: 'auto-increment', label: 'Auto-increment' },
+  { kind: 'number-range', label: 'Number range' },
+  { kind: 'constant', label: 'Constant' },
+  { kind: 'list', label: 'List' },
+  { kind: 'weighted-list', label: 'Weighted list' },
 ];
+const FIELD_CONFIG: Partial<
+  Record<FieldKind, { placeholder: string; hint: string }>
+> = {
+  constant: { placeholder: 'e.g. active', hint: 'Fixed value' },
+  list: {
+    placeholder: 'e.g. basic,pro,enterprise',
+    hint: 'Comma-separated values',
+  },
+  'weighted-list': {
+    placeholder: 'e.g. basic:6,pro:3,enterprise:1',
+    hint: 'Value:weight pairs',
+  },
+  'number-range': { placeholder: 'e.g. 10,100', hint: 'Minimum, maximum' },
+};
 const STARTER_SCHEMAS: { label: string; fields: Omit<DataField, 'id'>[] }[] = [
   { label: 'Names', fields: [{ name: 'name', kind: 'name' }] },
   { label: 'Emails', fields: [{ name: 'email', kind: 'email' }] },
@@ -123,6 +161,41 @@ const STARTER_SCHEMAS: { label: string; fields: Omit<DataField, 'id'>[] }[] = [
       { name: 'name', kind: 'name' },
       { name: 'email', kind: 'email' },
       { name: 'created_at', kind: 'datetime' },
+    ],
+  },
+  {
+    label: 'Account',
+    fields: [
+      { name: 'account_id', kind: 'auto-increment' },
+      { name: 'company', kind: 'company' },
+      { name: 'owner_email', kind: 'email' },
+      { name: 'plan', kind: 'list', config: 'basic,pro,enterprise' },
+    ],
+  },
+  {
+    label: 'Product',
+    fields: [
+      { name: 'product_id', kind: 'auto-increment' },
+      { name: 'product_name', kind: 'list', config: 'Starter,Pro,Enterprise' },
+      { name: 'price', kind: 'number-range', config: '9.99,199.99' },
+      { name: 'active', kind: 'boolean' },
+    ],
+  },
+  {
+    label: 'Order',
+    fields: [
+      { name: 'order_id', kind: 'auto-increment' },
+      { name: 'customer', kind: 'name' },
+      { name: 'total', kind: 'number-range', config: '10,500' },
+      { name: 'ordered_at', kind: 'datetime' },
+    ],
+  },
+  {
+    label: 'Website',
+    fields: [
+      { name: 'company', kind: 'company' },
+      { name: 'website', kind: 'url' },
+      { name: 'brand_color', kind: 'color' },
     ],
   },
 ];
@@ -152,6 +225,12 @@ const codeFormats: ExportFormat[] = [
   'spark-pyspark',
   'sql',
 ];
+const formatLabel = (format: ExportFormat) =>
+  format === 'spark-pyspark'
+    ? 'PySpark'
+    : format === 'spark-scala'
+      ? 'Spark Scala'
+      : format.toUpperCase();
 const fieldType = (field: string, rows: DataRow[]) => {
   const value = rows.find((row) => row[field] !== undefined)?.[field];
   return typeof value === 'boolean'
@@ -193,7 +272,14 @@ const ensureParquet = () => {
   return parquetReady;
 };
 
-function makeValue(kind: FieldKind): string | number | boolean {
+function listValues(config: string | undefined) {
+  return (config || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+function makeValue(field: DataField, index: number): string | number | boolean {
+  const { kind, config } = field;
   const first = random(FIRST_NAMES);
   const last = random(LAST_NAMES);
   switch (kind) {
@@ -221,15 +307,57 @@ function makeValue(kind: FieldKind): string | number | boolean {
       return new Date(
         Date.now() - Math.floor(Math.random() * 365 * 86400000),
       ).toISOString();
+    case 'company':
+      return random(COMPANIES);
+    case 'url':
+      return `https://${first.toLowerCase()}-${last.toLowerCase()}.example.test`;
+    case 'color':
+      return random(COLORS);
+    case 'auto-increment':
+      return index + 1;
+    case 'number-range': {
+      const [minimum = '0', maximum = '100'] = (config || '').split(',');
+      const min = Number(minimum.trim());
+      const max = Number(maximum.trim());
+      if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) return 0;
+      return Number((min + Math.random() * (max - min)).toFixed(2));
+    }
+    case 'constant':
+      return config?.trim() || 'value';
+    case 'list': {
+      const values = listValues(config);
+      return random(values.length ? values : ['alpha', 'beta', 'gamma']);
+    }
+    case 'weighted-list': {
+      const values = listValues(config)
+        .map((entry) => {
+          const [value, weight = '1'] = entry.split(':');
+          return {
+            value: value.trim(),
+            weight: Math.max(0, Number(weight.trim()) || 0),
+          };
+        })
+        .filter((entry) => entry.value && entry.weight > 0);
+      const total = values.reduce((sum, entry) => sum + entry.weight, 0);
+      if (!total) return 'value';
+      let target = Math.random() * total;
+      for (const entry of values) {
+        target -= entry.weight;
+        if (target <= 0) return entry.value;
+      }
+      return values[values.length - 1].value;
+    }
   }
 }
 function generateRows(fields: DataField[], count: number): DataRow[] {
-  return Array.from({ length: count }, () =>
+  return Array.from({ length: count }, (_, index) =>
     Object.fromEntries(
-      fields.map((field) => [field.name, makeValue(field.kind)]),
+      fields.map((field) => [field.name, makeValue(field, index)]),
     ),
   );
 }
+const isNumericKind = (kind: FieldKind) =>
+  kind === 'number' || kind === 'auto-increment' || kind === 'number-range';
 function avroSchema(fields: DataField[]) {
   return {
     type: 'record',
@@ -239,7 +367,7 @@ function avroSchema(fields: DataField[]) {
       type:
         field.kind === 'boolean'
           ? 'boolean'
-          : field.kind === 'number'
+          : isNumericKind(field.kind)
             ? 'double'
             : 'string',
     })),
@@ -289,7 +417,7 @@ function encodeAvroRecord(row: DataRow, fields: DataField[]): number[] {
   for (const field of fields) {
     const value = row[field.name];
     if (field.kind === 'boolean') output.push(value ? 1 : 0);
-    else if (field.kind === 'number') {
+    else if (isNumericKind(field.kind)) {
       const buffer = new ArrayBuffer(8);
       new DataView(buffer).setFloat64(0, Number(value), true);
       output.push(...new Uint8Array(buffer));
@@ -323,6 +451,20 @@ async function encodeAvro(rows: DataRow[], fields: DataField[]): Promise<Blob> {
     type: 'application/avro',
   });
 }
+async function inflateAvroBlock(bytes: Uint8Array): Promise<Uint8Array> {
+  if (typeof DecompressionStream === 'undefined')
+    throw new Error('Deflate-compressed Avro files require a newer browser.');
+
+  try {
+    const compressed = new Uint8Array(bytes);
+    const stream = new Blob([compressed.buffer])
+      .stream()
+      .pipeThrough(new DecompressionStream('deflate-raw'));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  } catch {
+    throw new Error('This deflate-compressed Avro block is invalid.');
+  }
+}
 async function decodeAvro(file: File): Promise<DataRow[]> {
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (textDecoder.decode(bytes.slice(0, 4)) !== 'Obj\u0001')
@@ -341,7 +483,7 @@ async function decodeAvro(file: File): Promise<DataRow[]> {
   }
   const [, afterMap] = decodeAvroLong(bytes, cursor);
   cursor = afterMap;
-  if (codec !== 'null')
+  if (!['null', 'deflate'].includes(codec))
     throw new Error(
       `Avro codec “${codec}” is not supported by the local reader.`,
     );
@@ -366,40 +508,49 @@ async function decodeAvro(file: File): Promise<DataRow[]> {
     const [blockSize, afterSize] = decodeAvroLong(bytes, cursor);
     cursor = afterSize;
     const end = cursor + blockSize;
+    if (end > bytes.length) throw new Error('Invalid Avro block size.');
+    const block =
+      codec === 'deflate'
+        ? await inflateAvroBlock(bytes.slice(cursor, end))
+        : bytes.slice(cursor, end);
+    let blockCursor = 0;
     for (
       let rowIndex = 0;
-      rowIndex < count && cursor < end && rows.length < MAX_ROWS;
+      rowIndex < count && blockCursor < block.length && rows.length < MAX_ROWS;
       rowIndex++
     ) {
       const row: DataRow = {};
       for (const field of schema.fields) {
-        if (field.type === 'boolean') row[field.name] = bytes[cursor++] === 1;
+        if (field.type === 'boolean')
+          row[field.name] = block[blockCursor++] === 1;
         else if (field.type === 'double') {
           row[field.name] = new DataView(
-            bytes.buffer,
-            bytes.byteOffset + cursor,
+            block.buffer,
+            block.byteOffset + blockCursor,
             8,
           ).getFloat64(0, true);
-          cursor += 8;
+          blockCursor += 8;
         } else if (field.type === 'float') {
           row[field.name] = new DataView(
-            bytes.buffer,
-            bytes.byteOffset + cursor,
+            block.buffer,
+            block.byteOffset + blockCursor,
             4,
           ).getFloat32(0, true);
-          cursor += 4;
+          blockCursor += 4;
         } else if (field.type === 'int' || field.type === 'long') {
-          const [value, next] = decodeAvroLong(bytes, cursor);
+          const [value, next] = decodeAvroLong(block, blockCursor);
           row[field.name] = value;
-          cursor = next;
+          blockCursor = next;
         } else {
-          const [value, next] = decodeAvroString(bytes, cursor);
+          const [value, next] = decodeAvroString(block, blockCursor);
           row[field.name] = value;
-          cursor = next;
+          blockCursor = next;
         }
       }
       rows.push(row);
     }
+    if (blockCursor !== block.length && rows.length < MAX_ROWS)
+      throw new Error('Avro block does not match its schema.');
     cursor = end;
     if (
       bytes
@@ -474,6 +625,7 @@ export const DummyDataGenerator: React.FC = () => {
     STARTER_SCHEMAS[3].fields.map((field) => ({ ...field, id: fieldId() })),
   );
   const [count, setCount] = useState(25);
+  const [starterSchema, setStarterSchema] = useState(STARTER_SCHEMAS[3].label);
   const [format, setFormat] = useState<ExportFormat>('json');
   const [rows, setRows] = useState<DataRow[]>([]);
   const [page, setPage] = useState(0);
@@ -493,10 +645,17 @@ export const DummyDataGenerator: React.FC = () => {
     fields.every((field) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(field.name)) &&
     new Set(fields.map((field) => field.name)).size === fields.length;
   const applyStarter = (starter: (typeof STARTER_SCHEMAS)[number]) => {
-    setFields(starter.fields.map((field) => ({ ...field, id: fieldId() })));
-    setRows([]);
+    const starterFields = starter.fields.map((field) => ({
+      ...field,
+      id: fieldId(),
+    }));
+    setFields(starterFields);
+    setCount(25);
+    setRows(generateRows(starterFields, 25));
     setPage(0);
+    setPreviewTab('data');
     setError(null);
+    setStarterSchema(starter.label);
   };
   const updateField = (id: string, patch: Partial<DataField>) =>
     setFields((current) =>
@@ -669,35 +828,38 @@ export const DummyDataGenerator: React.FC = () => {
       )}
       {mode === 'generate' ? (
         <section className="section data-schema-section">
-          <div className="data-section-header">
+          <div className="data-section-header data-schema-picker">
             <div>
-              <span className="label">Starter schemas</span>
-              <div className="dummy-category-grid data-starter-grid">
-                {STARTER_SCHEMAS.map((starter) => (
-                  <button
-                    key={starter.label}
-                    className="dummy-type-btn"
-                    onClick={() => applyStarter(starter)}
-                  >
-                    {starter.label}
-                  </button>
-                ))}
-              </div>
+              <span className="label">Starter schema</span>
+              <p>Load a useful field set, then tailor it below.</p>
             </div>
+            <select
+              className="input"
+              aria-label="Starter schema"
+              value={starterSchema}
+              onChange={(event) => {
+                const starter = STARTER_SCHEMAS.find(
+                  (item) => item.label === event.target.value,
+                );
+                if (starter) applyStarter(starter);
+              }}
+            >
+              <option value="" disabled>
+                Select a starter schema
+              </option>
+              {STARTER_SCHEMAS.map((starter) => (
+                <option key={starter.label} value={starter.label}>
+                  {starter.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="data-fields" aria-label="Dataset fields">
             {fields.map((field, index) => (
               <div className="data-field-row" key={field.id}>
-                <input
-                  className="input"
-                  aria-label={`Field ${index + 1} name`}
-                  value={field.name}
-                  onChange={(event) =>
-                    updateField(field.id, {
-                      name: cleanName(event.target.value),
-                    })
-                  }
-                />
+                <span className="data-field-index" aria-hidden="true">
+                  {index + 1}
+                </span>
                 <select
                   className="input"
                   aria-label={`${field.name || 'Field'} generator`}
@@ -714,6 +876,31 @@ export const DummyDataGenerator: React.FC = () => {
                     </option>
                   ))}
                 </select>
+                <input
+                  className="input"
+                  aria-label={`Field ${index + 1} name`}
+                  value={field.name}
+                  onChange={(event) =>
+                    updateField(field.id, {
+                      name: cleanName(event.target.value),
+                    })
+                  }
+                />
+                <div
+                  className={`data-field-option${FIELD_CONFIG[field.kind] ? '' : ' is-empty'}`}
+                >
+                  {FIELD_CONFIG[field.kind] && (
+                    <input
+                      className="input"
+                      aria-label={`${field.name || 'Field'} ${FIELD_CONFIG[field.kind]!.hint.toLowerCase()}`}
+                      placeholder={FIELD_CONFIG[field.kind]!.placeholder}
+                      value={field.config || ''}
+                      onChange={(event) =>
+                        updateField(field.id, { config: event.target.value })
+                      }
+                    />
+                  )}
+                </div>
                 <div className="data-field-actions">
                   <button
                     className="btn btn-sm"
@@ -755,6 +942,7 @@ export const DummyDataGenerator: React.FC = () => {
                   id: fieldId(),
                   name: `field_${current.length + 1}`,
                   kind: 'lorem',
+                  config: '',
                 },
               ])
             }
@@ -841,14 +1029,16 @@ export const DummyDataGenerator: React.FC = () => {
         <div className="data-section-header">
           <div>
             <span className="label">
-              {mode === 'read' ? 'Decoded preview' : 'Generated preview'}
+              {previewTab === 'export'
+                ? 'Export preview'
+                : mode === 'read'
+                  ? 'Decoded data'
+                  : 'Data preview'}
             </span>
             <span className="data-preview-meta">
-              {activeRows.length.toLocaleString()} rows · {activeFields.length}{' '}
-              fields{' '}
-              {mode === 'generate' && rows.length
-                ? `· ${new Blob([outputText]).size.toLocaleString()} B ${format.toUpperCase()} preview`
-                : ''}
+              {previewTab === 'export'
+                ? `${formatLabel(format)} · ${new Blob([outputText]).size.toLocaleString()} B`
+                : `${activeRows.length.toLocaleString()} rows · ${activeFields.length} fields`}
             </span>
           </div>
           <div className="data-preview-header-actions">
@@ -876,7 +1066,7 @@ export const DummyDataGenerator: React.FC = () => {
             </div>
             <div className="toolbar">
               <label className="data-code-format" htmlFor="data-format">
-                <span>View code as</span>
+                <span>Format</span>
                 <select
                   id="data-format"
                   className="input"
@@ -909,36 +1099,15 @@ export const DummyDataGenerator: React.FC = () => {
                 disabled={!activeRows.length}
                 onClick={() => copyToClipboard(outputText)}
               >
-                Copy {format.toUpperCase()}
+                Copy to clipboard
               </button>
-              {(['csv', 'json', 'ndjson'] as ExportFormat[]).map((target) => (
-                <button
-                  className="btn btn-sm"
-                  disabled={!activeRows.length || busy}
-                  onClick={() => void exportRows(target)}
-                  key={target}
-                >
-                  ↓ {target.toUpperCase()}
-                </button>
-              ))}
-              {mode === 'generate' && (
-                <>
-                  <button
-                    className="btn btn-sm"
-                    disabled={!rows.length || busy}
-                    onClick={() => void exportRows('avro')}
-                  >
-                    ↓ AVRO
-                  </button>
-                  <button
-                    className="btn btn-sm"
-                    disabled={!rows.length || busy}
-                    onClick={() => void exportRows('parquet')}
-                  >
-                    ↓ PARQUET
-                  </button>
-                </>
-              )}
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={!activeRows.length || busy}
+                onClick={() => void exportRows(format)}
+              >
+                ↓ Download
+              </button>
             </div>
           </div>
         </div>
@@ -988,19 +1157,28 @@ export const DummyDataGenerator: React.FC = () => {
           </>
         ) : (
           <div className="dummy-empty-state">
-            <span className="dummy-empty-icon">▦</span>
-            <span>
-              {mode === 'generate'
-                ? 'Configure fields, then generate a local dataset.'
-                : 'Choose an Avro or Parquet file to inspect it locally.'}
-            </span>
+            {mode === 'read' && error ? (
+              <>
+                <strong>Couldn’t decode this file</strong>
+                <span>Choose another Avro or Parquet file to inspect locally.</span>
+              </>
+            ) : (
+              <span>
+                {mode === 'generate'
+                  ? 'Configure fields, then generate a local dataset.'
+                  : 'Choose an Avro or Parquet file to inspect it locally.'}
+              </span>
+            )}
           </div>
         )}
         {activeRows.length > 0 && (
           <section className="data-code-output" aria-label="Generated code">
             <div className="data-code-output-header">
-              <span className="label">Generated {format.toUpperCase()}</span>
-              <span>{new Blob([outputText]).size.toLocaleString()} B</span>
+              <span className="label">Export output</span>
+              <span>
+                {formatLabel(format)} ·{' '}
+                {new Blob([outputText]).size.toLocaleString()} B
+              </span>
             </div>
             <pre className="data-code-preview">{outputText}</pre>
           </section>

@@ -8,9 +8,11 @@ import './App.css';
 
 // Lazy-load all tools for fast initial load
 const JsonFormatter = lazy(() => import('./tools/JsonFormatter'));
+const YamlJsonConverter = lazy(() => import('./tools/YamlJsonConverter'));
 const Base64Tool = lazy(() => import('./tools/Base64Tool'));
 const UuidGenerator = lazy(() => import('./tools/UuidGenerator'));
 const TimestampConverter = lazy(() => import('./tools/TimestampConverter'));
+const CronExplainer = lazy(() => import('./tools/CronExplainer'));
 const UrlEncoder = lazy(() => import('./tools/UrlEncoder'));
 const JwtDecoder = lazy(() => import('./tools/JwtDecoder'));
 const HashGenerator = lazy(() => import('./tools/HashGenerator'));
@@ -22,12 +24,14 @@ const TabsNavigator = lazy(() => import('./tools/TabsNavigator'));
 
 const TOOLS: ToolTab[] = [
   { id: 'json-formatter', label: 'JSON', icon: '{ }', category: 'Transform', description: 'Format, validate, and inspect JSON' },
+  { id: 'yaml-json', label: 'YAML', icon: 'Y↦', category: 'Transform', description: 'Convert YAML and JSON locally' },
   { id: 'base64', label: 'Base64', icon: '↔', category: 'Transform', description: 'Encode and decode Base64 data' },
   { id: 'url-encoder', label: 'URL', icon: '⌁', category: 'Transform', description: 'Encode, decode, and inspect URLs' },
   { id: 'jwt-decoder', label: 'JWT', icon: '◇', category: 'Transform', description: 'Decode token claims locally' },
   { id: 'hash-generator', label: 'Hash', icon: '#', category: 'Transform', description: 'Generate and compare hashes' },
   { id: 'uuid-generator', label: 'UUID', icon: '◌', category: 'Create', description: 'Generate UUIDs and ULIDs' },
   { id: 'timestamp', label: 'Time', icon: '◷', category: 'Create', description: 'Convert timestamps and dates' },
+  { id: 'cron-explainer', label: 'Cron', icon: '⟳', category: 'Create', description: 'Explain cron and list next run times' },
   { id: 'dummy-data', label: 'Data', icon: '▦', category: 'Create', description: 'Generate realistic sample data' },
   { id: 'regex-tester', label: 'Regex', icon: '.*', category: 'Inspect', description: 'Test expressions and matches' },
   { id: 'diff-checker', label: 'Diff', icon: '±', category: 'Inspect', description: 'Compare text and code changes' },
@@ -37,9 +41,11 @@ const TOOLS: ToolTab[] = [
 
 const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initialInput?: string }>>> = {
   'json-formatter': JsonFormatter,
+  'yaml-json': YamlJsonConverter,
   'base64': Base64Tool,
   'uuid-generator': UuidGenerator,
   'timestamp': TimestampConverter,
+  'cron-explainer': CronExplainer,
   'url-encoder': UrlEncoder,
   'jwt-decoder': JwtDecoder,
   'hash-generator': HashGenerator,

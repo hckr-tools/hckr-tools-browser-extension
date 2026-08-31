@@ -33,6 +33,30 @@ test.describe('Core Tools Suite (JSON, Base64, UUID, Time, URL)', () => {
     await expect(sidepanelPage.locator('.json-output-content')).toContainText('{"foo":"bar","num":42,"list":[1,2,3]}');
   });
 
+  test('YAML ↔ JSON: converts both directions, validates input, and swaps panes', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'YAML' }).click();
+    await expect(sidepanelPage.locator('.yaml-json-converter')).toBeVisible();
+    await expect(sidepanelPage.locator('.yaml-json-converter .tool-split')).toBeVisible();
+
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'YAML → JSON' }).click();
+    await sidepanelPage.locator('textarea.yaml-json-textarea').fill('name: hckr\nreplicas: 3');
+    await expect(sidepanelPage.locator('.yaml-json-output')).toContainText('"name": "hckr"');
+    await expect(sidepanelPage.locator('.yaml-json-output')).toContainText('"replicas": 3');
+    await expect(sidepanelPage.locator('.yaml-json-badge.valid')).toBeVisible();
+
+    await sidepanelPage.locator('.yaml-json-swap-btn').click();
+    await expect(sidepanelPage.locator('button.toggle-btn', { hasText: 'JSON → YAML' })).toHaveClass(/active/);
+    await expect(sidepanelPage.locator('textarea.yaml-json-textarea')).toHaveValue(/"name": "hckr"/);
+    await expect(sidepanelPage.locator('.yaml-json-output')).toContainText('name: hckr');
+
+    await sidepanelPage.locator('button.toggle-btn', { hasText: 'YAML → JSON' }).click();
+    await sidepanelPage.locator('textarea.yaml-json-textarea').fill('foo: [unterminated');
+    await expect(sidepanelPage.locator('.yaml-json-error')).toBeVisible();
+    await expect(sidepanelPage.locator('.yaml-json-badge.invalid')).toBeVisible();
+  });
+
   test('Base64: encodes plain text and decodes base64 string', async ({ sidepanelPage }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'Base64' }).click();
     await expect(sidepanelPage.locator('.base64-tool')).toBeVisible();
@@ -112,6 +136,29 @@ test.describe('Core Tools Suite (JSON, Base64, UUID, Time, URL)', () => {
     // Verify UTC output
     await expect(sidepanelPage.locator('.timestamp-container')).toContainText('2023-11-14T22:13:20.000Z');
     await expect(sidepanelPage.locator('.timestamp-container')).toContainText('1700000000000');
+  });
+
+  test('Cron explainer: describes weekday schedule, lists next runs, and rejects invalid input', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Cron' }).click();
+    await expect(sidepanelPage.locator('.cron-explainer')).toBeVisible();
+
+    await sidepanelPage.locator('#cron-expression').fill('0 9 * * 1-5');
+    await expect(sidepanelPage.locator('.cron-description')).toContainText('09:00');
+    await expect(sidepanelPage.locator('.cron-description')).toContainText('Monday through Friday');
+    await expect(sidepanelPage.locator('.cron-run-row')).toHaveCount(10);
+
+    await sidepanelPage.locator('button.cron-sample-chip', { hasText: 'Every 5 min' }).click();
+    await expect(sidepanelPage.locator('#cron-expression')).toHaveValue('*/5 * * * *');
+    await expect(sidepanelPage.locator('.cron-description')).toContainText('Every 5 minutes');
+
+    await sidepanelPage.locator('#cron-timezone').selectOption('UTC');
+    await expect(sidepanelPage.locator('.cron-zone-hint')).toHaveText('UTC');
+
+    await sidepanelPage.locator('#cron-expression').fill('not-a-cron');
+    await expect(sidepanelPage.locator('.error-msg')).toBeVisible();
+    await expect(sidepanelPage.locator('.cron-run-row')).toHaveCount(0);
   });
 
   test('URL Encoder / Decoder: encodes and decodes query parameters and full URLs', async ({
@@ -207,17 +254,14 @@ test.describe('Core Tools Suite (JSON, Base64, UUID, Time, URL)', () => {
     sidepanelPage,
   }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'URL' }).click();
-    await sidepanelPage.locator('button.url-mode-btn', { hasText: 'Decode' }).click();
-    await sidepanelPage
-      .locator('textarea.url-textarea')
-      .fill('https://example.com/search?q=developer+tools&category=extension#results');
+    await sidepanelPage.locator('button.url-sample-chip', { hasText: 'Search URL' }).click();
 
+    await expect(sidepanelPage.locator('button.url-view-tab', { hasText: 'Query Params' })).toBeVisible();
     await sidepanelPage.locator('button.url-view-tab', { hasText: 'Query Params' }).click();
-    const qRow = sidepanelPage.locator('.url-param-row', { hasText: 'q' }).first();
-    await expect(qRow.locator('.url-param-input').nth(0)).toHaveValue('q');
-    await expect(qRow.locator('.url-param-input').nth(1)).toHaveValue('developer tools');
+    await expect(sidepanelPage.locator('input.url-param-input').first()).toHaveValue('q');
+    await expect(sidepanelPage.locator('input.url-param-input').nth(1)).toHaveValue('developer tools');
 
-    await qRow.locator('.url-param-input').nth(1).fill('playwright');
+    await sidepanelPage.locator('input.url-param-input').nth(1).fill('playwright');
     await expect(sidepanelPage.locator('textarea.url-textarea')).toHaveValue(/q=playwright/);
   });
 
@@ -228,12 +272,12 @@ test.describe('Core Tools Suite (JSON, Base64, UUID, Time, URL)', () => {
     await sidepanelPage.locator('button.url-mode-btn', { hasText: 'Encode' }).click();
     await sidepanelPage.locator('textarea.url-textarea').fill('https://example.com/a?b=c');
 
-    await sidepanelPage.locator('label.url-radio-label', { hasText: 'encodeURIComponent' }).click();
+    await sidepanelPage.getByText('encodeURIComponent', { exact: true }).click();
     await expect(sidepanelPage.locator('.url-output-container')).toContainText(
       'https%3A%2F%2Fexample.com%2Fa%3Fb%3Dc'
     );
 
-    await sidepanelPage.locator('label.url-radio-label', { hasText: 'encodeURI' }).click();
+    await sidepanelPage.getByText('encodeURI', { exact: true }).click();
     await expect(sidepanelPage.locator('.url-output-container')).toContainText(
       'https://example.com/a?b=c'
     );

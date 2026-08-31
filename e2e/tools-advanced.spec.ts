@@ -1,5 +1,4 @@
 import { test, expect } from './fixtures';
-import { readFileSync } from 'node:fs';
 
 test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', () => {
   test('JWT Decoder: decodes valid and expired JWT tokens and shows claims', async ({
@@ -84,10 +83,7 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
     await expect(sidepanelPage.locator('.dummy-data-tool')).toBeVisible();
 
-    const emailsBtn = sidepanelPage.locator('button.dummy-type-btn', {
-      hasText: 'Emails',
-    });
-    await emailsBtn.click();
+    await sidepanelPage.getByLabel('Starter schema').selectOption('Emails');
 
     await sidepanelPage.locator('input.data-count-input').fill('5');
 
@@ -120,7 +116,35 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await expect(generatedCode).toContainText('createDataFrame');
   });
 
-  test('Data workspace exports and reads back an Avro dataset', async ({
+  test('Data workspace generates configurable list and sequence fields', async ({
+    sidepanelPage,
+  }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
+    await sidepanelPage.locator('input.data-count-input').fill('3');
+
+    const firstGenerator = sidepanelPage.locator(
+      'select[aria-label="id generator"]',
+    );
+    await firstGenerator.selectOption('auto-increment');
+    const secondGenerator = sidepanelPage.locator(
+      'select[aria-label="name generator"]',
+    );
+    await secondGenerator.selectOption('list');
+    await sidepanelPage
+      .getByLabel('name comma-separated values')
+      .fill('basic,pro');
+    await sidepanelPage
+      .getByRole('button', { name: 'Generate 3 rows' })
+      .click();
+
+    const rows = sidepanelPage.locator('.data-table tbody tr');
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0).locator('td').first()).toHaveText('1');
+    await expect(rows.nth(1).locator('td').first()).toHaveText('2');
+    await expect(rows.nth(0).locator('td').nth(1)).toHaveText(/basic|pro/);
+  });
+
+  test('Data workspace downloads the selected export format', async ({
     sidepanelPage,
   }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
@@ -129,23 +153,14 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
       .getByRole('button', { name: 'Generate 2 rows' })
       .click();
 
-    const avroDownloadPromise = sidepanelPage.waitForEvent('download');
-    await sidepanelPage.getByRole('button', { name: '↓ AVRO' }).click();
-    const avroDownload = await avroDownloadPromise;
-    expect(avroDownload.suggestedFilename()).toBe('generated-data.avro');
-
-    await sidepanelPage.getByRole('button', { name: 'Read files' }).click();
-    const avroPath = await avroDownload.path();
-    expect(avroPath).not.toBeNull();
-    await sidepanelPage.locator('input.data-file-input').setInputFiles({
-      name: 'generated-data.avro',
-      mimeType: 'application/avro',
-      buffer: readFileSync(avroPath!),
-    });
-    await expect(sidepanelPage.locator('.data-file-summary')).toContainText(
-      'Avro',
-    );
-    await expect(sidepanelPage.locator('.data-table tbody tr')).toHaveCount(2);
+    await sidepanelPage.getByRole('tab', { name: 'Export preview' }).click();
+    await sidepanelPage
+      .locator('select#data-format')
+      .selectOption('javascript');
+    const downloadPromise = sidepanelPage.waitForEvent('download');
+    await sidepanelPage.getByRole('button', { name: '↓ Download' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe('generated-data.js');
   });
 
   test('Diff Checker: computes line-by-line diff between original and modified text', async ({
@@ -383,9 +398,7 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     sidepanelPage,
   }) => {
     await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
-    await sidepanelPage
-      .locator('button.dummy-type-btn', { hasText: 'Person' })
-      .click();
+    await sidepanelPage.getByLabel('Starter schema').selectOption('Person');
     await sidepanelPage.locator('input.data-count-input').fill('3');
     await sidepanelPage
       .getByRole('button', { name: 'Generate 3 rows' })
@@ -395,8 +408,10 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await expect(headers).toContainText(['id', 'name', 'email', 'created_at']);
     await expect(sidepanelPage.locator('.data-table tbody tr')).toHaveCount(3);
 
+    await sidepanelPage.getByRole('tab', { name: 'Export preview' }).click();
+    await sidepanelPage.locator('select#data-format').selectOption('csv');
     const csvDownloadPromise = sidepanelPage.waitForEvent('download');
-    await sidepanelPage.getByRole('button', { name: '↓ CSV' }).click();
+    await sidepanelPage.getByRole('button', { name: '↓ Download' }).click();
     const csvDownload = await csvDownloadPromise;
     expect(csvDownload.suggestedFilename()).toBe('generated-data.csv');
   });

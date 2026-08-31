@@ -1,0 +1,129 @@
+.cron-explainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.cron-input-card,
+.cron-description-card,
+.cron-upcoming-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cron-header,
+.cron-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cron-expression-input {
+  font-size: 14px;
+  font-family: var(--font-mono);
+}
+
+.cron-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cron-tz-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cron-tz-select {
+  min-width: 200px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.cron-samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.cron-samples-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cron-sample-chip {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.cron-sample-chip:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.cron-description {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.cron-zone-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.cron-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.cron-run-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cron-run-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.cron-run-when {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.cron-run-rel {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}

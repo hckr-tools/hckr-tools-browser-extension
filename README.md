@@ -7,7 +7,7 @@
 [![Playwright](https://img.shields.io/badge/Playwright-E2E%20Tested-45ba4b.svg)](https://playwright.dev/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-An essential, privacy-first developer utility toolkit built right into your browser. Instant access to 11 daily developer tools, context menu integrations, on-page smart payload detection, and lightning-fast MRU tab switching.
+An essential, privacy-first developer utility toolkit built right into your browser. Instant access to 14 daily developer tools, context menu integrations, on-page smart payload detection, and lightning-fast MRU tab switching.
 
 **100% Offline • Zero Analytics • Zero Tracking • Privacy by Design**
 
@@ -15,14 +15,16 @@ An essential, privacy-first developer utility toolkit built right into your brow
 
 ## 🚀 Features
 
-### 🧰 11 Built-in Developer Tools
+### 🧰 14 Built-in Developer Tools
 
 | Tool | Description |
 | :--- | :--- |
 | **`{ }` JSON Formatter** | Parse, format, minify, validate, and inspect JSON with interactive collapsible tree views, path search, and syntax validation. |
+| **`Y↦` YAML ↔ JSON** | Convert and validate YAML and JSON side by side, including Kubernetes-style multi-document YAML. |
 | **`🔤` Base64 Encoder / Decoder** | Encode and decode plain text or binary files, with support for standard and URL-safe Base64 modes. |
 | **`🆔` UUID / NanoID Generator** | Generate UUID v1, v4, v7, and custom-length NanoIDs in single or batch mode with instant copy. |
 | **`⏰` Timestamp Converter** | Convert Unix epoch timestamps (seconds & milliseconds) to ISO 8601, UTC, and local date/time with relative time calculations. |
+| **`⟳` Cron Explainer** | Paste a Unix cron expression (or `@hourly` / `@daily`), read it in plain English, and list the next run times in a chosen timezone. |
 | **`🔗` URL Encoder / Decoder** | Encode/decode URIs and component strings, parse query parameters into key-value tables, and edit query strings live. |
 | **`🔐` JWT Decoder** | Decode JSON Web Tokens to inspect headers, payload claims, and signature info with expiration status badges. |
 | **`#️⃣` Hash Generator** | Generate MD5, SHA-1, SHA-256, and SHA-512 cryptographic hashes and checksums directly on the client. |

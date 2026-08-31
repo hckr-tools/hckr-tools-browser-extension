@@ -1,20 +1,22 @@
 import { test, expect } from './fixtures';
 
 test.describe('Navigation & Storage Persistence', () => {
-  test('renders all 12 tool tabs in TabBar', async ({ sidepanelPage }) => {
+  test('renders all 14 tool tabs in TabBar', async ({ sidepanelPage }) => {
     const tabs = sidepanelPage.locator('.tab-item');
-    await expect(tabs).toHaveCount(12);
+    await expect(tabs).toHaveCount(14);
     await expect(sidepanelPage.locator('.app')).toHaveCSS('flex-direction', 'row');
     await expect(sidepanelPage.locator('aside.tab-bar')).toHaveCSS('flex-direction', 'column');
 
     const expectedLabels = [
       'JSON',
+      'YAML',
       'Base64',
       'URL',
       'JWT',
       'Hash',
       'UUID',
       'Time',
+      'Cron',
       'Data',
       'Regex',
       'Diff',
@@ -166,14 +168,14 @@ test.describe('Navigation & Storage Persistence', () => {
 
   test('persists JSON tool input across side panel reloads', async ({
     sidepanelPage,
-    extensionId,
   }) => {
-    await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
+    await sidepanelPage.locator('.tab-item', { hasText: 'JSON', exact: true }).click();
     const marker = '{"persistProbe":true,"source":"e2e-reload"}';
     await sidepanelPage.locator('textarea.json-textarea').fill(marker);
+    await expect(sidepanelPage.locator('textarea.json-textarea')).toHaveValue(marker);
     await sidepanelPage.waitForTimeout(400);
 
-    await sidepanelPage.goto(`chrome-extension://${extensionId}/src/sidepanel/index.html`);
+    await sidepanelPage.reload();
     await sidepanelPage.waitForLoadState('domcontentloaded');
     await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('JSON');
     await expect(sidepanelPage.locator('textarea.json-textarea')).toHaveValue(marker);
