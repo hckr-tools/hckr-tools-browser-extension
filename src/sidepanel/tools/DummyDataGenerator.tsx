@@ -25,7 +25,6 @@ type FieldKind =
   | 'color'
   | 'constant'
   | 'list'
-  | 'weighted-list'
   | 'auto-increment'
   | 'number-range';
 type ExportFormat =
@@ -55,6 +54,7 @@ type LoadedData = {
 const MAX_ROWS = 10000;
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 const PAGE_SIZE = 25;
+const DEFAULT_LIST_CONFIG = 'alpha,beta,gamma';
 const FIRST_NAMES = [
   'Amelia',
   'Noah',
@@ -127,7 +127,6 @@ const FIELD_OPTIONS: { kind: FieldKind; label: string }[] = [
   { kind: 'number-range', label: 'Number range' },
   { kind: 'constant', label: 'Constant' },
   { kind: 'list', label: 'List' },
-  { kind: 'weighted-list', label: 'Weighted list' },
 ];
 const FIELD_CONFIG: Partial<
   Record<FieldKind, { placeholder: string; hint: string }>
@@ -136,10 +135,6 @@ const FIELD_CONFIG: Partial<
   list: {
     placeholder: 'e.g. basic,pro,enterprise',
     hint: 'Comma-separated values',
-  },
-  'weighted-list': {
-    placeholder: 'e.g. basic:6,pro:3,enterprise:1',
-    hint: 'Value:weight pairs',
   },
   'number-range': { placeholder: 'e.g. 10,100', hint: 'Minimum, maximum' },
 };
@@ -278,6 +273,72 @@ function listValues(config: string | undefined) {
     .map((value) => value.trim())
     .filter(Boolean);
 }
+
+type ListValueEditorProps = {
+  config?: string;
+  label: string;
+  onChange: (config: string) => void;
+};
+
+const ListValueEditor: React.FC<ListValueEditorProps> = ({
+  config,
+  label,
+  onChange,
+}) => {
+  const [draft, setDraft] = useState('');
+  const values = listValues(config);
+  const saveValues = (nextValues: string[]) => onChange(nextValues.join(','));
+  const addValues = (value: string) => {
+    const nextValues = listValues(value);
+    if (nextValues.length) saveValues([...values, ...nextValues]);
+    setDraft('');
+  };
+
+  return (
+    <div className="list-value-editor">
+      {values.map((value, index) => (
+        <span className="list-value-chip" key={`${value}-${index}`}>
+          {value}
+          <button
+            type="button"
+            aria-label={`Remove ${value}`}
+            onClick={() =>
+              saveValues(values.filter((_, valueIndex) => valueIndex !== index))
+            }
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        className="list-value-input"
+        aria-label={label}
+        placeholder={values.length ? 'Add value' : 'Add values'}
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ',') {
+            event.preventDefault();
+            addValues(draft);
+          }
+          if (event.key === 'Backspace' && !draft && values.length) {
+            saveValues(values.slice(0, -1));
+          }
+        }}
+        onBlur={() => addValues(draft)}
+        onPaste={(event) => {
+          const pastedValues = listValues(event.clipboardData.getData('text'));
+          if (pastedValues.length > 1) {
+            event.preventDefault();
+            saveValues([...values, ...pastedValues]);
+            setDraft('');
+          }
+        }}
+      />
+    </div>
+  );
+};
+
 function makeValue(field: DataField, index: number): string | number | boolean {
   const { kind, config } = field;
   const first = random(FIRST_NAMES);
@@ -327,25 +388,6 @@ function makeValue(field: DataField, index: number): string | number | boolean {
     case 'list': {
       const values = listValues(config);
       return random(values.length ? values : ['alpha', 'beta', 'gamma']);
-    }
-    case 'weighted-list': {
-      const values = listValues(config)
-        .map((entry) => {
-          const [value, weight = '1'] = entry.split(':');
-          return {
-            value: value.trim(),
-            weight: Math.max(0, Number(weight.trim()) || 0),
-          };
-        })
-        .filter((entry) => entry.value && entry.weight > 0);
-      const total = values.reduce((sum, entry) => sum + entry.weight, 0);
-      if (!total) return 'value';
-      let target = Math.random() * total;
-      for (const entry of values) {
-        target -= entry.weight;
-        if (target <= 0) return entry.value;
-      }
-      return values[values.length - 1].value;
     }
   }
 }
@@ -663,6 +705,16 @@ export const DummyDataGenerator: React.FC = () => {
         field.id === id ? { ...field, ...patch } : field,
       ),
     );
+  const updateGeneratedField = (id: string, patch: Partial<DataField>) => {
+    const nextFields = fields.map((field) =>
+      field.id === id ? { ...field, ...patch } : field,
+    );
+    setFields(nextFields);
+    setRows(generateRows(nextFields, Math.max(1, Math.min(MAX_ROWS, count))));
+    setPage(0);
+    setPreviewTab('data');
+    setError(null);
+  };
   const moveField = (index: number, direction: -1 | 1) =>
     setFields((current) => {
       const target = index + direction;
@@ -864,11 +916,17 @@ export const DummyDataGenerator: React.FC = () => {
                   className="input"
                   aria-label={`${field.name || 'Field'} generator`}
                   value={field.kind}
-                  onChange={(event) =>
-                    updateField(field.id, {
-                      kind: event.target.value as FieldKind,
-                    })
-                  }
+                  onChange={(event) => {
+                    const kind = event.target.value as FieldKind;
+                    if (kind === 'list') {
+                      updateGeneratedField(field.id, {
+                        kind,
+                        config: DEFAULT_LIST_CONFIG,
+                      });
+                      return;
+                    }
+                    updateField(field.id, { kind });
+                  }}
                 >
                   {FIELD_OPTIONS.map((option) => (
                     <option value={option.kind} key={option.kind}>
@@ -889,7 +947,15 @@ export const DummyDataGenerator: React.FC = () => {
                 <div
                   className={`data-field-option${FIELD_CONFIG[field.kind] ? '' : ' is-empty'}`}
                 >
-                  {FIELD_CONFIG[field.kind] && (
+                  {field.kind === 'list' ? (
+                    <ListValueEditor
+                      config={field.config}
+                      label={`${field.name || 'Field'} comma-separated values`}
+                      onChange={(config) =>
+                        updateGeneratedField(field.id, { config })
+                      }
+                    />
+                  ) : FIELD_CONFIG[field.kind] ? (
                     <input
                       className="input"
                       aria-label={`${field.name || 'Field'} ${FIELD_CONFIG[field.kind]!.hint.toLowerCase()}`}
@@ -899,7 +965,7 @@ export const DummyDataGenerator: React.FC = () => {
                         updateField(field.id, { config: event.target.value })
                       }
                     />
-                  )}
+                  ) : null}
                 </div>
                 <div className="data-field-actions">
                   <button

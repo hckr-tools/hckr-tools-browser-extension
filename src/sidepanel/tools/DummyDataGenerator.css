@@ -132,6 +132,50 @@
 .data-field-actions { display: flex; grid-column: 4; justify-content: flex-end; gap: 4px; }
 .data-field-option { display: block; min-width: 0; }
 .data-field-option .input { min-width: 0; }
+.list-value-editor {
+  display: flex;
+  min-height: 32px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+.list-value-editor:focus-within { border-color: var(--border-focus); }
+.list-value-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 5px 2px 7px;
+  border-radius: 3px;
+  background: var(--accent-dim);
+  color: var(--text-primary);
+  font: 11px var(--font-mono);
+}
+.list-value-chip button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: 15px/11px var(--font-sans);
+}
+.list-value-chip button:hover { color: var(--danger, #dc2626); }
+.list-value-input {
+  width: 72px;
+  min-width: 72px;
+  flex: 1;
+  padding: 2px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: 12px var(--font-sans);
+}
+.list-value-input::placeholder { color: var(--text-muted); }
 .data-count-input { width: 112px; }
 .dummy-presets { display: flex; gap: 5px; flex-wrap: wrap; }
 

@@ -130,13 +130,37 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
       'select[aria-label="name generator"]',
     );
     await secondGenerator.selectOption('list');
+    await expect(sidepanelPage.locator('.list-value-chip')).toHaveText([
+      'alpha×',
+      'beta×',
+      'gamma×',
+    ]);
     await sidepanelPage
       .getByLabel('name comma-separated values')
       .fill('basic,pro');
     await sidepanelPage
-      .getByRole('button', { name: 'Generate 3 rows' })
-      .click();
-
+      .getByLabel('name comma-separated values')
+      .press('Enter');
+    await expect(sidepanelPage.locator('.list-value-chip')).toHaveText([
+      'alpha×',
+      'beta×',
+      'gamma×',
+      'basic×',
+      'pro×',
+    ]);
+    await sidepanelPage.getByLabel('Remove basic').click();
+    await expect(sidepanelPage.locator('.list-value-chip')).toHaveText([
+      'alpha×',
+      'beta×',
+      'gamma×',
+      'pro×',
+    ]);
+    await sidepanelPage
+      .getByLabel('name comma-separated values')
+      .fill('basic');
+    await sidepanelPage
+      .getByLabel('name comma-separated values')
+      .press('Enter');
     const rows = sidepanelPage.locator('.data-table tbody tr');
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(0).locator('td').first()).toHaveText('1');
