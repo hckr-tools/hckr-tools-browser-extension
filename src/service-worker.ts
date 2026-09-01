@@ -36,8 +36,8 @@ async function openOrFocusAppTab(targetToolId?: string, text?: string): Promise<
   }
 }
 
-const SWITCHER_POPUP_WIDTH = 640;
-const SWITCHER_POPUP_HEIGHT = 540;
+const SWITCHER_POPUP_WIDTH = 820;
+const SWITCHER_POPUP_HEIGHT = 620;
 let switcherOpenInFlight = false;
 
 /**
