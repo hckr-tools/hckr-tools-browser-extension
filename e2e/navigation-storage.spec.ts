@@ -103,6 +103,8 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(switcher).toBeVisible();
 
     await expect(switcher.locator('.tab-switcher-item').first().locator('.tab-switcher-shortcut')).toHaveText('1');
+    await expect(switcher.locator('.tab-switcher-item').first().locator('.tab-switcher-details')).toBeVisible();
+    await expect(switcher.locator('.tab-switcher-item').first().locator('.tab-switcher-actions')).toBeVisible();
 
     const fixtureRow = switcher.locator('.tab-switcher-item', { hasText: 'hckr Test Fixture Page' });
     const shortcut = (await fixtureRow.locator('.tab-switcher-shortcut').innerText()).trim();

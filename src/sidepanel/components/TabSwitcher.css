@@ -108,7 +108,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 9px 10px;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -151,6 +151,12 @@
   line-height: 1;
 }
 
+.tab-switcher-details,
+.tab-switcher-title,
+.tab-switcher-url {
+  min-width: 0;
+}
+
 .tab-switcher-title,
 .tab-switcher-url {
   overflow: hidden;
@@ -158,25 +164,30 @@
   white-space: nowrap;
 }
 
-.tab-switcher-title {
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 500;
+.tab-switcher-details {
+  display: grid;
+  gap: 3px;
 }
 
-.tab-switcher-meta {
+.tab-switcher-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.tab-switcher-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  min-width: 0;
-  max-width: 42%;
+  padding-left: 6px;
 }
 
 .tab-switcher-url {
   color: var(--text-muted);
   font-family: var(--font-sans);
   font-size: 12px;
+  line-height: 1.25;
 }
 
 .tab-switcher-badge {

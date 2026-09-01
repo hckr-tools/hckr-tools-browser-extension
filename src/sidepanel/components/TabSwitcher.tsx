@@ -207,9 +207,11 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
               <span className="tab-favicon">
                 <TabFavicon tab={tab} />
               </span>
-              <span className="tab-switcher-title">{tab.title}</span>
-              <span className="tab-switcher-meta">
+              <span className="tab-switcher-details">
+                <span className="tab-switcher-title">{tab.title}</span>
                 <span className="tab-switcher-url">{tab.location || tab.url}</span>
+              </span>
+              <span className="tab-switcher-actions">
                 {tab.active && <span className="tab-switcher-badge">Current</span>}
                 {shortcut && <span className="tab-switcher-shortcut">{shortcut}</span>}
               </span>
