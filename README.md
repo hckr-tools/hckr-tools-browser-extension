@@ -39,7 +39,8 @@ An essential, privacy-first developer utility toolkit built right into your brow
 
 - **Smart On-Page Content Detection**: Automatically detects JSON, JWT, and Base64 strings inside `<pre>` and `<code>` blocks on any webpage (API responses, log viewers, documentation) and displays a 1-click **⚡ Open in hckr** widget.
 - **Context Menu Integration**: Select any text on any page and right-click to instantly send it to the appropriate tool (Format JSON, Decode JWT, Test Regex, etc.).
-- **Quick Tab Switcher (`Alt+Q`)**: Keyboard shortcut to cycle between your most recently used tabs within the current window.
+- **Activate hckr-tools (`⌘⇧U` / `Ctrl+Shift+U`)**: Open or focus the hckr-tools page.
+- **Quick Tab Switcher (`⌥Q` / `Alt+Q`)**: Cycle between your most recently used tabs within the current window.
 - **hckr-tools tab switcher (`⌘K` / `Ctrl+K`)**: Search every open tab in the current window and jump to it.
 - **Fast MRU State & Preferences**: Automatically preserves your active tool, inputs, and theme across sessions using `chrome.storage`.
 - **Dark & Light Mode**: Built-in sleek dark theme and crisp light theme designed for coding environments.
@@ -164,15 +165,16 @@ hckr-browser-ext/
 
 | Shortcut | Description |
 | :--- | :--- |
-| <kbd>Alt</kbd> + <kbd>Q</kbd> | Switch to the previously active tab in the current window |
+| <kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>U</kbd> / <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>U</kbd> | Activate hckr-tools |
+| <kbd>⌥</kbd> + <kbd>Q</kbd> / <kbd>Alt</kbd> + <kbd>Q</kbd> | Switch to the previously active tab in the current window |
 | <kbd>⌘</kbd> + <kbd>K</kbd> / <kbd>Ctrl</kbd> + <kbd>K</kbd> | Open the hckr-tools tab switcher |
 | <kbd>1</kbd>–<kbd>9</kbd> | Jump to that tab in the switcher (<kbd>1</kbd> is the most recently used) |
 
-*(You can customize shortcut keys at `chrome://extensions/shortcuts`. Chrome may reserve <kbd>Ctrl</kbd>+<kbd>K</kbd> for the address bar on some platforms; assign it there if the default does not take effect.)*
+*(You can customize shortcut keys at `chrome://extensions/shortcuts`.)*
 
 ## ↔️ Tabs
 
-Open **Tabs** in the hckr-tools navigation to see the open browser tabs in your current window, listed by last used. Filter by title or site, then select a tab to jump to it. Press <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> from any page to open the **hckr-tools tab switcher**. For a quick toggle back to the last tab you used, press <kbd>Alt</kbd> + <kbd>Q</kbd> (or configure a different shortcut at `chrome://extensions/shortcuts`).
+Open **Tabs** in the hckr-tools navigation to see the open browser tabs in your current window, listed by last used. Filter by title or site, then select a tab to jump to it. Press <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> from any page to open the **hckr-tools tab switcher**. For a quick toggle back to the last tab you used, press <kbd>⌥</kbd>/<kbd>Alt</kbd> + <kbd>Q</kbd> (or configure a different shortcut at `chrome://extensions/shortcuts`).
 
 ---
 

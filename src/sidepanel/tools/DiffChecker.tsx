@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import './DiffChecker.css';
@@ -30,6 +30,19 @@ export interface DiffResult {
   isCompared: boolean;
 }
 
+interface DiffDisplayRow {
+  kind: 'added' | 'changed' | 'removed' | 'unchanged';
+  original?: DiffLine;
+  modified?: DiffLine;
+  differenceIndex?: number;
+}
+
+type DiffDisplayItem =
+  | { kind: 'row'; row: DiffDisplayRow }
+  | { kind: 'collapsed'; groupId: number; rows: DiffDisplayRow[] };
+
+const COLLAPSE_UNCHANGED_THRESHOLD = 4;
+
 const SAMPLE_ORIGINAL = `// User service configuration
 export const config = {
   appName: "hckr",
@@ -58,6 +71,76 @@ export const config = {
   maxRetries: 5,
   offlineMode: true
 };`;
+
+function buildDiffDisplayItems(lines: DiffLine[]): DiffDisplayItem[] {
+  const displayRows: DiffDisplayRow[] = [];
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index];
+    const nextLine = lines[index + 1];
+    if (line.type === 'removed' && nextLine?.type === 'added') {
+      displayRows.push({ kind: 'changed', original: line, modified: nextLine });
+      index++;
+    } else if (line.type === 'unchanged') {
+      displayRows.push({ kind: 'unchanged', original: line, modified: line });
+    } else if (line.type === 'removed') {
+      displayRows.push({ kind: 'removed', original: line });
+    } else {
+      displayRows.push({ kind: 'added', modified: line });
+    }
+  }
+
+  let differenceIndex = 0;
+  for (const row of displayRows) {
+    if (row.kind !== 'unchanged') row.differenceIndex = differenceIndex++;
+  }
+
+  const items: DiffDisplayItem[] = [];
+  let unchangedRows: DiffDisplayRow[] = [];
+  let groupId = 0;
+  const flushUnchangedRows = () => {
+    if (unchangedRows.length >= COLLAPSE_UNCHANGED_THRESHOLD) {
+      items.push({ kind: 'collapsed', groupId: groupId++, rows: unchangedRows });
+    } else {
+      items.push(...unchangedRows.map((row) => ({ kind: 'row' as const, row })));
+    }
+    unchangedRows = [];
+  };
+
+  for (const row of displayRows) {
+    if (row.kind === 'unchanged') {
+      unchangedRows.push(row);
+    } else {
+      flushUnchangedRows();
+      items.push({ kind: 'row', row });
+    }
+  }
+  flushUnchangedRows();
+  return items;
+}
+
+function DiffCell({ line, side }: { line?: DiffLine; side: 'original' | 'modified' }) {
+  return (
+    <div className={`diff-side-cell diff-side-cell-${side}${line ? ` diff-side-cell-${line.type}` : ''}`}>
+      <span className="diff-side-line-number">
+        {side === 'original' ? line?.origLineNumber ?? '' : line?.modLineNumber ?? ''}
+      </span>
+      <span className="diff-side-line-text">{line?.text || ' '}</span>
+    </div>
+  );
+}
+
+function SideBySideDiffRow({ row, isCurrent }: { row: DiffDisplayRow; isCurrent: boolean }) {
+  return (
+    <div
+      className={`diff-side-row diff-side-row-${row.kind}${isCurrent ? ' diff-row-current' : ''}`}
+      data-diff-index={row.differenceIndex}
+    >
+      <DiffCell line={row.original} side="original" />
+      <DiffCell line={row.modified} side="modified" />
+    </div>
+  );
+}
 
 function computeLcsDiff(
   originalText: string,
@@ -191,6 +274,9 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
 
   // Diff output state
   const [diffResult, setDiffResult] = useState<DiffResult | null>(null);
+  const [currentDifferenceIndex, setCurrentDifferenceIndex] = useState(0);
+  const [expandedUnchangedGroups, setExpandedUnchangedGroups] = useState<Set<number>>(() => new Set());
+  const diffViewerRef = useRef<HTMLDivElement>(null);
 
   // Synchronize when initialInput prop changes
   useEffect(() => {
@@ -211,6 +297,8 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
       trimLines,
     });
     setDiffResult(result);
+    setCurrentDifferenceIndex(0);
+    setExpandedUnchangedGroups(new Set());
   }, [originalText, modifiedText, ignoreWhitespace, ignoreCase, trimLines]);
 
   const exceedsLimit = exceedsLiveTextLimit(originalText) || exceedsLiveTextLimit(modifiedText);
@@ -233,6 +321,8 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
     setOriginalText('');
     setModifiedText('');
     setDiffResult(null);
+    setCurrentDifferenceIndex(0);
+    setExpandedUnchangedGroups(new Set());
   }, []);
 
   // Sample load handler
@@ -262,6 +352,37 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
   const modifiedLineCount = useMemo(() => {
     return modifiedText ? modifiedText.split(/\r?\n/).length : 0;
   }, [modifiedText]);
+
+  const diffDisplayItems = useMemo(() => {
+    return diffResult ? buildDiffDisplayItems(diffResult.lines) : [];
+  }, [diffResult]);
+
+  const differenceCount = useMemo(() => {
+    return diffDisplayItems.reduce((count, item) => {
+      if (item.kind === 'row') return count + (item.row.kind === 'unchanged' ? 0 : 1);
+      return count;
+    }, 0);
+  }, [diffDisplayItems]);
+
+  const handleNextDifference = useCallback(() => {
+    if (differenceCount === 0) return;
+
+    const nextIndex = (currentDifferenceIndex + 1) % differenceCount;
+    setCurrentDifferenceIndex(nextIndex);
+    const row = diffViewerRef.current?.querySelector<HTMLElement>(
+      `[data-diff-index="${nextIndex}"]`
+    );
+    row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [currentDifferenceIndex, differenceCount]);
+
+  const toggleUnchangedGroup = useCallback((groupId: number) => {
+    setExpandedUnchangedGroups((currentGroups) => {
+      const nextGroups = new Set(currentGroups);
+      if (nextGroups.has(groupId)) nextGroups.delete(groupId);
+      else nextGroups.add(groupId);
+      return nextGroups;
+    });
+  }, []);
 
   return (
     <div className="tool-container diff-checker-tool">
@@ -373,7 +494,7 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
               Diff Output
             </label>
             {diffResult && diffResult.isCompared && (
-              <div className="diff-stats-group">
+              <div className="diff-stats-group" aria-label={`${differenceCount} total differences`}>
                 <span className="diff-stat-badge diff-stat-added" title="Added lines">
                   +{diffResult.stats.added}
                 </span>
@@ -383,20 +504,35 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
                 <span className="diff-stat-badge diff-stat-unchanged" title="Unchanged lines">
                   ={diffResult.stats.unchanged}
                 </span>
+                <span className="diff-stat-badge diff-stat-total" title="Total differences">
+                  {differenceCount} diffs
+                </span>
               </div>
             )}
           </div>
 
-          {diffResult && diffResult.lines.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={handleCopyDiff}
-              title="Copy unified diff to clipboard"
-            >
-              📋 Copy Diff
-            </button>
-          )}
+          <div className="diff-output-actions">
+            {differenceCount > 0 && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={handleNextDifference}
+                title="Jump to the next changed line"
+              >
+                Next diff ({currentDifferenceIndex + 1}/{differenceCount})
+              </button>
+            )}
+            {diffResult && diffResult.lines.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={handleCopyDiff}
+                title="Copy unified diff to clipboard"
+              >
+                📋 Copy Diff
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Output Content */}
@@ -411,27 +547,44 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
             <p><strong>Identical!</strong> No differences found between original and modified text.</p>
           </div>
         ) : (
-          <div className="diff-viewer">
+          <div className="diff-viewer" ref={diffViewerRef}>
             <div className="diff-table">
-              {diffResult.lines.map((line, index) => (
-                <div
-                  key={index}
-                  className={`diff-row diff-row-${line.type}`}
-                >
-                  <div className="diff-line-num diff-line-orig">
-                    {line.origLineNumber ?? ''}
-                  </div>
-                  <div className="diff-line-num diff-line-mod">
-                    {line.modLineNumber ?? ''}
-                  </div>
-                  <div className="diff-line-prefix">
-                    {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '}
-                  </div>
-                  <div className="diff-line-text">
-                    {line.text || ' '}
-                  </div>
-                </div>
-              ))}
+              <div className="diff-side-header" aria-hidden="true">
+                <span>Original</span>
+                <span>Modified</span>
+              </div>
+              {diffDisplayItems.map((item, itemIndex) => {
+                if (item.kind === 'row') {
+                  return (
+                    <SideBySideDiffRow
+                      key={`row-${itemIndex}`}
+                      row={item.row}
+                      isCurrent={item.row.differenceIndex === currentDifferenceIndex}
+                    />
+                  );
+                }
+
+                const isExpanded = expandedUnchangedGroups.has(item.groupId);
+                return (
+                  <React.Fragment key={`unchanged-${itemIndex}`}>
+                    <button
+                      type="button"
+                      className="diff-unchanged-toggle"
+                      onClick={() => toggleUnchangedGroup(item.groupId)}
+                      aria-expanded={isExpanded}
+                    >
+                      {isExpanded ? 'Hide' : 'Show'} {item.rows.length} unchanged lines
+                    </button>
+                    {isExpanded && item.rows.map((row) => (
+                      <SideBySideDiffRow
+                        key={`unchanged-row-${row.original?.origLineNumber}`}
+                        row={row}
+                        isCurrent={false}
+                      />
+                    ))}
+                  </React.Fragment>
+                );
+              })}
             </div>
           </div>
         )}

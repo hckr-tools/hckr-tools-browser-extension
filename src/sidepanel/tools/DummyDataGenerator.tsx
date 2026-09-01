@@ -43,6 +43,23 @@ type ExportFormat =
   | 'sql';
 type DataField = { id: string; name: string; kind: FieldKind; config?: string };
 type DataRow = Record<string, string | number | boolean>;
+type AvroSchema = string | AvroSchemaObject | AvroSchema[];
+type AvroSchemaObject = {
+  type: string | AvroSchema;
+  fields?: { name: string; type: AvroSchema }[];
+  items?: AvroSchema;
+  values?: AvroSchema;
+  symbols?: string[];
+  size?: number;
+};
+type AvroValue =
+  | null
+  | boolean
+  | number
+  | string
+  | Uint8Array
+  | AvroValue[]
+  | { [key: string]: AvroValue };
 type LoadedData = {
   name: string;
   format: 'Avro' | 'Parquet';
@@ -429,6 +446,13 @@ function encodeAvroLong(value: number): number[] {
   return bytes;
 }
 function decodeAvroLong(bytes: Uint8Array, offset: number): [number, number] {
+  const [result, cursor] = decodeAvroLongValue(bytes, offset);
+  return [Number(result), cursor];
+}
+function decodeAvroLongValue(
+  bytes: Uint8Array,
+  offset: number,
+): [bigint, number] {
   let result = 0n;
   let shift = 0n;
   let cursor = offset;
@@ -436,22 +460,26 @@ function decodeAvroLong(bytes: Uint8Array, offset: number): [number, number] {
     const byte = bytes[cursor++];
     result |= BigInt(byte & 0x7f) << shift;
     if (!(byte & 0x80))
-      return [Number((result >> 1n) ^ -(result & 1n)), cursor];
+      return [(result >> 1n) ^ -(result & 1n), cursor];
     shift += 7n;
   }
   throw new Error('Unexpected end of Avro integer.');
+}
+function decodeAvroBytes(bytes: Uint8Array, offset: number): [Uint8Array, number] {
+  const [length, cursor] = decodeAvroLong(bytes, offset);
+  if (length < 0 || cursor + length > bytes.length)
+    throw new Error('Invalid Avro byte length.');
+  return [bytes.slice(cursor, cursor + length), cursor + length];
 }
 function encodeAvroString(value: string): number[] {
   const bytes = textEncoder.encode(value);
   return [...encodeAvroLong(bytes.length), ...bytes];
 }
 function decodeAvroString(bytes: Uint8Array, offset: number): [string, number] {
-  const [length, cursor] = decodeAvroLong(bytes, offset);
-  if (length < 0 || cursor + length > bytes.length)
-    throw new Error('Invalid Avro string length.');
+  const [value, cursor] = decodeAvroBytes(bytes, offset);
   return [
-    textDecoder.decode(bytes.slice(cursor, cursor + length)),
-    cursor + length,
+    textDecoder.decode(value),
+    cursor,
   ];
 }
 function encodeAvroRecord(row: DataRow, fields: DataField[]): number[] {
@@ -493,19 +521,272 @@ async function encodeAvro(rows: DataRow[], fields: DataField[]): Promise<Blob> {
     type: 'application/avro',
   });
 }
-async function inflateAvroBlock(bytes: Uint8Array): Promise<Uint8Array> {
-  if (typeof DecompressionStream === 'undefined')
-    throw new Error('Deflate-compressed Avro files require a newer browser.');
-
+type HuffmanTable = Map<string, number>;
+const DEFLATE_LENGTH_BASE = [
+  3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59,
+  67, 83, 99, 115, 131, 163, 195, 227, 258,
+];
+const DEFLATE_LENGTH_EXTRA = [
+  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,
+  5, 5, 5, 5, 0,
+];
+const DEFLATE_DISTANCE_BASE = [
+  1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513,
+  769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577,
+];
+const DEFLATE_DISTANCE_EXTRA = [
+  0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10,
+  10, 11, 11, 12, 12, 13, 13,
+];
+function reverseDeflateBits(value: number, length: number): number {
+  let reversed = 0;
+  for (let index = 0; index < length; index++) {
+    reversed = (reversed << 1) | (value & 1);
+    value >>>= 1;
+  }
+  return reversed;
+}
+function buildHuffmanTable(lengths: number[]): HuffmanTable {
+  const counts = Array(16).fill(0) as number[];
+  for (const length of lengths) if (length) counts[length]++;
+  const nextCode = Array(16).fill(0) as number[];
+  let code = 0;
+  for (let length = 1; length <= 15; length++) {
+    code = (code + counts[length - 1]) << 1;
+    nextCode[length] = code;
+  }
+  const table: HuffmanTable = new Map();
+  lengths.forEach((length, symbol) => {
+    if (length) {
+      const reversed = reverseDeflateBits(nextCode[length]++, length);
+      table.set(`${length}:${reversed}`, symbol);
+    }
+  });
+  return table;
+}
+function inflateAvroBlock(bytes: Uint8Array): Uint8Array {
+  let offset = 0;
+  let bitOffset = 0;
+  const output: number[] = [];
+  const readBits = (length: number): number => {
+    let value = 0;
+    for (let index = 0; index < length; index++) {
+      if (offset >= bytes.length) throw new Error('Unexpected end of deflate block.');
+      value |= ((bytes[offset] >> bitOffset) & 1) << index;
+      if (++bitOffset === 8) {
+        bitOffset = 0;
+        offset++;
+      }
+    }
+    return value;
+  };
+  const alignToByte = () => {
+    if (bitOffset) {
+      bitOffset = 0;
+      offset++;
+    }
+  };
+  const readSymbol = (table: HuffmanTable): number => {
+    let code = 0;
+    for (let length = 1; length <= 15; length++) {
+      code |= readBits(1) << (length - 1);
+      const symbol = table.get(`${length}:${code}`);
+      if (symbol !== undefined) return symbol;
+    }
+    throw new Error('Invalid deflate Huffman code.');
+  };
+  const fixedTables = (): [HuffmanTable, HuffmanTable] => [
+    buildHuffmanTable(Array.from({ length: 288 }, (_value, index) =>
+      index <= 143 ? 8 : index <= 255 ? 9 : index <= 279 ? 7 : 8,
+    )),
+    buildHuffmanTable(Array(32).fill(5) as number[]),
+  ];
+  const dynamicTables = (): [HuffmanTable, HuffmanTable] => {
+    const literalCount = readBits(5) + 257;
+    const distanceCount = readBits(5) + 1;
+    const codeLengthCount = readBits(4) + 4;
+    const codeLengthOrder = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+    const codeLengths = Array(19).fill(0) as number[];
+    for (let index = 0; index < codeLengthCount; index++)
+      codeLengths[codeLengthOrder[index]] = readBits(3);
+    const codeLengthTable = buildHuffmanTable(codeLengths);
+    const lengths: number[] = [];
+    while (lengths.length < literalCount + distanceCount) {
+      const symbol = readSymbol(codeLengthTable);
+      if (symbol < 16) lengths.push(symbol);
+      else {
+        const repeat =
+          symbol === 16 ? readBits(2) + 3 : symbol === 17 ? readBits(3) + 3 : readBits(7) + 11;
+        const value = symbol === 16 ? lengths[lengths.length - 1] : 0;
+        if (value === undefined || lengths.length + repeat > literalCount + distanceCount)
+          throw new Error('Invalid deflate code lengths.');
+        lengths.push(...Array(repeat).fill(value));
+      }
+    }
+    return [
+      buildHuffmanTable(lengths.slice(0, literalCount)),
+      buildHuffmanTable(lengths.slice(literalCount)),
+    ];
+  };
+  const decodeCompressedBlock = (literalTable: HuffmanTable, distanceTable: HuffmanTable) => {
+    while (true) {
+      const symbol = readSymbol(literalTable);
+      if (symbol < 256) output.push(symbol);
+      else if (symbol === 256) return;
+      else if (symbol <= 285) {
+        const lengthIndex = symbol - 257;
+        const length = DEFLATE_LENGTH_BASE[lengthIndex] + readBits(DEFLATE_LENGTH_EXTRA[lengthIndex]);
+        const distanceIndex = readSymbol(distanceTable);
+        if (distanceIndex >= DEFLATE_DISTANCE_BASE.length)
+          throw new Error('Invalid deflate distance.');
+        const distance = DEFLATE_DISTANCE_BASE[distanceIndex] + readBits(DEFLATE_DISTANCE_EXTRA[distanceIndex]);
+        if (distance > output.length) throw new Error('Invalid deflate back-reference.');
+        for (let index = 0; index < length; index++) output.push(output[output.length - distance]);
+      } else throw new Error('Invalid deflate length.');
+    }
+  };
   try {
-    const compressed = new Uint8Array(bytes);
-    const stream = new Blob([compressed.buffer])
-      .stream()
-      .pipeThrough(new DecompressionStream('deflate-raw'));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
+    let finalBlock = 0;
+    while (!finalBlock) {
+      finalBlock = readBits(1);
+      const type = readBits(2);
+      if (type === 0) {
+        alignToByte();
+        const length = readBits(16);
+        if (length !== (readBits(16) ^ 0xffff)) throw new Error('Invalid stored deflate block.');
+        for (let index = 0; index < length; index++) output.push(readBits(8));
+      } else if (type === 1) decodeCompressedBlock(...fixedTables());
+      else if (type === 2) decodeCompressedBlock(...dynamicTables());
+      else throw new Error('Invalid deflate block type.');
+    }
+    return new Uint8Array(output);
   } catch {
     throw new Error('This deflate-compressed Avro block is invalid.');
   }
+}
+function avroType(schema: AvroSchema): AvroSchema {
+  return typeof schema === 'string' || Array.isArray(schema)
+    ? schema
+    : schema.type;
+}
+function decodeAvroValue(
+  bytes: Uint8Array,
+  offset: number,
+  schema: AvroSchema,
+): [AvroValue, number] {
+  if (Array.isArray(schema)) {
+    const [branch, cursor] = decodeAvroLong(bytes, offset);
+    if (branch < 0 || branch >= schema.length)
+      throw new Error('Invalid Avro union branch.');
+    return decodeAvroValue(bytes, cursor, schema[branch]);
+  }
+  const type = avroType(schema);
+  if (Array.isArray(type)) return decodeAvroValue(bytes, offset, type);
+  if (typeof type !== 'string') return decodeAvroValue(bytes, offset, type);
+  if (type === 'null') return [null, offset];
+  if (type === 'boolean') {
+    if (offset >= bytes.length) throw new Error('Unexpected end of Avro boolean.');
+    return [bytes[offset] === 1, offset + 1];
+  }
+  if (type === 'int' || type === 'long') {
+    const [value, cursor] = decodeAvroLongValue(bytes, offset);
+    return [
+      value > BigInt(Number.MAX_SAFE_INTEGER) ||
+      value < BigInt(Number.MIN_SAFE_INTEGER)
+        ? value.toString()
+        : Number(value),
+      cursor,
+    ];
+  }
+  if (type === 'float' || type === 'double') {
+    const width = type === 'float' ? 4 : 8;
+    if (offset + width > bytes.length)
+      throw new Error(`Unexpected end of Avro ${type}.`);
+    const view = new DataView(bytes.buffer, bytes.byteOffset + offset, width);
+    return [
+      type === 'float' ? view.getFloat32(0, true) : view.getFloat64(0, true),
+      offset + width,
+    ];
+  }
+  if (type === 'string') return decodeAvroString(bytes, offset);
+  if (type === 'bytes') return decodeAvroBytes(bytes, offset);
+  if (typeof schema === 'string')
+    throw new Error(`Avro type “${type}” is not supported by the local reader.`);
+  if (type === 'fixed') {
+    if (!schema.size || offset + schema.size > bytes.length)
+      throw new Error('Invalid Avro fixed value.');
+    return [bytes.slice(offset, offset + schema.size), offset + schema.size];
+  }
+  if (type === 'enum') {
+    const [index, cursor] = decodeAvroLong(bytes, offset);
+    if (!schema.symbols || index < 0 || index >= schema.symbols.length)
+      throw new Error('Invalid Avro enum value.');
+    return [schema.symbols[index], cursor];
+  }
+  if (type === 'record') {
+    if (!schema.fields) throw new Error('Invalid Avro record schema.');
+    const value: { [key: string]: AvroValue } = {};
+    let cursor = offset;
+    for (const field of schema.fields) {
+      [value[field.name], cursor] = decodeAvroValue(bytes, cursor, field.type);
+    }
+    return [value, cursor];
+  }
+  if (type === 'array') {
+    if (!schema.items) throw new Error('Invalid Avro array schema.');
+    const value: AvroValue[] = [];
+    let cursor = offset;
+    let count = 0;
+    do {
+      [count, cursor] = decodeAvroLong(bytes, cursor);
+      if (count < 0) {
+        count = -count;
+        [, cursor] = decodeAvroLong(bytes, cursor);
+      }
+      for (let index = 0; index < count; index++) {
+        [value[value.length], cursor] = decodeAvroValue(bytes, cursor, schema.items);
+      }
+    } while (count);
+    return [value, cursor];
+  }
+  if (type === 'map') {
+    if (!schema.values) throw new Error('Invalid Avro map schema.');
+    const value: { [key: string]: AvroValue } = {};
+    let cursor = offset;
+    let count = 0;
+    do {
+      [count, cursor] = decodeAvroLong(bytes, cursor);
+      if (count < 0) {
+        count = -count;
+        [, cursor] = decodeAvroLong(bytes, cursor);
+      }
+      for (let index = 0; index < count; index++) {
+        const [key, afterKey] = decodeAvroString(bytes, cursor);
+        [value[key], cursor] = decodeAvroValue(bytes, afterKey, schema.values);
+      }
+    } while (count);
+    return [value, cursor];
+  }
+  throw new Error(`Avro type “${type}” is not supported by the local reader.`);
+}
+function displayAvroValue(value: AvroValue): string | number | boolean {
+  if (value === null) return '';
+  if (value instanceof Uint8Array)
+    return Array.from(value, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+    return value;
+  return JSON.stringify(value, (_key, nestedValue) =>
+    nestedValue instanceof Uint8Array
+      ? Array.from(nestedValue, (byte) => byte.toString(16).padStart(2, '0')).join('')
+      : nestedValue,
+  );
+}
+function displayAvroRecord(value: AvroValue): DataRow {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value instanceof Uint8Array)
+    throw new Error('The Avro root schema must be a record.');
+  return Object.fromEntries(
+    Object.entries(value).map(([key, field]) => [key, displayAvroValue(field)]),
+  );
 }
 async function decodeAvro(file: File): Promise<DataRow[]> {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -529,17 +810,7 @@ async function decodeAvro(file: File): Promise<DataRow[]> {
     throw new Error(
       `Avro codec “${codec}” is not supported by the local reader.`,
     );
-  const schema = JSON.parse(schemaText) as {
-    fields?: { name: string; type: string }[];
-  };
-  if (
-    !schema.fields?.every((field) =>
-      ['string', 'boolean', 'double', 'float', 'int', 'long'].includes(
-        field.type,
-      ),
-    )
-  )
-    throw new Error('Only flat primitive Avro records are supported.');
+  const schema = JSON.parse(schemaText) as AvroSchema;
   const sync = bytes.slice(cursor, cursor + 16);
   cursor += 16;
   const rows: DataRow[] = [];
@@ -561,35 +832,9 @@ async function decodeAvro(file: File): Promise<DataRow[]> {
       rowIndex < count && blockCursor < block.length && rows.length < MAX_ROWS;
       rowIndex++
     ) {
-      const row: DataRow = {};
-      for (const field of schema.fields) {
-        if (field.type === 'boolean')
-          row[field.name] = block[blockCursor++] === 1;
-        else if (field.type === 'double') {
-          row[field.name] = new DataView(
-            block.buffer,
-            block.byteOffset + blockCursor,
-            8,
-          ).getFloat64(0, true);
-          blockCursor += 8;
-        } else if (field.type === 'float') {
-          row[field.name] = new DataView(
-            block.buffer,
-            block.byteOffset + blockCursor,
-            4,
-          ).getFloat32(0, true);
-          blockCursor += 4;
-        } else if (field.type === 'int' || field.type === 'long') {
-          const [value, next] = decodeAvroLong(block, blockCursor);
-          row[field.name] = value;
-          blockCursor = next;
-        } else {
-          const [value, next] = decodeAvroString(block, blockCursor);
-          row[field.name] = value;
-          blockCursor = next;
-        }
-      }
-      rows.push(row);
+      const [value, cursor] = decodeAvroValue(block, blockCursor, schema);
+      rows.push(displayAvroRecord(value));
+      blockCursor = cursor;
     }
     if (blockCursor !== block.length && rows.length < MAX_ROWS)
       throw new Error('Avro block does not match its schema.');
@@ -661,8 +906,15 @@ function download(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export const DummyDataGenerator: React.FC = () => {
-  const [mode, setMode] = useState<'generate' | 'read'>('generate');
+interface DataWorkspaceProps {
+  initialInput?: string;
+  variant?: 'generate' | 'read';
+}
+
+export const DummyDataGenerator: React.FC<DataWorkspaceProps> = ({
+  variant = 'generate',
+}) => {
+  const isReader = variant === 'read';
   const [fields, setFields] = useState<DataField[]>(
     STARTER_SCHEMAS[3].fields.map((field) => ({ ...field, id: fieldId() })),
   );
@@ -676,11 +928,9 @@ export const DummyDataGenerator: React.FC = () => {
   const [loaded, setLoaded] = useState<LoadedData | null>(null);
   const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const activeRows = mode === 'generate' ? rows : loaded?.rows || [];
+  const activeRows = isReader ? loaded?.rows || [] : rows;
   const activeFields =
-    mode === 'generate'
-      ? fields.map((field) => field.name)
-      : loaded?.fields || [];
+    isReader ? loaded?.fields || [] : fields.map((field) => field.name);
   const pageRows = activeRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const validSchema =
     fields.length > 0 &&
@@ -751,7 +1001,7 @@ export const DummyDataGenerator: React.FC = () => {
     setError(null);
     try {
       const base =
-        mode === 'read'
+        isReader
           ? loaded?.name.replace(/\.[^.]+$/, '') || 'dataset'
           : 'generated-data';
       if (codeFormats.includes(target)) {
@@ -846,31 +1096,12 @@ export const DummyDataGenerator: React.FC = () => {
       <header className="data-workspace-header">
         <div>
           <span className="tool-eyebrow">Local dataset workspace</span>
-          <h2>Data</h2>
+          <h2>{isReader ? 'Read files' : 'Data'}</h2>
           <p>
-            Create flat test records or inspect Avro and Parquet files without
-            uploading them.
+            {isReader
+              ? 'Inspect Avro and Parquet files without uploading them.'
+              : 'Create flat test records without uploading them.'}
           </p>
-        </div>
-        <div className="toggle-group">
-          <button
-            className={`toggle-btn ${mode === 'generate' ? 'active' : ''}`}
-            onClick={() => {
-              setMode('generate');
-              setPage(0);
-            }}
-          >
-            Generate
-          </button>
-          <button
-            className={`toggle-btn ${mode === 'read' ? 'active' : ''}`}
-            onClick={() => {
-              setMode('read');
-              setPage(0);
-            }}
-          >
-            Read files
-          </button>
         </div>
       </header>
       {error && (
@@ -878,7 +1109,7 @@ export const DummyDataGenerator: React.FC = () => {
           {error}
         </p>
       )}
-      {mode === 'generate' ? (
+      {!isReader ? (
         <section className="section data-schema-section">
           <div className="data-section-header data-schema-picker">
             <div>
@@ -1097,7 +1328,7 @@ export const DummyDataGenerator: React.FC = () => {
             <span className="label">
               {previewTab === 'export'
                 ? 'Export preview'
-                : mode === 'read'
+                : isReader
                   ? 'Decoded data'
                   : 'Data preview'}
             </span>
@@ -1223,16 +1454,16 @@ export const DummyDataGenerator: React.FC = () => {
           </>
         ) : (
           <div className="dummy-empty-state">
-            {mode === 'read' && error ? (
+            {isReader && error ? (
               <>
                 <strong>Couldn’t decode this file</strong>
                 <span>Choose another Avro or Parquet file to inspect locally.</span>
               </>
             ) : (
               <span>
-                {mode === 'generate'
-                  ? 'Configure fields, then generate a local dataset.'
-                  : 'Choose an Avro or Parquet file to inspect it locally.'}
+                {isReader
+                  ? 'Choose an Avro or Parquet file to inspect it locally.'
+                  : 'Configure fields, then generate a local dataset.'}
               </span>
             )}
           </div>
@@ -1253,4 +1484,9 @@ export const DummyDataGenerator: React.FC = () => {
     </div>
   );
 };
+
+export const DataFileReader: React.FC<DataWorkspaceProps> = () => (
+  <DummyDataGenerator variant="read" />
+);
+
 export default DummyDataGenerator;

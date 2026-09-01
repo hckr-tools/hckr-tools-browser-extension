@@ -1,9 +1,9 @@
 import { test, expect } from './fixtures';
 
 test.describe('Navigation & Storage Persistence', () => {
-  test('renders all 14 tool tabs in TabBar', async ({ sidepanelPage }) => {
+  test('renders all 15 tool tabs in TabBar', async ({ sidepanelPage }) => {
     const tabs = sidepanelPage.locator('.tab-item');
-    await expect(tabs).toHaveCount(14);
+    await expect(tabs).toHaveCount(15);
     await expect(sidepanelPage.locator('.app')).toHaveCSS('flex-direction', 'row');
     await expect(sidepanelPage.locator('aside.tab-bar')).toHaveCSS('flex-direction', 'column');
 
@@ -18,6 +18,7 @@ test.describe('Navigation & Storage Persistence', () => {
       'Time',
       'Cron',
       'Data',
+      'Read files',
       'Regex',
       'Diff',
       'MD',
@@ -30,7 +31,7 @@ test.describe('Navigation & Storage Persistence', () => {
 
     await expect(sidepanelPage.locator('.status-indicator')).toContainText('Local only');
     await expect(sidepanelPage.locator('button.theme-toggle-btn')).toBeVisible();
-    await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Transform', 'Create', 'Inspect', 'Browser']);
+    await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Transform', 'Create', 'View', 'Inspect', 'Browser']);
   });
 
   test('switches tools when clicking tabs', async ({ sidepanelPage }) => {
@@ -97,7 +98,7 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(fixturePage).toHaveTitle('hckr Test Fixture Page');
     await sidepanelPage.bringToFront();
 
-    await sidepanelPage.keyboard.press('Control+k');
+    await sidepanelPage.keyboard.press('Control+K');
     const switcher = sidepanelPage.getByRole('dialog', { name: 'hckr-tools tab switcher' });
     await expect(switcher).toBeVisible();
 
@@ -109,7 +110,7 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect.poll(async () => fixturePage.evaluate(() => document.visibilityState)).toBe('visible');
 
     await sidepanelPage.bringToFront();
-    await sidepanelPage.keyboard.press('Control+k');
+    await sidepanelPage.keyboard.press('Control+K');
     await expect(switcher).toBeVisible();
 
     const search = sidepanelPage.getByRole('searchbox', { name: 'Search open tabs' });

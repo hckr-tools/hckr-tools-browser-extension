@@ -69,7 +69,7 @@ const TabsNavigator: React.FC = () => {
         <p className="tool-eyebrow">BROWSER NAVIGATION</p>
         <h1 id="tabs-heading">Jump between tabs</h1>
         <p className="tabs-navigator-description">
-          Choose an open tab below to switch to it. Tabs are listed by last used. Press <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> for the hckr-tools tab switcher, or <kbd>Alt</kbd> + <kbd>Q</kbd> to return to the previously active tab.
+          Choose an open tab below to switch to it. Tabs are listed by last used. Press <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>K</kbd> for the hckr-tools tab switcher, or <kbd>⌥</kbd>/<kbd>Alt</kbd> + <kbd>Q</kbd> to return to the previously active tab.
         </p>
       </div>
 

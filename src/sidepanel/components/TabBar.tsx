@@ -1,7 +1,7 @@
 import React from 'react';
 import './TabBar.css';
 
-export type ToolCategory = 'Transform' | 'Create' | 'Inspect' | 'Browser';
+export type ToolCategory = 'Transform' | 'Create' | 'View' | 'Inspect' | 'Browser';
 
 export interface ToolTab {
   id: string;
@@ -21,7 +21,7 @@ interface TabBarProps {
   onToggleTheme: () => void;
 }
 
-const CATEGORIES: ToolCategory[] = ['Transform', 'Create', 'Inspect', 'Browser'];
+const CATEGORIES: ToolCategory[] = ['Transform', 'Create', 'View', 'Inspect', 'Browser'];
 
 const TabBar: React.FC<TabBarProps> = ({ tools, activeToolId, onSelectTool, onOpenCommandPalette, theme, onToggleTheme }) => (
   <aside className="tab-bar">

@@ -98,6 +98,15 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     expect(firstEmail).toContain('@');
   });
 
+  test('Read files is available as a separate View tool', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'Read files' }).click();
+    await expect(sidepanelPage.locator('.dummy-data-tool')).toBeVisible();
+    await expect(sidepanelPage.locator('h2')).toHaveText('Read files');
+    await expect(
+      sidepanelPage.getByRole('button', { name: 'Open Avro or Parquet' }),
+    ).toBeVisible();
+  });
+
   test('Data workspace shows generated PySpark code in the export preview', async ({
     sidepanelPage,
   }) => {
@@ -194,10 +203,10 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await expect(sidepanelPage.locator('.diff-checker-tool')).toBeVisible();
 
     const textareas = sidepanelPage.locator('textarea.diff-textarea');
-    await textareas.nth(0).fill('line 1\nline 2\nline 3');
+    await textareas.nth(0).fill('same 1\nsame 2\nsame 3\nsame 4\nline 1\nline 2\nline 3');
     await textareas
       .nth(1)
-      .fill('line 1\nline 2 modified\nline 3\nline 4 added');
+      .fill('same 1\nsame 2\nsame 3\nsame 4\nline 1\nline 2 modified\nline 3\nline 4 added');
 
     // Click Compare Diff button if available
     const compareBtn = sidepanelPage.locator('button', {
@@ -207,12 +216,22 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
       await compareBtn.click();
     }
 
-    // Verify added and removed diff lines exist
+    // Verify the side-by-side changed row and navigation controls.
     await expect(
-      sidepanelPage.locator('.diff-row-added').first(),
+      sidepanelPage.locator('.diff-side-row-changed').first(),
     ).toBeVisible();
+    await expect(sidepanelPage.getByText('2 diffs', { exact: true })).toBeVisible();
     await expect(
-      sidepanelPage.locator('.diff-row-removed').first(),
+      sidepanelPage.getByRole('button', { name: 'Show 4 unchanged lines' }),
+    ).toBeVisible();
+
+    const nextDiffButton = sidepanelPage.getByRole('button', {
+      name: 'Next diff (1/2)',
+    });
+    await expect(nextDiffButton).toBeVisible();
+    await nextDiffButton.click();
+    await expect(
+      sidepanelPage.getByRole('button', { name: 'Next diff (2/2)' }),
     ).toBeVisible();
   });
 

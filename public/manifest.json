@@ -27,6 +27,12 @@
     "activeTab"
   ],
   "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
+      }
+    },
     "switch-to-previous-tab": {
       "suggested_key": {
         "default": "Alt+Q",

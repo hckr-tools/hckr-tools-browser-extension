@@ -18,6 +18,10 @@ const JwtDecoder = lazy(() => import('./tools/JwtDecoder'));
 const HashGenerator = lazy(() => import('./tools/HashGenerator'));
 const RegexTester = lazy(() => import('./tools/RegexTester'));
 const DummyDataGenerator = lazy(() => import('./tools/DummyDataGenerator'));
+const DataFileReader = lazy(async () => {
+  const module = await import('./tools/DummyDataGenerator');
+  return { default: module.DataFileReader };
+});
 const DiffChecker = lazy(() => import('./tools/DiffChecker'));
 const MarkdownPreview = lazy(() => import('./tools/MarkdownPreview'));
 const TabsNavigator = lazy(() => import('./tools/TabsNavigator'));
@@ -33,6 +37,7 @@ const TOOLS: ToolTab[] = [
   { id: 'timestamp', label: 'Time', icon: '◷', category: 'Create', description: 'Convert timestamps and dates' },
   { id: 'cron-explainer', label: 'Cron', icon: '⟳', category: 'Create', description: 'Explain cron and list next run times' },
   { id: 'dummy-data', label: 'Data', icon: '▦', category: 'Create', description: 'Generate realistic sample data' },
+  { id: 'data-file-reader', label: 'Read files', icon: '▤', category: 'View', description: 'Inspect Avro and Parquet files locally' },
   { id: 'regex-tester', label: 'Regex', icon: '.*', category: 'Inspect', description: 'Test expressions and matches' },
   { id: 'diff-checker', label: 'Diff', icon: '±', category: 'Inspect', description: 'Compare text and code changes' },
   { id: 'markdown', label: 'MD', icon: 'M↓', category: 'Inspect', description: 'Write and preview Markdown' },
@@ -51,6 +56,7 @@ const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initi
   'hash-generator': HashGenerator,
   'regex-tester': RegexTester,
   'dummy-data': DummyDataGenerator,
+  'data-file-reader': DataFileReader,
   'diff-checker': DiffChecker,
   'markdown': MarkdownPreview,
   tabs: TabsNavigator,
