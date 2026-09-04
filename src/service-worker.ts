@@ -24,7 +24,7 @@ async function openOrFocusAppTab(targetToolId?: string, text?: string): Promise<
 
   const appUrl = chrome.runtime.getURL(APP_PATH);
   const allTabs = await chrome.tabs.query({});
-  const existingTab = allTabs.find((t) => t.url && t.url.startsWith(appUrl));
+  const existingTab = allTabs.find((tab) => tab.url === appUrl);
 
   if (existingTab && existingTab.id) {
     await chrome.tabs.update(existingTab.id, { active: true });

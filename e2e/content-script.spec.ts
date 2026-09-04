@@ -46,6 +46,9 @@ test.describe('Content Script & Page Content Detection', () => {
     const textarea = appPage.locator('textarea.json-textarea');
     await expect(textarea).toHaveValue(/hckr/);
 
+    await jsonWidget.click();
+    await expect.poll(() => context.pages().filter((candidate) => candidate.url() === appPage.url()).length).toBe(1);
+
     await page.close();
     await appPage.close();
   });

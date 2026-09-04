@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { tabMonogram, type BrowserTab } from '../../shared/browserTabs';
 
-const TabFavicon: React.FC<{ tab: BrowserTab }> = ({ tab }) => {
+type FaviconTab = Pick<BrowserTab, 'title' | 'location' | 'favIconUrl'>;
+
+const TabFavicon: React.FC<{ tab: FaviconTab }> = ({ tab }) => {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {

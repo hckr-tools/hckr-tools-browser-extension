@@ -2,8 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   filterTabs,
   jumpToTab,
+  lastVisitedLabel,
+  listHistoryTabs,
   listWindowTabs,
+  openOrFocusUrl,
   type BrowserTab,
+  type HistoryTab,
+  type TabSearchResult,
 } from '../../shared/browserTabs';
 import TabFavicon from './TabFavicon';
 import './TabSwitcher.css';
@@ -16,6 +21,7 @@ interface TabSwitcherProps {
 }
 
 const MAX_NUMBER_SHORTCUTS = 9;
+const HISTORY_SEARCH_DEBOUNCE_MS = 150;
 
 function shortcutIndexForKey(key: string): number | null {
   if (key >= '1' && key <= '9') {
@@ -44,6 +50,8 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
   standalone = false,
 }) => {
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
+  const [historyTabs, setHistoryTabs] = useState<HistoryTab[]>([]);
+  const [historyLookupComplete, setHistoryLookupComplete] = useState(false);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -71,33 +79,81 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
     return () => window.clearTimeout(focusTimer);
   }, [loadTabs, open]);
 
-  const filteredTabs = useMemo(() => filterTabs(tabs, query), [query, tabs]);
+  const hasQuery = Boolean(query.trim());
+  const filteredOpenTabs = useMemo(() => filterTabs(tabs, query), [query, tabs]);
+  const searchResults = useMemo<TabSearchResult[]>(() => [
+    ...filteredOpenTabs.map((tab) => ({ ...tab, source: 'open' as const })),
+    ...(hasQuery ? historyTabs : []),
+  ], [filteredOpenTabs, hasQuery, historyTabs]);
 
   useEffect(() => {
-    if (query.trim()) {
+    if (!open || !hasQuery) {
+      setHistoryTabs([]);
+      setHistoryLookupComplete(false);
+      return;
+    }
+
+    let cancelled = false;
+    setHistoryTabs([]);
+    setHistoryLookupComplete(false);
+    const lookupTimer = window.setTimeout(() => {
+      void listHistoryTabs(query)
+        .then((results) => {
+          if (!cancelled) {
+            setHistoryTabs(results);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to search browser history:', err);
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setHistoryLookupComplete(true);
+          }
+        });
+    }, HISTORY_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(lookupTimer);
+    };
+  }, [hasQuery, open, query]);
+
+  useEffect(() => {
+    if (hasQuery) {
       setSelectedIndex(0);
       return;
     }
 
-    const previousIndex = filteredTabs.findIndex((tab) => !tab.active);
+    const previousIndex = filteredOpenTabs.findIndex((tab) => !tab.active);
     setSelectedIndex(previousIndex >= 0 ? previousIndex : 0);
-  }, [filteredTabs, query]);
+  }, [filteredOpenTabs, hasQuery]);
 
   useEffect(() => {
-    if (selectedIndex >= filteredTabs.length) {
-      setSelectedIndex(Math.max(0, filteredTabs.length - 1));
+    if (selectedIndex >= searchResults.length) {
+      setSelectedIndex(Math.max(0, searchResults.length - 1));
     }
-  }, [filteredTabs.length, selectedIndex]);
+  }, [searchResults.length, selectedIndex]);
 
   useEffect(() => {
     const selected = document.querySelector('.tab-switcher-item.selected');
     selected?.scrollIntoView({ block: 'nearest' });
-  }, [selectedIndex, filteredTabs]);
+  }, [selectedIndex, searchResults]);
 
   const selectTab = useCallback(async (tabId: number) => {
     await jumpToTab(tabId);
     onClose();
   }, [onClose]);
+
+  const selectResult = useCallback(async (result: TabSearchResult) => {
+    if (result.source === 'open') {
+      await selectTab(result.id);
+      return;
+    }
+
+    await openOrFocusUrl(result.url, windowId);
+    onClose();
+  }, [onClose, selectTab, windowId]);
 
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
@@ -108,7 +164,7 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setSelectedIndex((index) => Math.min(index + 1, Math.max(filteredTabs.length - 1, 0)));
+      setSelectedIndex((index) => Math.min(index + 1, Math.max(searchResults.length - 1, 0)));
       return;
     }
 
@@ -120,9 +176,9 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
 
     if (event.key === 'Enter') {
       event.preventDefault();
-      const tab = filteredTabs[selectedIndex];
-      if (tab) {
-        void selectTab(tab.id);
+      const result = searchResults[selectedIndex];
+      if (result) {
+        void selectResult(result);
       }
       return;
     }
@@ -132,18 +188,18 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
     }
 
     const shortcutIndex = shortcutIndexForKey(event.key);
-    if (shortcutIndex === null || query.trim()) {
+    if (shortcutIndex === null || hasQuery) {
       return;
     }
 
-    const tab = filteredTabs[shortcutIndex];
-    if (!tab) {
+    const result = searchResults[shortcutIndex];
+    if (!result) {
       return;
     }
 
     event.preventDefault();
-    void selectTab(tab.id);
-  }, [filteredTabs, onClose, query, selectTab, selectedIndex]);
+    void selectResult(result);
+  }, [hasQuery, onClose, searchResults, selectResult, selectedIndex]);
 
   if (!open) {
     return null;
@@ -181,19 +237,18 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
 
         {error && <p className="tab-switcher-empty" role="alert">{error}</p>}
 
-        {!error && filteredTabs.length === 0 && (
+        {!error && searchResults.length === 0 && (!hasQuery || historyLookupComplete) && (
           <p className="tab-switcher-empty">
-            {tabs.length === 0 ? 'No open tabs in this window.' : `No tabs match “${query.trim()}”.`}
+            {hasQuery ? `No tabs or history match “${query.trim()}”.` : 'No open tabs in this window.'}
           </p>
         )}
 
-        {filteredTabs.length > 0 && (
-          <p className="tab-switcher-section">Recent</p>
-        )}
-
         <div className="tab-switcher-list" role="listbox" aria-label="Open browser tabs">
-          {filteredTabs.map((tab, index) => {
-            const shortcut = query.trim() ? null : shortcutLabelForIndex(index);
+          {!hasQuery && filteredOpenTabs.length > 0 && <p className="tab-switcher-section">Recent</p>}
+          {hasQuery && filteredOpenTabs.length > 0 && <p className="tab-switcher-section">Open tabs</p>}
+          {filteredOpenTabs.map((tab, index) => {
+            const result: TabSearchResult = { ...tab, source: 'open' };
+            const shortcut = hasQuery ? null : shortcutLabelForIndex(index);
             return (
             <button
               key={tab.id}
@@ -201,7 +256,7 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
               aria-selected={index === selectedIndex}
               className={`tab-switcher-item ${index === selectedIndex ? 'selected' : ''} ${tab.active ? 'current' : ''}`}
               onMouseEnter={() => setSelectedIndex(index)}
-              onClick={() => void selectTab(tab.id)}
+              onClick={() => void selectResult(result)}
               title={tab.url ? `${tab.title}\n${tab.url}` : tab.title}
             >
               <span className="tab-favicon">
@@ -214,6 +269,30 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
               <span className="tab-switcher-actions">
                 {tab.active && <span className="tab-switcher-badge">Current</span>}
                 {shortcut && <span className="tab-switcher-shortcut">{shortcut}</span>}
+              </span>
+            </button>
+            );
+          })}
+          {hasQuery && historyTabs.length > 0 && <p className="tab-switcher-section">History</p>}
+          {historyTabs.map((tab, index) => {
+            const resultIndex = filteredOpenTabs.length + index;
+            return (
+            <button
+              key={`history-${tab.url}`}
+              role="option"
+              aria-selected={resultIndex === selectedIndex}
+              className={`tab-switcher-item history ${resultIndex === selectedIndex ? 'selected' : ''}`}
+              onMouseEnter={() => setSelectedIndex(resultIndex)}
+              onClick={() => void selectResult(tab)}
+              title={`${tab.title}\n${tab.url}`}
+            >
+              <span className="tab-favicon">
+                <TabFavicon tab={tab} />
+              </span>
+              <span className="tab-switcher-details">
+                <span className="tab-switcher-title">{tab.title}</span>
+                <span className="tab-switcher-url">{tab.url}</span>
+                <span className="tab-switcher-visit-time">{lastVisitedLabel(tab.lastVisitTime)}</span>
               </span>
             </button>
             );

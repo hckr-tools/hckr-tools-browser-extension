@@ -206,4 +206,44 @@ test.describe('Navigation & Storage Persistence', () => {
     await switcherPage.close();
     await fixturePage.close();
   });
+
+  test('suggests a recently closed tab from browser history and reopens it', async ({
+    context,
+    extensionId,
+    serverUrl,
+  }) => {
+    const historyPage = await context.newPage();
+    await historyPage.goto(`${serverUrl}/history-search-fixture.html`);
+    await expect(historyPage).toHaveTitle('hckr Closed History Search Fixture');
+    const historyUrl = historyPage.url();
+    await historyPage.close();
+
+    const switcherPage = await context.newPage();
+    await switcherPage.goto(
+      `chrome-extension://${extensionId}/src/sidepanel/index.html?switcher=1`
+    );
+    await switcherPage.waitForLoadState('domcontentloaded');
+
+    const search = switcherPage.getByRole('searchbox', { name: 'Search open tabs' });
+    await search.fill('Closed History Search Fixture');
+    const historySection = switcherPage.locator('.tab-switcher-section', { hasText: 'History' });
+    await expect(historySection).toBeVisible();
+
+    const historyRow = switcherPage.locator('.tab-switcher-item.history', {
+      hasText: 'hckr Closed History Search Fixture',
+    });
+    await expect(historyRow).toBeVisible();
+    await expect(historyRow.locator('.tab-switcher-url')).toContainText('127.0.0.1');
+    await expect(historyRow.locator('.tab-switcher-visit-time')).toHaveText(/Visited/);
+
+    const [reopenedPage] = await Promise.all([
+      context.waitForEvent('page'),
+      historyRow.click(),
+    ]);
+    await reopenedPage.waitForLoadState('domcontentloaded');
+    await expect(reopenedPage).toHaveURL(historyUrl);
+
+    await switcherPage.close();
+    await reopenedPage.close();
+  });
 });

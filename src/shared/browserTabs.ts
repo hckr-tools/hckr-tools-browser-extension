@@ -9,6 +9,22 @@ export interface BrowserTab {
   active: boolean;
 }
 
+export interface HistoryTab {
+  source: 'history';
+  title: string;
+  url: string;
+  location: string;
+  favIconUrl: string;
+  lastVisitTime: number;
+}
+
+export type TabSearchResult =
+  | (BrowserTab & { source: 'open' })
+  | HistoryTab;
+
+const HISTORY_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_HISTORY_RESULTS = 8;
+
 export function isOpenTabSwitcherHotkey(event: {
   key: string;
   metaKey: boolean;
@@ -110,6 +126,82 @@ export async function jumpToTab(tabId: number): Promise<void> {
   } catch {
     // Focusing the window is best-effort; switching the tab still succeeded.
   }
+}
+
+export async function listHistoryTabs(query: string): Promise<HistoryTab[]> {
+  const searchText = query.trim();
+  if (!searchText) {
+    return [];
+  }
+
+  const [historyItems, openTabs] = await Promise.all([
+    chrome.history.search({
+      text: searchText,
+      startTime: Date.now() - HISTORY_LOOKBACK_MS,
+      maxResults: MAX_HISTORY_RESULTS,
+    }),
+    chrome.tabs.query({}),
+  ]);
+  const openUrls = new Set(openTabs.flatMap((tab) => tab.url ? [tab.url] : []));
+  const seenUrls = new Set<string>();
+
+  return historyItems
+    .filter((item) => Boolean(item.url) && !openUrls.has(item.url!))
+    .sort((left, right) => (right.lastVisitTime ?? 0) - (left.lastVisitTime ?? 0))
+    .filter((item) => {
+      const url = item.url!;
+      if (seenUrls.has(url)) {
+        return false;
+      }
+      seenUrls.add(url);
+      return true;
+    })
+    .map((item) => {
+      const url = item.url!;
+      const location = tabLocationLabel(url);
+      return {
+        source: 'history' as const,
+        title: tabTitle(item.title, url, location),
+        url,
+        location,
+        favIconUrl: '',
+        lastVisitTime: item.lastVisitTime ?? 0,
+      };
+    });
+}
+
+export async function openOrFocusUrl(url: string, windowId?: number): Promise<void> {
+  const openTabs = await chrome.tabs.query({});
+  const existingTab = openTabs.find((tab) => tab.url === url);
+
+  if (existingTab?.id !== undefined) {
+    await jumpToTab(existingTab.id);
+    return;
+  }
+
+  await chrome.tabs.create({
+    url,
+    active: true,
+    ...(windowId === undefined ? {} : { windowId }),
+  });
+}
+
+export function lastVisitedLabel(lastVisitTime: number): string {
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - lastVisitTime) / 60_000));
+  if (elapsedMinutes < 1) {
+    return 'Visited just now';
+  }
+  if (elapsedMinutes < 60) {
+    return `Visited ${elapsedMinutes}m ago`;
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) {
+    return `Visited ${elapsedHours}h ago`;
+  }
+
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  return `Visited ${elapsedDays}d ago`;
 }
 
 export function filterTabs(tabs: BrowserTab[], query: string): BrowserTab[] {
