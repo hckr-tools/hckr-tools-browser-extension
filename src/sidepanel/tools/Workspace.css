@@ -82,16 +82,91 @@
   gap: 8px;
 }
 
+/* Filter Bar */
+.workspace-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--surface-container);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.workspace-filter-bar input,
+.workspace-filter-bar select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.workspace-filter-clear {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.workspace-filter-clear:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
 /* Kanban Board Layout */
 .workspace-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-columns: minmax(250px, 1fr);
+  grid-auto-flow: column;
   gap: 12px;
   overflow-x: auto;
   align-items: start;
   flex: 1;
   min-height: 480px;
   padding-bottom: 12px;
+}
+
+.workspace-add-column {
+  min-width: 250px;
+  padding: 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 600 13px var(--font-sans);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+}
+
+.workspace-add-column:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.column-add-form {
+  min-width: 250px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-container);
+  display: flex;
+  gap: 8px;
+}
+
+.column-add-form input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 .workspace-column {
@@ -104,6 +179,7 @@
   flex-direction: column;
   gap: 8px;
   transition: border-color var(--transition), background var(--transition);
+  min-width: 250px;
 }
 
 .workspace-column.drag-over {
@@ -116,6 +192,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 2px 4px 6px;
+  position: relative;
 }
 
 .workspace-column-header h2 {
@@ -127,6 +204,19 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  flex: 1;
+  cursor: text;
+}
+
+.column-rename-input {
+  font: 700 11px var(--font-mono);
+  color: var(--text-primary);
+  text-transform: uppercase;
+  padding: 2px 4px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
 }
 
 .column-count {
@@ -137,6 +227,14 @@
   color: var(--text-muted);
 }
 
+.column-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.column-reorder-btn,
+.column-delete-btn,
 .column-add-btn {
   display: flex;
   align-items: center;
@@ -148,15 +246,23 @@
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1;
   transition: all var(--transition);
 }
 
+.column-reorder-btn:hover,
+.column-delete-btn:hover,
 .column-add-btn:hover {
   background: var(--surface-hover);
   border-color: var(--border);
   color: var(--text-primary);
+}
+
+.column-delete-btn:hover {
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+  border-color: var(--error);
 }
 
 .workspace-cards {
@@ -167,7 +273,6 @@
   flex: 1;
 }
 
-/* Jira-style Kanban Card */
 /* Jira-style Sleek Kanban Card */
 .workspace-card {
   padding: 10px 12px;
@@ -180,6 +285,13 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
+  position: relative;
+}
+
+.workspace-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
 }
 
 .workspace-card:hover {
@@ -205,6 +317,17 @@
   gap: 6px;
 }
 
+.workspace-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workspace-card-checkbox {
+  margin: 0;
+  cursor: pointer;
+}
+
 .workspace-card-key {
   font: 700 10px/1.2 var(--font-mono);
   color: var(--accent);
@@ -215,6 +338,19 @@
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   display: inline-flex;
   align-items: center;
+}
+
+.workspace-card-priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 10px var(--font-mono);
+}
+
+.workspace-card-priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
 }
 
 .workspace-card-meta {
@@ -290,6 +426,15 @@
   justify-content: space-between;
   gap: 6px;
   margin-top: 1px;
+  flex-wrap: wrap;
+}
+
+.workspace-card-footer-left,
+.workspace-card-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .workspace-tags {
@@ -305,6 +450,41 @@
   color: var(--text-secondary);
   font: 600 10px var(--font-mono);
   border: 1px solid var(--border);
+}
+
+.workspace-card-label-pill {
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font: 600 10px var(--font-mono);
+  color: #fff;
+}
+
+.workspace-card-due {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font: 600 10px var(--font-mono);
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+.workspace-card-due.due-overdue {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+  color: var(--error);
+}
+.workspace-card-due.due-today {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
+}
+.workspace-card-due.due-this-week {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+.workspace-card-checklist-progress {
+  font: 600 10px var(--font-mono);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .workspace-card-url {
@@ -324,6 +504,36 @@
   background: var(--surface-hover);
   padding: 1px 5px;
   border-radius: 9999px;
+}
+
+/* Bulk Bar */
+.workspace-bulk-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  flex-wrap: wrap;
+}
+
+.workspace-bulk-bar span {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.workspace-bulk-bar select,
+.workspace-bulk-bar button {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 /* Saved Context View */
@@ -413,7 +623,7 @@
 
 @media (max-width: 900px) {
   .workspace-board {
-    grid-template-columns: repeat(4, 240px);
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   }
 }
 
@@ -430,5 +640,10 @@
   }
   .workspace-item-form {
     grid-template-columns: 1fr;
+  }
+  .workspace-bulk-bar {
+    width: 90%;
+    flex-direction: column;
+    align-items: stretch;
   }
 }

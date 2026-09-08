@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   archiveCard, archiveWorkspace, createWorkspace, ensureWorkspace, generateWorkspaceKey, getCardTicketKey, moveCard, saveCard, saveWorkspaceItem,
-  type SavedItemType, type WorkspaceCard, type WorkspaceSnapshot,
+  addColumn, renameColumn, deleteColumn, reorderColumns,
+  type SavedItemType, type WorkspaceCard, type WorkspaceSnapshot, type WorkspaceColumn
 } from '../../shared/workspace';
 import { tabLocationLabel } from '../../shared/browserTabs';
 import { WorkspaceCardDrawer } from '../components/WorkspaceCardDrawer';
 import { WorkspaceSettingsModal } from '../components/WorkspaceSettingsModal';
+import {
+  getPriorityDef, getLabelDef, getDueStatus, formatDueDate, checklistProgress,
+  type CardPriority, type CardLabel
+} from '../../shared/cardLabels';
 import './Workspace.css';
 
 const EMPTY_SNAPSHOT: WorkspaceSnapshot = { workspaces: [], activeWorkspaceId: '', columns: [], cards: [], items: [] };
@@ -35,6 +40,22 @@ const WorkspaceTool: React.FC = () => {
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
 
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterPriority, setFilterPriority] = useState<CardPriority | 'none' | ''>('');
+  const [filterLabel, setFilterLabel] = useState<CardLabel | 'none' | ''>('');
+  const [filterDue, setFilterDue] = useState<'overdue' | 'today' | 'this-week' | 'none' | ''>('');
+
+  // Bulk select state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+
+  // Column management state
+  const [addingColumn, setAddingColumn] = useState(false);
+  const [newColumnName, setNewColumnName] = useState('');
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
+  const [editingColumnName, setEditingColumnName] = useState('');
+
   const refresh = useCallback(async () => {
     const next = await ensureWorkspace();
     setSnapshot(next);
@@ -51,6 +72,30 @@ const WorkspaceTool: React.FC = () => {
   const columns = useMemo(() => snapshot.columns.filter((column) => column.workspaceId === snapshot.activeWorkspaceId).sort((a, b) => a.position - b.position), [snapshot]);
   const cards = useMemo(() => snapshot.cards.filter((card) => card.workspaceId === snapshot.activeWorkspaceId && !card.archived).sort((a, b) => a.position - b.position), [snapshot]);
   const items = useMemo(() => snapshot.items.filter((item) => item.workspaceId === snapshot.activeWorkspaceId).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [snapshot]);
+
+  const filteredCards = useMemo(() => {
+    return cards.filter(card => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!card.title.toLowerCase().includes(q) && !card.note.toLowerCase().includes(q) && !card.tags.some(t => t.toLowerCase().includes(q))) {
+          return false;
+        }
+      }
+      if (filterPriority) {
+        if (filterPriority === 'none' && card.priority) return false;
+        if (filterPriority !== 'none' && card.priority !== filterPriority) return false;
+      }
+      if (filterLabel) {
+        if (filterLabel === 'none' && card.label) return false;
+        if (filterLabel !== 'none' && card.label !== filterLabel) return false;
+      }
+      if (filterDue) {
+        if (filterDue === 'none' && card.dueDate) return false;
+        if (filterDue !== 'none' && getDueStatus(card.dueDate) !== filterDue) return false;
+      }
+      return true;
+    });
+  }, [cards, searchQuery, filterPriority, filterLabel, filterDue]);
 
   const run = useCallback(async (work: () => Promise<void>) => {
     try {
@@ -101,6 +146,99 @@ const WorkspaceTool: React.FC = () => {
     if (card.url) await chrome.tabs.create({ url: card.url, active: true });
   }, []);
 
+  // Column Actions
+  const handleAddColumn = () => run(async () => {
+    if (!activeWorkspace || !newColumnName.trim()) return;
+    await addColumn(activeWorkspace.id, newColumnName);
+    setAddingColumn(false);
+    setNewColumnName('');
+  });
+
+  const handleRenameColumn = (column: WorkspaceColumn) => run(async () => {
+    if (editingColumnName.trim() && editingColumnName !== column.name) {
+      await renameColumn(column, editingColumnName);
+    }
+    setEditingColumnId(null);
+  });
+
+  const handleDeleteColumn = (column: WorkspaceColumn) => {
+    if (confirm(`Delete column "${column.name}"?`)) {
+      void run(() => deleteColumn(column));
+    }
+  };
+
+  const handleReorderColumn = (columnId: string, direction: 'left' | 'right') => run(async () => {
+    if (!activeWorkspace) return;
+    const idx = columns.findIndex(c => c.id === columnId);
+    if (direction === 'left' && idx > 0) {
+      const colIds = columns.map(c => c.id);
+      [colIds[idx - 1], colIds[idx]] = [colIds[idx], colIds[idx - 1]];
+      await reorderColumns(activeWorkspace.id, colIds);
+    } else if (direction === 'right' && idx < columns.length - 1) {
+      const colIds = columns.map(c => c.id);
+      [colIds[idx], colIds[idx + 1]] = [colIds[idx + 1], colIds[idx]];
+      await reorderColumns(activeWorkspace.id, colIds);
+    }
+  });
+
+  // Bulk Actions
+  const handleBulkMove = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const colId = e.target.value;
+    if (!colId) return;
+    void run(async () => {
+      for (const id of selectedCardIds) {
+        const card = cards.find(c => c.id === id);
+        if (card) await moveCard(card, colId);
+      }
+      setSelectedCardIds(new Set());
+      setSelectMode(false);
+    });
+  };
+
+  const handleBulkLabel = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const label = e.target.value as CardLabel | 'none' | '';
+    if (!label) return;
+    void run(async () => {
+      for (const id of selectedCardIds) {
+        const card = cards.find(c => c.id === id);
+        if (card) {
+          const newLabel = label === 'none' ? undefined : label as CardLabel;
+          await saveCard({ ...card, label: newLabel });
+        }
+      }
+      setSelectedCardIds(new Set());
+      setSelectMode(false);
+    });
+  };
+
+  const handleBulkPriority = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const priority = e.target.value as CardPriority | 'none' | '';
+    if (!priority) return;
+    void run(async () => {
+      for (const id of selectedCardIds) {
+        const card = cards.find(c => c.id === id);
+        if (card) {
+          const newPriority = priority === 'none' ? undefined : priority as CardPriority;
+          await saveCard({ ...card, priority: newPriority });
+        }
+      }
+      setSelectedCardIds(new Set());
+      setSelectMode(false);
+    });
+  };
+
+  const handleBulkArchive = () => {
+    if (!confirm(`Archive ${selectedCardIds.size} cards?`)) return;
+    void run(async () => {
+      for (const id of selectedCardIds) {
+        const card = cards.find(c => c.id === id);
+        if (card) await archiveCard(card);
+      }
+      setSelectedCardIds(new Set());
+      setSelectMode(false);
+    });
+  };
+
   return (
     <section className="workspace-tool" aria-labelledby="workspace-heading">
       <header className="workspace-tool-header">
@@ -128,6 +266,15 @@ const WorkspaceTool: React.FC = () => {
               Saved Context {items.length > 0 && <span className="view-tab-badge">{items.length}</span>}
             </button>
           </div>
+          <button
+            className={`btn ${selectMode ? 'btn-primary' : ''}`}
+            onClick={() => {
+              setSelectMode(!selectMode);
+              if (selectMode) setSelectedCardIds(new Set());
+            }}
+          >
+            {selectMode ? 'Cancel Select' : 'Select'}
+          </button>
           <button
             className="btn btn-primary"
             onClick={() => handleNewCard()}
@@ -207,10 +354,53 @@ const WorkspaceTool: React.FC = () => {
 
       {message && <p className="error-msg" role="alert">{message}</p>}
 
+      {activeView === 'board' && (
+        <div className="workspace-filter-bar">
+          <input
+            placeholder="Search cards..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as any)}>
+            <option value="">All Priorities</option>
+            <option value="p0">P0</option>
+            <option value="p1">P1</option>
+            <option value="p2">P2</option>
+            <option value="p3">P3</option>
+            <option value="none">No priority</option>
+          </select>
+          <select value={filterLabel} onChange={(e) => setFilterLabel(e.target.value as any)}>
+            <option value="">All Labels</option>
+            <option value="bug">Bug</option>
+            <option value="feature">Feature</option>
+            <option value="tech-debt">Tech Debt</option>
+            <option value="research">Research</option>
+            <option value="improvement">Improvement</option>
+            <option value="blocked">Blocked</option>
+            <option value="none">No label</option>
+          </select>
+          <select value={filterDue} onChange={(e) => setFilterDue(e.target.value as any)}>
+            <option value="">All Dates</option>
+            <option value="overdue">Overdue</option>
+            <option value="today">Due today</option>
+            <option value="this-week">Due this week</option>
+            <option value="none">No due date</option>
+          </select>
+          {(searchQuery || filterPriority || filterLabel || filterDue) && (
+            <button className="workspace-filter-clear" onClick={() => {
+              setSearchQuery('');
+              setFilterPriority('');
+              setFilterLabel('');
+              setFilterDue('');
+            }}>Clear filters</button>
+          )}
+        </div>
+      )}
+
       {activeView === 'board' ? (
         <div className="workspace-board" aria-label="Kanban board">
-          {columns.map((column) => {
-            const columnCards = cards.filter((card) => card.columnId === column.id);
+          {columns.map((column, colIdx) => {
+            const columnCards = filteredCards.filter((card) => card.columnId === column.id);
             const isColumnOver = dragOverColumnId === column.id;
             return (
               <section
@@ -236,18 +426,40 @@ const WorkspaceTool: React.FC = () => {
                 }}
               >
                 <div className="workspace-column-header">
-                  <h2>
-                    {column.name}
-                    <span className="column-count">{columnCards.length}</span>
-                  </h2>
-                  <button
-                    className="column-add-btn"
-                    onClick={() => handleNewCard(column.id)}
-                    title={`Add card to ${column.name}`}
-                    aria-label={`Add card to ${column.name}`}
-                  >
-                    +
-                  </button>
+                  {editingColumnId === column.id ? (
+                    <input
+                      className="column-rename-input"
+                      value={editingColumnName}
+                      onChange={(e) => setEditingColumnName(e.target.value)}
+                      onBlur={() => handleRenameColumn(column)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameColumn(column);
+                        if (e.key === 'Escape') setEditingColumnId(null);
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <h2 onDoubleClick={() => {
+                      setEditingColumnId(column.id);
+                      setEditingColumnName(column.name);
+                    }}>
+                      {column.name}
+                      <span className="column-count">{columnCards.length}</span>
+                    </h2>
+                  )}
+                  <div className="column-actions">
+                    {colIdx > 0 && <button className="column-reorder-btn" onClick={() => handleReorderColumn(column.id, 'left')} title="Move left">◀</button>}
+                    {colIdx < columns.length - 1 && <button className="column-reorder-btn" onClick={() => handleReorderColumn(column.id, 'right')} title="Move right">▶</button>}
+                    {columnCards.length === 0 && <button className="column-delete-btn" onClick={() => handleDeleteColumn(column)} title="Delete column">×</button>}
+                    <button
+                      className="column-add-btn"
+                      onClick={() => handleNewCard(column.id)}
+                      title={`Add card to ${column.name}`}
+                      aria-label={`Add card to ${column.name}`}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
 
                 <div className="workspace-cards">
@@ -255,9 +467,15 @@ const WorkspaceTool: React.FC = () => {
                     const isCardDragging = dragCardId === card.id;
                     const isCardOver = dragOverCardId === card.id;
                     const ticketKey = getCardTicketKey(activeWorkspace, card);
+                    const priorityDef = getPriorityDef(card.priority);
+                    const labelDef = getLabelDef(card.label);
+                    const dueStatus = getDueStatus(card.dueDate);
+                    const progress = checklistProgress(card.checklist);
+                    const isSelected = selectedCardIds.has(card.id);
+
                     return (
                       <article
-                        className={`workspace-card ${isCardDragging ? 'dragging' : ''} ${isCardOver ? 'card-over' : ''}`}
+                        className={`workspace-card ${isCardDragging ? 'dragging' : ''} ${isCardOver ? 'card-over' : ''} ${isSelected ? 'selected' : ''}`}
                         key={card.id}
                         draggable
                         onDragStart={(event) => {
@@ -297,13 +515,41 @@ const WorkspaceTool: React.FC = () => {
                           setDragOverCardId(null);
                         }}
                         onClick={(event) => {
-                          if ((event.target as HTMLElement).closest('.card-open-link-btn')) return;
+                          if ((event.target as HTMLElement).closest('.card-open-link-btn') || (event.target as HTMLElement).closest('.workspace-card-checkbox')) return;
+                          if (selectMode) {
+                            const next = new Set(selectedCardIds);
+                            if (next.has(card.id)) next.delete(card.id);
+                            else next.add(card.id);
+                            setSelectedCardIds(next);
+                            return;
+                          }
                           setSelectedCard(card);
                           setIsDrawerOpen(true);
                         }}
                       >
                         <div className="workspace-card-header">
-                          <span className="workspace-card-key">{ticketKey}</span>
+                          <div className="workspace-card-header-left">
+                            {selectMode && (
+                              <input
+                                type="checkbox"
+                                className="workspace-card-checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const next = new Set(selectedCardIds);
+                                  if (e.target.checked) next.add(card.id);
+                                  else next.delete(card.id);
+                                  setSelectedCardIds(next);
+                                }}
+                              />
+                            )}
+                            <span className="workspace-card-key">{ticketKey}</span>
+                            {priorityDef && (
+                              <span className="workspace-card-priority" title={priorityDef.name}>
+                                <span className="workspace-card-priority-dot" style={{ backgroundColor: priorityDef.color }}></span>
+                                {priorityDef.id.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
                           <div className="workspace-card-meta">
                             {card.comments && card.comments.length > 0 && (
                               <span className="workspace-card-comment-indicator" title={`${card.comments.length} comment${card.comments.length === 1 ? '' : 's'}`}>
@@ -350,8 +596,26 @@ const WorkspaceTool: React.FC = () => {
 
                         {card.note && <p className="workspace-card-note">{card.note}</p>}
 
-                        {(card.tags.length > 0 || (card.url && !card.tags.length)) && (
-                          <div className="workspace-card-footer">
+                        <div className="workspace-card-footer">
+                          <div className="workspace-card-footer-left">
+                            {labelDef && (
+                              <span className="workspace-card-label-pill" style={{ backgroundColor: labelDef.color }}>
+                                {labelDef.name}
+                              </span>
+                            )}
+                            {card.dueDate && (
+                              <span className={`workspace-card-due due-${dueStatus || ''}`}>
+                                {formatDueDate(card.dueDate)}
+                              </span>
+                            )}
+                            {progress.total > 0 && (
+                              <span className="workspace-card-checklist-progress">
+                                {progress.done}/{progress.total} ✓
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="workspace-card-footer-right">
                             {card.tags.length > 0 && (
                               <div className="workspace-tags">
                                 {card.tags.map((tag) => (
@@ -363,7 +627,7 @@ const WorkspaceTool: React.FC = () => {
                               <span className="workspace-card-url">{tabLocationLabel(card.url)}</span>
                             )}
                           </div>
-                        )}
+                        </div>
                       </article>
                     );
                   })}
@@ -371,6 +635,27 @@ const WorkspaceTool: React.FC = () => {
               </section>
             );
           })}
+
+          {addingColumn ? (
+            <div className="column-add-form">
+              <input
+                autoFocus
+                placeholder="Column name"
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddColumn();
+                  if (e.key === 'Escape') setAddingColumn(false);
+                }}
+              />
+              <button className="btn btn-primary" onClick={handleAddColumn}>Add</button>
+              <button className="btn" onClick={() => setAddingColumn(false)}>Cancel</button>
+            </div>
+          ) : (
+            <button className="workspace-add-column" onClick={() => setAddingColumn(true)}>
+              + Add column
+            </button>
+          )}
         </div>
       ) : (
         <section className="section workspace-saved-context-view">
@@ -425,6 +710,36 @@ const WorkspaceTool: React.FC = () => {
         </section>
       )}
 
+      {selectMode && selectedCardIds.size > 0 && (
+        <div className="workspace-bulk-bar">
+          <span>{selectedCardIds.size} card{selectedCardIds.size !== 1 ? 's' : ''} selected</span>
+          <select onChange={handleBulkMove} defaultValue="">
+            <option value="" disabled>Move to...</option>
+            {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select onChange={handleBulkLabel} defaultValue="">
+            <option value="" disabled>Set label...</option>
+            <option value="bug">Bug</option>
+            <option value="feature">Feature</option>
+            <option value="tech-debt">Tech Debt</option>
+            <option value="research">Research</option>
+            <option value="improvement">Improvement</option>
+            <option value="blocked">Blocked</option>
+            <option value="none">Clear label</option>
+          </select>
+          <select onChange={handleBulkPriority} defaultValue="">
+            <option value="" disabled>Set priority...</option>
+            <option value="p0">P0 Critical</option>
+            <option value="p1">P1 High</option>
+            <option value="p2">P2 Medium</option>
+            <option value="p3">P3 Low</option>
+            <option value="none">Clear priority</option>
+          </select>
+          <button className="btn" onClick={handleBulkArchive}>Archive</button>
+          <button className="btn" onClick={() => setSelectedCardIds(new Set())}>Deselect all</button>
+        </div>
+      )}
+
       {/* Jira-style Card Detail Drawer */}
       <WorkspaceCardDrawer
         card={selectedCard}
@@ -439,15 +754,13 @@ const WorkspaceTool: React.FC = () => {
         onSave={async (data) => {
           if (!activeWorkspace) return;
           const updated = await saveCard({
-            id: data.id,
+            ...data,
             workspaceId: activeWorkspace.id,
-            columnId: data.columnId,
-            title: data.title,
-            url: data.url,
             favIconUrl: data.favIconUrl || '',
-            note: data.note,
-            tags: data.tags,
-            comments: data.comments,
+            priority: data.priority,
+            dueDate: data.dueDate,
+            label: data.label,
+            checklist: data.checklist,
           });
           setSelectedCard(updated);
           await refresh();

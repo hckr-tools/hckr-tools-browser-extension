@@ -199,6 +199,94 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
     }
   }, [card, comments, note, onSave, parsedTags, title, url]);
 
+  const handlePriorityChange = useCallback((newPriority: CardPriority | undefined) => {
+    setPriority(newPriority);
+    if (card && title.trim()) {
+      void onSave({
+        id: card.id,
+        title: title.trim(),
+        columnId: columnId || columns[0]?.id || '',
+        url: url.trim(),
+        favIconUrl: card.favIconUrl,
+        note,
+        tags: parsedTags(),
+        comments,
+        priority: newPriority,
+        dueDate,
+        label,
+        checklist,
+      });
+      setSavedStatus(true);
+      setTimeout(() => setSavedStatus(false), 2000);
+    }
+  }, [card, columnId, columns, comments, dueDate, label, checklist, note, onSave, parsedTags, title, url]);
+
+  const handleDueDateChange = useCallback((newDueDate: string) => {
+    setDueDate(newDueDate);
+    if (card && title.trim()) {
+      void onSave({
+        id: card.id,
+        title: title.trim(),
+        columnId: columnId || columns[0]?.id || '',
+        url: url.trim(),
+        favIconUrl: card.favIconUrl,
+        note,
+        tags: parsedTags(),
+        comments,
+        priority,
+        dueDate: newDueDate,
+        label,
+        checklist,
+      });
+      setSavedStatus(true);
+      setTimeout(() => setSavedStatus(false), 2000);
+    }
+  }, [card, columnId, columns, comments, priority, label, checklist, note, onSave, parsedTags, title, url]);
+
+  const handleLabelChange = useCallback((newLabel: CardLabel | undefined) => {
+    setLabel(newLabel);
+    if (card && title.trim()) {
+      void onSave({
+        id: card.id,
+        title: title.trim(),
+        columnId: columnId || columns[0]?.id || '',
+        url: url.trim(),
+        favIconUrl: card.favIconUrl,
+        note,
+        tags: parsedTags(),
+        comments,
+        priority,
+        dueDate,
+        label: newLabel,
+        checklist,
+      });
+      setSavedStatus(true);
+      setTimeout(() => setSavedStatus(false), 2000);
+    }
+  }, [card, columnId, columns, comments, priority, dueDate, checklist, note, onSave, parsedTags, title, url]);
+
+  const handleChecklistChange = useCallback((newChecklist: ChecklistItem[]) => {
+    setChecklist(newChecklist);
+    if (card && title.trim()) {
+      void onSave({
+        id: card.id,
+        title: title.trim(),
+        columnId: columnId || columns[0]?.id || '',
+        url: url.trim(),
+        favIconUrl: card.favIconUrl,
+        note,
+        tags: parsedTags(),
+        comments,
+        priority,
+        dueDate,
+        label,
+        checklist: newChecklist,
+      });
+      setSavedStatus(true);
+      setTimeout(() => setSavedStatus(false), 2000);
+    }
+  }, [card, columnId, columns, comments, priority, dueDate, label, note, onSave, parsedTags, title, url]);
+
   const handleAddComment = useCallback(async () => {
     const text = newCommentText.trim();
     if (!text) return;
@@ -397,6 +485,129 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="drawer-field">
+            <label className="drawer-label">Priority</label>
+            <div className="drawer-priority-row">
+              {CARD_PRIORITIES.map((p) => (
+                <button
+                  key={p.id}
+                  className={`drawer-priority-btn ${priority === p.id ? 'active' : ''}`}
+                  style={priority === p.id ? { backgroundColor: p.color, borderColor: p.color, color: '#fff' } : {}}
+                  onClick={() => handlePriorityChange(priority === p.id ? undefined : p.id)}
+                  title={p.name}
+                  type="button"
+                >
+                  <span aria-hidden="true">{p.icon}</span> {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="drawer-field">
+            <label className="drawer-label" htmlFor="card-due-input">Due Date</label>
+            <div className="drawer-due-row">
+              <input
+                id="card-due-input"
+                type="date"
+                className="drawer-due-input input"
+                value={dueDate}
+                onChange={(e) => handleDueDateChange(e.target.value)}
+              />
+              {dueDate && (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => handleDueDateChange('')}
+                    title="Clear due date"
+                  >
+                    Clear
+                  </button>
+                  <span className={`drawer-due-status ${getDueStatus(dueDate) || ''}`}>
+                    {formatDueDate(dueDate)}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="drawer-field">
+            <label className="drawer-label">Label</label>
+            <div className="drawer-label-row">
+              {CARD_LABELS.map((l) => (
+                <button
+                  key={l.id}
+                  className={`drawer-label-pill ${label === l.id ? 'active' : ''}`}
+                  style={
+                    label === l.id
+                      ? { backgroundColor: l.color, borderColor: l.color, color: '#fff' }
+                      : { borderColor: l.color, color: l.color }
+                  }
+                  onClick={() => handleLabelChange(label === l.id ? undefined : l.id)}
+                  type="button"
+                >
+                  {l.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="drawer-field">
+            <div className="drawer-checklist-header">
+              <label className="drawer-label">Checklist</label>
+              {checklist.length > 0 && (
+                <span className="drawer-checklist-progress">
+                  {checklistProgress(checklist).done}/{checklistProgress(checklist).total} ✓
+                </span>
+              )}
+            </div>
+            <div className="drawer-checklist-section">
+              {checklist.map((item) => (
+                <div key={item.id} className={`drawer-checklist-item ${item.checked ? 'checked' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={item.checked}
+                    onChange={(e) => {
+                      const next = checklist.map((i) =>
+                        i.id === item.id ? { ...i, checked: e.target.checked } : i
+                      );
+                      handleChecklistChange(next);
+                    }}
+                  />
+                  <span>{item.text}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleChecklistChange(checklist.filter((i) => i.id !== item.id))}
+                    title="Delete item"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <input
+                type="text"
+                className="drawer-checklist-add input"
+                placeholder="Add an item... (Enter to add)"
+                value={newChecklistText}
+                onChange={(e) => setNewChecklistText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!newChecklistText.trim()) return;
+                    const newItem: ChecklistItem = {
+                      id: `checklist-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                      text: newChecklistText.trim(),
+                      checked: false,
+                      position: checklist.length,
+                    };
+                    handleChecklistChange([...checklist, newItem]);
+                    setNewChecklistText('');
+                  }
+                }}
+              />
+            </div>
           </div>
 
           {/* Activity / Comments Section */}

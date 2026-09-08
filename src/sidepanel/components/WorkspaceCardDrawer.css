@@ -467,3 +467,173 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Priority Row */
+.drawer-priority-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.drawer-priority-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-container);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font: 11px var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.drawer-priority-btn:hover {
+  background: var(--surface-hover);
+}
+
+.drawer-priority-btn.active {
+  /* Dynamic styles injected via style prop for background/border/color */
+}
+
+/* Due Date */
+.drawer-due-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.drawer-due-input {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  font-family: inherit;
+  color-scheme: dark; /* Or matching theme */
+}
+
+.drawer-due-status {
+  font: 600 11px var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.drawer-due-status.overdue {
+  color: var(--error);
+}
+
+.drawer-due-status.today {
+  color: var(--warning);
+}
+
+/* Label Selector */
+.drawer-label-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.drawer-label-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 1px solid var(--border);
+  font: 600 11px var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.drawer-label-pill:hover {
+  filter: brightness(1.1);
+}
+
+.drawer-label-pill.active {
+  /* Dynamic styles injected via style prop */
+}
+
+/* Checklist */
+.drawer-checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-checklist-progress {
+  font: 600 10px var(--font-mono);
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: var(--surface-container);
+  color: var(--text-secondary);
+}
+
+.drawer-checklist-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.drawer-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.drawer-checklist-item input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.drawer-checklist-item span {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.drawer-checklist-item.checked span {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.drawer-checklist-item button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  opacity: 0.5;
+  transition: all var(--transition);
+}
+
+.drawer-checklist-item button:hover {
+  opacity: 1;
+  color: var(--error);
+  background: var(--surface-hover);
+}
+
+.drawer-checklist-add {
+  margin-top: 4px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.drawer-checklist-add:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: var(--surface-sunken);
+}
