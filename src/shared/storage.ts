@@ -65,7 +65,7 @@ export async function loadToolState(toolId: string): Promise<ToolState | null> {
 }
 
 /**
- * Get pending input from context menu or content script.
+ * Get pending input from a context-menu action.
  */
 export interface PendingInput {
   toolId: string;

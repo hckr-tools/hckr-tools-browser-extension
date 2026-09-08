@@ -110,8 +110,8 @@
   justify-content: space-between;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(0, 210, 255, 0.1);
-  border: 1px solid rgba(0, 210, 255, 0.3);
+  background: var(--accent-dim);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-size: 12px;
@@ -126,7 +126,7 @@
 
 .base64-hint-switch-btn {
   background: var(--accent);
-  color: #000;
+  color: #ffffff;
   border: none;
   padding: 3px 8px;
   border-radius: var(--radius-sm);

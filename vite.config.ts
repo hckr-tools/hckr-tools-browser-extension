@@ -18,12 +18,10 @@ export default defineConfig({
       input: {
         sidepanel: resolve(__dirname, 'src/sidepanel/index.html'),
         'service-worker': resolve(__dirname, 'src/service-worker.ts'),
-        'content-detector': resolve(__dirname, 'src/content/detector.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'service-worker') return 'service-worker.js';
-          if (chunkInfo.name === 'content-detector') return 'content/detector.js';
           return 'assets/[name]-[hash].js';
         },
         chunkFileNames: 'assets/[name]-[hash].js',

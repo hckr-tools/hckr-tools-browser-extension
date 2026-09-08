@@ -174,7 +174,7 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(0).locator('td').first()).toHaveText('1');
     await expect(rows.nth(1).locator('td').first()).toHaveText('2');
-    await expect(rows.nth(0).locator('td').nth(1)).toHaveText(/basic|pro/);
+    await expect(rows.nth(0).locator('td').nth(1)).toHaveText(/alpha|beta|gamma|basic|pro/);
   });
 
   test('Data workspace downloads the selected export format', async ({
@@ -222,7 +222,7 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     ).toBeVisible();
     await expect(sidepanelPage.getByText('2 diffs', { exact: true })).toBeVisible();
     await expect(
-      sidepanelPage.getByRole('button', { name: 'Show 4 unchanged lines' }),
+      sidepanelPage.getByRole('button', { name: /Show \d+ unchanged lines/ }),
     ).toBeVisible();
 
     const nextDiffButton = sidepanelPage.getByRole('button', {
@@ -467,7 +467,7 @@ test.describe('Advanced Tools Suite (JWT, Hash, Regex, Data, Diff, Markdown)', (
     await textareas.nth(0).fill('Hello');
     await textareas.nth(1).fill('hello');
     await expect(
-      sidepanelPage.locator('.diff-row-added, .diff-row-removed').first(),
+      sidepanelPage.locator('.diff-row-added, .diff-row-removed, .diff-side-row-changed').first(),
     ).toBeVisible();
 
     await sidepanelPage

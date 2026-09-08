@@ -3,7 +3,102 @@
 
 @font-face { font-family: 'Geist'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('@fontsource-variable/geist/files/geist-latin-wght-normal.woff2') format('woff2'); }
 
-:root, [data-theme="dark"] { color-scheme:dark; --canvas:#1a1d21; --surface:#22252a; --surface-container:#282c34; --surface-raised:#22252a; --surface-sunken:#171a1e; --surface-hover:#2a3036; --surface-selected:rgba(29,155,209,.18); --sidebar:#1a0d1b; --sidebar-header:#120713; --sidebar-hover:#2a162c; --sidebar-text:#ab9bae; --text-primary:#e8e8e8; --text-secondary:#a0a5aa; --text-muted:#71767b; --accent:#36c5f0; --accent-hover:#7cd5f3; --accent-active:#1264a3; --accent-dim:rgba(29,155,209,.18); --accent-text:#062c3c; --success:#2bac76; --error:#e01e5a; --warning:#ecb22e; --info:#36c5f0; --border:#2e343a; --border-strong:#383f45; --border-focus:#36c5f0; --shadow-sm:none; --shadow-md:0 8px 32px rgba(0,0,0,.3); --card-shadow:none; --syntax-key:#7cd5f3; --syntax-string:#34d399; --syntax-number:#f59e0b; --syntax-boolean:#c084fc; --syntax-null:#9ca3af; }
-[data-theme="light"] { color-scheme:light; --canvas:#fdf8f9; --surface:#fff; --surface-container:#f1edee; --surface-raised:#fff; --surface-sunken:#f8f8f8; --surface-hover:#f7f2f3; --surface-selected:rgba(17,100,163,.12); --sidebar:#3f0e40; --sidebar-header:#350d36; --sidebar-hover:#4a154b; --sidebar-text:#bcabbc; --text-primary:#1c1b1c; --text-secondary:#4e444c; --text-muted:#80737d; --accent:#1164a3; --accent-hover:#1264a3; --accent-active:#0b4f82; --accent-dim:rgba(17,100,163,.12); --accent-text:#fff; --success:#2bac76; --error:#e01e5a; --warning:#ecb22e; --info:#1164a3; --border:#ddd; --border-strong:#cfc5ca; --border-focus:#1164a3; --shadow-sm:none; --shadow-md:0 8px 32px rgba(37,8,38,.16); --card-shadow:none; --syntax-key:#1164a3; --syntax-string:#008a5a; --syntax-number:#bb5d00; --syntax-boolean:#703a86; --syntax-null:#80737d; }
-:root { --bg-primary:var(--canvas); --bg-secondary:var(--surface); --bg-card:var(--surface-raised); --bg-input:var(--surface-sunken); --bg-hover:var(--surface-hover); --bg-active:var(--surface-selected); --radius-sm:4px; --radius:6px; --radius-lg:8px; --toolbar-height:36px; --panel-header-height:28px; --font-sans:Geist, Inter, ui-sans-serif, system-ui, sans-serif; --font-mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace; --transition:120ms cubic-bezier(.2,0,0,1); }
+:root, [data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #1a1d21;
+  --surface: #22252a;
+  --surface-container: #282c34;
+  --surface-raised: #22252a;
+  --surface-sunken: #171a1e;
+  --surface-hover: #2c3136;
+  --surface-selected: rgba(17, 100, 163, 0.22);
+  --sidebar: #1a0d1b;
+  --sidebar-header: #120713;
+  --sidebar-hover: #271429;
+  --sidebar-text: #ab9bae;
+  --sidebar-active: #1164a3;
+  --sidebar-active-text: #ffffff;
+  --text-primary: #e8e8e8;
+  --text-secondary: #a0a5aa;
+  --text-muted: #71767b;
+  --accent: #1164a3;
+  --accent-hover: #1d9bd1;
+  --accent-active: #0b4f82;
+  --accent-dim: rgba(17, 100, 163, 0.2);
+  --accent-text: #ffffff;
+  --success: #2bac76;
+  --error: #e01e5a;
+  --warning: #ecb22e;
+  --info: #1164a3;
+  --border: #2e343a;
+  --border-strong: #383f45;
+  --border-focus: #1164a3;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
+  --card-shadow: none;
+  --syntax-key: #36c5f0;
+  --syntax-string: #2bac76;
+  --syntax-number: #ecb22e;
+  --syntax-boolean: #c084fc;
+  --syntax-null: #9ca3af;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --canvas: #f8f8f8;
+  --surface: #ffffff;
+  --surface-container: #f1edee;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f8f8f8;
+  --surface-hover: #f5f5f5;
+  --surface-selected: rgba(17, 100, 163, 0.12);
+  --sidebar: #3f0e40;
+  --sidebar-header: #350d36;
+  --sidebar-hover: #4a154b;
+  --sidebar-text: #bcabbc;
+  --sidebar-active: #1164a3;
+  --sidebar-active-text: #ffffff;
+  --text-primary: #1d1c1d;
+  --text-secondary: #616061;
+  --text-muted: #868686;
+  --accent: #1164a3;
+  --accent-hover: #1264a3;
+  --accent-active: #0b4f82;
+  --accent-dim: rgba(17, 100, 163, 0.12);
+  --accent-text: #ffffff;
+  --success: #2bac76;
+  --error: #e01e5a;
+  --warning: #ecb22e;
+  --info: #1164a3;
+  --border: #e0e0e0;
+  --border-strong: #cfcfcf;
+  --border-focus: #1164a3;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 8px 24px rgba(37, 8, 38, 0.12);
+  --card-shadow: none;
+  --syntax-key: #1164a3;
+  --syntax-string: #007a5a;
+  --syntax-number: #bb5d00;
+  --syntax-boolean: #703a86;
+  --syntax-null: #80737d;
+}
+
+:root {
+  --bg-primary: var(--canvas);
+  --bg-secondary: var(--surface);
+  --bg-card: var(--surface-raised);
+  --bg-input: var(--surface-sunken);
+  --bg-hover: var(--surface-hover);
+  --bg-active: var(--surface-selected);
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --radius-pill: 9999px;
+  --toolbar-height: 36px;
+  --panel-header-height: 30px;
+  --font-sans: Geist, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --transition: 120ms cubic-bezier(.2,0,0,1);
+}
 * { box-sizing:border-box; } html, body, #root { height:100%; width:100%; overflow:hidden; } body { margin:0; background:var(--canvas); color:var(--text-primary); font-family:var(--font-sans); font-size:13px; line-height:1.45; -webkit-font-smoothing:antialiased; } button,input,textarea,select { font:inherit; } button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible { outline:1px solid var(--border-focus); outline-offset:1px; box-shadow:0 0 0 3px var(--accent-dim); } ::selection { background:var(--accent-dim); color:var(--text-primary); } ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border-strong); border:2px solid transparent; border-radius:4px; background-clip:padding-box; } ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); } @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; animation-iteration-count:1!important; scroll-behavior:auto!important; transition-duration:.01ms!important; } }

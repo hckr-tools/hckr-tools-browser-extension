@@ -1,8 +1,60 @@
-.app { display: flex; height: 100vh; overflow: hidden; background: var(--canvas); }
-.tool-content { display: flex; flex: 1; min-width: 0; flex-direction: column; overflow: hidden; }
-.tool-container-inner { width: 100%; max-width: 1600px; min-height: 0; flex: 1; margin: 0 auto; padding: 8px; overflow: auto; }
-.app-loading { display: grid; height: 100vh; place-items: center; background: var(--canvas); }
-.loading-icon { color: var(--accent); font-size: 20px; animation: pulse 1s ease infinite; }
-.tool-loading { display: grid; min-height: 180px; place-items: center; color: var(--text-muted); font: 11px var(--font-mono); }
-@keyframes pulse { 50% { opacity: 0.55; transform: scale(0.94); } }
-@media (max-width: 700px) { .tool-container-inner { padding: 6px; } }
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+.tool-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+.tool-container-inner {
+  width: 100%;
+  max-width: 1600px;
+  min-height: 0;
+  flex: 1;
+  margin: 0 auto;
+  padding: 12px 14px;
+  overflow: auto;
+}
+
+.app-loading {
+  display: grid;
+  height: 100vh;
+  place-items: center;
+  background: var(--canvas);
+}
+
+.loading-icon {
+  color: var(--accent);
+  font-size: 24px;
+  animation: pulse 1s ease infinite;
+}
+
+.tool-loading {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  color: var(--text-muted);
+  font: 12px var(--font-sans);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+}
+
+@media (max-width: 700px) {
+  .tool-container-inner {
+    padding: 8px;
+  }
+}
+

@@ -1,1 +1,194 @@
-.tool-command-palette { position: fixed; z-index: 60; inset: 0; display: flex; justify-content: center; align-items: flex-start; padding: min(16vh, 130px) 16px 24px; background: rgba(8, 10, 16, 0.58); backdrop-filter: blur(3px); }.tool-command-dialog { display: flex; flex-direction: column; width: min(560px, 100%); max-height: min(540px, 76vh); overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-raised); box-shadow: var(--shadow-md); }.tool-command-search { display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-bottom: 1px solid var(--border); color: var(--text-muted); }.tool-command-search > span { font-size: 19px; }.tool-command-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--text-primary); font-size: 14px; }.tool-command-search input::placeholder { color: var(--text-muted); }.tool-command-heading { margin: 0; padding: 10px 14px 5px; color: var(--text-muted); font-size: 10px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }.tool-command-list { flex: 1; min-height: 0; overflow-y: auto; padding: 3px 7px 8px; }.tool-command-item { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 9px; width: 100%; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--text-primary); cursor: pointer; text-align: left; }.tool-command-item.selected, .tool-command-item:hover { background: var(--surface-hover); }.tool-command-icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-sunken); font-size: 13px; }.tool-command-copy { display: flex; flex-direction: column; min-width: 0; font-size: 12px; font-weight: 650; }.tool-command-copy small { overflow: hidden; color: var(--text-muted); font-size: 10px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }.tool-command-meta { color: var(--text-muted); font-size: 10px; }.tool-command-empty { padding: 22px 10px; color: var(--text-muted); text-align: center; }.tool-command-footer { display: flex; gap: 12px; padding: 9px 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 10px; }.tool-command-footer kbd { margin-right: 4px; color: var(--text-secondary); font-family: var(--font-sans); font-weight: 700; }
+/* Slack-Style Quick Switcher (Cmd+K) Modal */
+
+.tool-command-palette {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: min(14vh, 120px) 16px 24px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.tool-command-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(580px, 100%);
+  max-height: min(520px, 78vh);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.tool-command-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.tool-command-search > span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.tool-command-search input,
+.tool-command-search input:focus,
+.tool-command-search input:focus-visible {
+  width: 100%;
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+}
+
+.tool-command-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.tool-command-heading {
+  margin: 0;
+  padding: 10px 16px 4px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tool-command-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 8px 10px;
+}
+
+.tool-command-item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  margin: 2px 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition), color var(--transition);
+}
+
+.tool-command-item:hover {
+  background: var(--surface-hover);
+}
+
+.tool-command-item.selected {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.tool-command-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.tool-command-icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.tool-command-item.selected .tool-command-icon {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.tool-command-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tool-command-copy small {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-command-item.selected .tool-command-copy small {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tool-command-meta {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-container);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.tool-command-item.selected .tool-command-meta {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.tool-command-empty {
+  padding: 28px 16px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  text-align: center;
+}
+
+.tool-command-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.tool-command-footer kbd {
+  margin-right: 4px;
+  padding: 2px 5px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+

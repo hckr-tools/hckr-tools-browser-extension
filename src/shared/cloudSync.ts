@@ -72,27 +72,27 @@ export async function getSyncStatus(): Promise<SyncStatus> {
   };
 }
 
-export async function signInWithGoogle(): Promise<SyncStatus> {
+export async function signInWithGitHub(): Promise<SyncStatus> {
   const cloud = config();
   if (!cloud) throw new Error('Cloud Sync is not configured in this build.');
   const redirectTo = chrome.identity.getRedirectURL('supabase-auth');
   const verifier = base64Url(crypto.getRandomValues(new Uint8Array(32)));
   await chrome.storage.local.set({ [VERIFIER_KEY]: verifier });
   const authorize = new URL(`${cloud.url}/auth/v1/authorize`);
-  authorize.searchParams.set('provider', 'google');
+  authorize.searchParams.set('provider', 'github');
   authorize.searchParams.set('redirect_to', redirectTo);
   authorize.searchParams.set('code_challenge', await sha256(verifier));
   authorize.searchParams.set('code_challenge_method', 'S256');
   const callback = await chrome.identity.launchWebAuthFlow({ url: authorize.toString(), interactive: true });
-  if (!callback) throw new Error('Google sign-in was cancelled.');
+  if (!callback) throw new Error('GitHub sign-in was cancelled.');
   const code = new URL(callback).searchParams.get('code');
-  if (!code) throw new Error('Google sign-in did not return an authorization code.');
+  if (!code) throw new Error('GitHub sign-in did not return an authorization code.');
   const exchange = await fetch(`${cloud.url}/auth/v1/token?grant_type=pkce`, {
     method: 'POST', headers: { apikey: cloud.publishableKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
   });
   const payload = await exchange.json() as { access_token?: string; refresh_token?: string; expires_in?: number; user?: { id?: string; email?: string }; error_description?: string };
   await chrome.storage.local.remove(VERIFIER_KEY);
-  if (!exchange.ok || !payload.access_token || !payload.refresh_token || !payload.user?.id) throw new Error(payload.error_description ?? 'Could not complete Google sign-in.');
+  if (!exchange.ok || !payload.access_token || !payload.refresh_token || !payload.user?.id) throw new Error(payload.error_description ?? 'Could not complete GitHub sign-in.');
   await setSession({ accessToken: payload.access_token, refreshToken: payload.refresh_token, userId: payload.user.id, email: payload.user.email, expiresAt: Date.now() + (payload.expires_in ?? 3600) * 1000 });
   await saveCloudMetadata({ lastSyncAt: undefined, error: undefined });
   return getSyncStatus();
@@ -104,7 +104,9 @@ export async function signOutCloudSync(): Promise<void> {
   await saveCloudMetadata({});
 }
 
-function tableFor(record: CloudOutboxRecord): string { return record.entity; }
+function tableFor(record: CloudOutboxRecord): string {
+  return record.entity === 'workspace' ? 'workspaces' : record.entity;
+}
 
 function toCloudPayload(record: CloudOutboxRecord, ownerId: string): Record<string, unknown> {
   const payload = record.payload;
@@ -128,7 +130,10 @@ export async function flushCloudSync(): Promise<SyncStatus> {
       const response = record.operation === 'delete'
         ? await authenticatedFetch(`/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, { method: 'DELETE' })
         : await authenticatedFetch(`/rest/v1/${table}?on_conflict=id`, { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify(toCloudPayload(record, session?.userId ?? '')) });
-      if (!response.ok) throw new Error(`Sync failed (${response.status}).`);
+      if (!response.ok) {
+        const details = await response.text();
+        throw new Error(`Sync failed for ${table} (${response.status})${details ? `: ${details}` : '.'}`);
+      }
       await removeOutbox(record.id);
     }
     await saveCloudMetadata({ lastSyncAt: new Date().toISOString() });

@@ -187,5 +187,5 @@
 }
 
 .tabs-error {
-  color: var(--danger, #ef4444);
+  color: var(--error);
 }

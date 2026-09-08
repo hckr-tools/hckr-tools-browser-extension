@@ -1,11 +1,16 @@
 .DEFAULT_GOAL := help
 
 NPM ?= npm
+SUPABASE ?= npx supabase
+HCKR_PROJECT_REF := tcufenzxkxlgawuwbcxl
+NAME ?=
+CONFIRM ?=
 DEV_PORT ?= 5173
 DEV_PORTS ?= 5173
 TMUX_SESSION ?= hckr-dev
 
-.PHONY: help install dev build clean zip lint test-e2e test-e2e-headed test-e2e-ui verify \
+.PHONY: help install dev build clean zip lint test-e2e test-e2e-headed test-e2e-ui verify cloud-build \
+	sb-migration-new sb-push-hckr \
 	stop-port dev-kill-ports dev-tmux \
 	__dev-tmux-create __dev-tmux-start-panes __dev-tmux-open
 
@@ -44,6 +49,20 @@ verify: ## Run standard repository checks (lint, build, zip)
 	$(MAKE) lint
 	$(MAKE) build
 	$(MAKE) zip
+
+cloud-build: ## Build Cloud Sync release (requires public Supabase URL/key)
+	@test -n "$(VITE_SUPABASE_URL)" || (echo "VITE_SUPABASE_URL is required. Example: make cloud-build VITE_SUPABASE_URL=https://project.supabase.co VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_..." && exit 1)
+	@test -n "$(VITE_SUPABASE_PUBLISHABLE_KEY)" || (echo "VITE_SUPABASE_PUBLISHABLE_KEY is required. Use the publishable key, never a secret/service key." && exit 1)
+	CLOUD_SYNC_REQUIRED=true VITE_SUPABASE_URL="$(VITE_SUPABASE_URL)" VITE_SUPABASE_PUBLISHABLE_KEY="$(VITE_SUPABASE_PUBLISHABLE_KEY)" $(MAKE) build
+
+sb-migration-new: ## Create a migration: make sb-migration-new NAME=add_workspace_index
+	@test -n "$(NAME)" || (echo "NAME is required. Example: make sb-migration-new NAME=add_workspace_index" && exit 1)
+	$(SUPABASE) migration new "$(NAME)"
+
+sb-push-hckr: ## Push migrations to hckr production (requires CONFIRM=push)
+	@test "$(CONFIRM)" = "push" || (echo "Refusing remote migration push without CONFIRM=push." && exit 1)
+	$(SUPABASE) link --project-ref "$(HCKR_PROJECT_REF)"
+	$(SUPABASE) db push
 
 # Port & process management
 stop-port:

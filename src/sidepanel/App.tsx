@@ -31,7 +31,7 @@ const WorkspaceTool = lazy(() => import('./tools/Workspace'));
 
 const TOOLS: ToolTab[] = [
   { id: 'workspace', label: 'Workspace', icon: '▤', category: 'Workspace', description: 'Organize tabs, notes, and saved developer context' },
-  { id: 'json-formatter', label: 'JSON', icon: '{ }', category: 'Transform', description: 'Format, validate, and inspect JSON' },
+  { id: 'json-formatter', label: 'JSON', icon: '{}', category: 'Transform', description: 'Format, validate, and inspect JSON' },
   { id: 'yaml-json', label: 'YAML', icon: 'Y↦', category: 'Transform', description: 'Convert YAML and JSON locally' },
   { id: 'base64', label: 'Base64', icon: '↔', category: 'Transform', description: 'Encode and decode Base64 data' },
   { id: 'url-encoder', label: 'URL', icon: '⌁', category: 'Transform', description: 'Encode, decode, and inspect URLs' },
@@ -95,7 +95,7 @@ const App: React.FC = () => {
     return () => globalThis.removeEventListener('hckr-cloud-sync-changed', refreshSync);
   }, []);
 
-  // Check for pending input from context menu or content script
+  // Check for pending input from a context-menu action.
   useEffect(() => {
     if (!isLoaded) return;
 

@@ -147,20 +147,11 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   await openOrFocusAppTab(toolId, info.selectionText);
 });
 
-// Handle messages from content script widget -> open/focus full tab with data
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'FLUSH_CLOUD_SYNC') {
     void flushCloudSync().then((status) => sendResponse({ success: true, status })).catch((error) => sendResponse({ success: false, error: String(error) }));
     return true;
   }
-  if (message.type === 'SEND_TO_TOOL') {
-    (async () => {
-      await openOrFocusAppTab(message.toolId, message.text);
-      sendResponse({ success: true });
-    })();
-    return true; // keeps channel open for async response
-  }
-
   if (message.type === 'OPEN_TAB_SWITCHER') {
     (async () => {
       await openTabSwitcher();

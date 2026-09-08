@@ -19,6 +19,13 @@ export interface WorkspaceColumn {
   position: number;
 }
 
+export interface CardComment {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface WorkspaceCard {
   id: string;
   workspaceId: string;
@@ -28,6 +35,7 @@ export interface WorkspaceCard {
   favIconUrl: string;
   note: string;
   tags: string[];
+  comments?: CardComment[];
   position: number;
   archived: boolean;
   createdAt: string;
@@ -223,6 +231,7 @@ export async function saveCard(input: Omit<WorkspaceCard, 'id' | 'createdAt' | '
     id: existing?.id ?? id('card'), workspaceId: input.workspaceId, columnId: input.columnId,
     title: input.title.trim().slice(0, 240) || 'Untitled card', url: input.url.trim(), favIconUrl: input.favIconUrl,
     note: input.note.slice(0, MAX_SAVED_ITEM_CHARS), tags: input.tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
+    comments: input.comments ?? existing?.comments ?? [],
     position: input.position ?? (Math.max(-1024, ...cards.filter((candidate) => candidate.columnId === input.columnId).map((candidate) => candidate.position)) + 1024),
     archived: input.archived ?? false, createdAt, updatedAt: now(), revision: (existing?.revision ?? 0) + 1,
   };

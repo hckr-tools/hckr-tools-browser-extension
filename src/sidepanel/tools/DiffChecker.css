@@ -119,9 +119,9 @@
 }
 
 .diff-stat-total {
-  background: rgba(129, 140, 248, 0.14);
+  background: var(--accent-dim);
   color: var(--accent);
-  border: 1px solid rgba(129, 140, 248, 0.35);
+  border: 1px solid var(--border);
 }
 
 .diff-output-actions {
@@ -252,9 +252,14 @@
 }
 
 .diff-side-cell-added {
-  background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  background: rgba(43, 172, 118, 0.12);
+  color: #0b7043;
   box-shadow: inset 3px 0 var(--success);
+}
+
+[data-theme="dark"] .diff-side-cell-added,
+:root:not([data-theme="light"]) .diff-side-cell-added {
+  color: #86efac;
 }
 
 .diff-side-cell-added .diff-side-line-number {
@@ -263,9 +268,14 @@
 }
 
 .diff-side-cell-removed {
-  background: rgba(239, 68, 68, 0.12);
-  color: #fca5a5;
+  background: rgba(224, 30, 90, 0.1);
+  color: #ad1141;
   box-shadow: inset 3px 0 var(--error);
+}
+
+[data-theme="dark"] .diff-side-cell-removed,
+:root:not([data-theme="light"]) .diff-side-cell-removed {
+  color: #fca5a5;
 }
 
 .diff-side-cell-removed .diff-side-line-number {
@@ -279,7 +289,7 @@
   border: 0;
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  background: rgba(129, 140, 248, 0.08);
+  background: var(--accent-dim);
   color: var(--accent);
   cursor: pointer;
   font: inherit;
@@ -288,5 +298,5 @@
 }
 
 .diff-unchanged-toggle:hover {
-  background: rgba(129, 140, 248, 0.16);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
 }

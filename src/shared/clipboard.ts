@@ -30,7 +30,13 @@ function showToast(message: string): void {
 
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.textContent = message;
+  const icon = document.createElement('span');
+  icon.className = 'toast-icon';
+  icon.textContent = '✓';
+  const label = document.createElement('span');
+  label.textContent = message;
+  toast.appendChild(icon);
+  toast.appendChild(label);
   document.body.appendChild(toast);
 
   toastTimeout = setTimeout(() => {

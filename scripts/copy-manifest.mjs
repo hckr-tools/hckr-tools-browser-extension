@@ -1,9 +1,17 @@
 import fs from 'node:fs';
+import { loadEnv } from 'vite';
 
 const source = JSON.parse(fs.readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
-const syncUrl = process.env.VITE_SUPABASE_URL?.trim();
+const env = loadEnv(process.env.MODE ?? 'production', process.cwd(), '');
 
-if (process.env.CLOUD_SYNC_REQUIRED === 'true' && !syncUrl) {
+function environmentValue(name) {
+  return process.env[name]?.trim() || env[name]?.trim();
+}
+
+const syncUrl = environmentValue('VITE_SUPABASE_URL');
+const cloudSyncRequired = environmentValue('CLOUD_SYNC_REQUIRED') === 'true';
+
+if (cloudSyncRequired && !syncUrl) {
   throw new Error('CLOUD_SYNC_REQUIRED=true needs VITE_SUPABASE_URL so the manifest can allow one exact Supabase project host.');
 }
 
@@ -13,5 +21,4 @@ if (syncUrl) {
   source.content_security_policy.extension_pages = `${source.content_security_policy.extension_pages}; connect-src ${origin}`;
 }
 
-fs.copyFileSync(new URL('../src/content/widget.css', import.meta.url), new URL('../dist/content/widget.css', import.meta.url));
 fs.writeFileSync(new URL('../dist/manifest.json', import.meta.url), `${JSON.stringify(source, null, 2)}\n`);

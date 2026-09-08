@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { ToolTab } from './TabBar';
+import { ToolIcon } from './ToolIcon';
 import './ToolCommandPalette.css';
 
 interface ToolCommandPaletteProps {
@@ -43,7 +44,7 @@ const ToolCommandPalette: React.FC<ToolCommandPaletteProps> = ({ open, tools, ac
       <p className="tool-command-heading">{query ? 'Matches' : 'All tools'}</p>
       <div className="tool-command-list" role="listbox" aria-label="Developer tools">
         {matches.map((tool, index) => <button key={tool.id} className={`tool-command-item ${index === selectedIndex ? 'selected' : ''}`} role="option" aria-selected={index === selectedIndex} onMouseEnter={() => setSelectedIndex(index)} onClick={() => choose(tool.id)}>
-          <span className="tool-command-icon" aria-hidden="true">{tool.icon}</span><span className="tool-command-copy"><span>{tool.label}</span><small>{tool.description}</small></span><span className="tool-command-meta">{tool.id === activeToolId ? 'Open' : tool.category}</span>
+          <span className="tool-command-icon" aria-hidden="true"><ToolIcon toolId={tool.id} fallback={tool.icon} /></span><span className="tool-command-copy"><span>{tool.label}</span><small>{tool.description}</small></span><span className="tool-command-meta">{tool.id === activeToolId ? 'Open' : tool.category}</span>
         </button>)}
         {matches.length === 0 && <p className="tool-command-empty">No tools match “{query}”.</p>}
       </div>

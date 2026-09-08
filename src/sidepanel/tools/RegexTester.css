@@ -97,10 +97,10 @@
 }
 
 .regex-flag-label.active {
-  background: var(--accent-dim);
+  background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent);
-  font-weight: 600;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 .regex-flag-checkbox {
@@ -184,7 +184,7 @@
 }
 
 .match-hl-0 {
-  background-color: rgba(0, 210, 255, 0.35);
+  background-color: color-mix(in srgb, var(--accent) 35%, transparent);
   border-bottom: 2px solid var(--accent);
   border-radius: 2px;
   color: #ffffff;
@@ -202,7 +202,7 @@
 .match-hl-zero-width {
   display: inline-block;
   background-color: var(--error);
-  color: #000;
+  color: #ffffff;
   font-size: 10px;
   padding: 0 2px;
   border-radius: 2px;

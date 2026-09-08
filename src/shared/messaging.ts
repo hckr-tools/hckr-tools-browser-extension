@@ -1,9 +1,8 @@
 /**
- * Typed message passing between content script ↔ service worker ↔ side panel.
+ * Typed message passing between the extension UI and service worker.
  */
 
 export type MessageType =
-  | 'SEND_TO_TOOL'
   | 'OPEN_TAB_SWITCHER'
   | 'TOOL_OPENED'
   | 'PING';
@@ -15,7 +14,7 @@ export interface HckrMessage {
 }
 
 /**
- * Send a message from content script or side panel to the service worker.
+ * Send a message from the extension UI to the service worker.
  */
 export async function sendToBackground(message: HckrMessage): Promise<unknown> {
   return chrome.runtime.sendMessage(message);

@@ -1,13 +1,212 @@
-.workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 0 16px; border-bottom: 1px solid color-mix(in srgb, var(--sidebar-header) 80%, #000); background: var(--sidebar-header); }
-.workspace-context, .workspace-header-actions, .workspace-privacy, .workspace-command-trigger { display: flex; align-items: center; }
-.workspace-context { min-width: 0; gap: 7px; color: var(--sidebar-text); font-family: var(--font-sans); font-size: 12px; }
-.workspace-context-label, .workspace-context-separator { color: var(--sidebar-text); }
-.workspace-context h1 { overflow: hidden; margin: 0; color: #fff; font: 600 14px/1.2 var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
-.workspace-tool-description { overflow: hidden; max-width: 290px; color: var(--sidebar-text); text-overflow: ellipsis; white-space: nowrap; }
-.workspace-header-actions { flex-shrink: 0; gap: 8px; }
-.workspace-privacy { gap: 6px; color: var(--sidebar-text); font: 500 10px/1 var(--font-sans); letter-spacing: .02em; }
-.workspace-privacy > span { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
-.workspace-command-trigger { gap: 6px; min-width: min(42vw, 320px); min-height: 30px; padding: 0 8px; border: 1px solid rgba(255,255,255,.18); border-radius: 4px; background: rgba(255,255,255,.1); color: var(--sidebar-text); font: 500 12px/1 var(--font-sans); cursor: pointer; }
-.workspace-command-trigger:hover { background: rgba(255,255,255,.16); color: #fff; }
-.workspace-command-trigger kbd { margin-left: auto; padding: 1px 3px; border: 0; color: var(--sidebar-text); font: 10px/1 var(--font-mono); }
-@media (max-width: 700px) { .workspace-tool-description, .workspace-privacy, .workspace-command-trigger > span:nth-child(2) { display: none; } .workspace-header { padding: 0 8px; } }
+.workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  user-select: none;
+}
+
+.workspace-context,
+.workspace-header-actions,
+.workspace-privacy,
+.workspace-command-trigger {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-context {
+  min-width: 0;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.workspace-context-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.workspace-context-separator {
+  color: var(--border-strong);
+}
+
+.workspace-channel-prefix {
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.workspace-context h1 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--text-primary);
+  font: 700 15px/1.2 var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-context h1.workspace-header-h1 {
+  overflow: visible;
+  display: inline-flex;
+  align-items: center;
+}
+
+.workspace-header-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.workspace-header-select {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 3px 22px 3px 7px;
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+  font: 700 14px/1.2 var(--font-sans);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  outline: none;
+  max-width: 200px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all var(--transition, 0.15s ease);
+}
+
+.workspace-header-select:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+.workspace-header-select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.workspace-header-select-chevron {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.workspace-header-select option {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.workspace-star-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+
+.workspace-star-btn:hover {
+  color: var(--warning);
+  background: var(--surface-hover);
+}
+
+.workspace-topic-divider {
+  color: var(--border-strong);
+  margin: 0 4px;
+  opacity: 0.7;
+}
+
+.workspace-tool-description {
+  overflow: hidden;
+  max-width: 360px;
+  color: var(--text-secondary);
+  font: 400 12px/1.3 var(--font-sans);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-header-actions {
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.workspace-privacy {
+  gap: 6px;
+  color: var(--text-secondary);
+  font: 500 11px/1 var(--font-sans);
+  letter-spacing: .02em;
+}
+
+.workspace-privacy-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px rgba(43, 172, 118, 0.22);
+}
+
+.workspace-command-trigger {
+  gap: 7px;
+  min-width: min(34vw, 260px);
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  font: 500 12px/1 var(--font-sans);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.workspace-command-trigger:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.workspace-command-trigger kbd {
+  margin-left: auto;
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-container);
+  color: var(--text-secondary);
+  font: 10px/1 var(--font-mono);
+}
+
+@media (max-width: 700px) {
+  .workspace-tool-description,
+  .workspace-topic-divider,
+  .workspace-star-btn,
+  .workspace-privacy,
+  .workspace-command-trigger > span:nth-child(2) {
+    display: none;
+  }
+  .workspace-header {
+    padding: 0 10px;
+    min-height: 42px;
+  }
+}

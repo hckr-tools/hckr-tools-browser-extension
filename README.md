@@ -40,7 +40,7 @@ An essential, privacy-first developer utility toolkit built right into your brow
 - **Smart On-Page Content Detection**: Automatically detects JSON, JWT, and Base64 strings inside `<pre>` and `<code>` blocks on any webpage (API responses, log viewers, documentation) and displays a 1-click **⚡ Open in hckr** widget.
 - **Context Menu Integration**: Select any text on any page and right-click to instantly send it to the appropriate tool (Format JSON, Decode JWT, Test Regex, etc.).
 - **Activate hckr-tools (`⌘⇧U` / `Ctrl+Shift+U`)**: Open or focus the hckr-tools page.
-- **Quick Tab Switcher (`⌥Q` / `Alt+Q`)**: Cycle between your most recently used tabs within the current window.
+- **Quick Tab Switcher (`⌥Q` / `hckr-tools+Q`)**: Cycle between your most recently used tabs within the current window.
 - **hckr-tools tab switcher (`⌘K` / `Ctrl+K`)**: Search every open tab in the current window and jump to it.
 - **Fast MRU State & Preferences**: Automatically preserves your active tool, inputs, and theme across sessions using `chrome.storage`.
 - **Dark & Light Mode**: Built-in sleek dark theme and crisp light theme designed for coding environments.
@@ -107,7 +107,7 @@ make dev-tmux
 
 ## 🧪 Testing
 
-End-to-End tests are implemented using **Playwright** to verify tool calculations, content script widget injection, service worker tab navigation, and storage persistence.
+End-to-End tests are implemented using **Playwright** to verify tool calculations, service worker tab navigation, and storage persistence.
 
 ```bash
 # Run all E2E tests headless
@@ -124,13 +124,12 @@ make test-e2e-ui        # or: npm run test:e2e:ui
 
 ## 🏗️ Architecture & Project Structure
 
-The extension is structured around Manifest V3 best practices, separating the UI layer, background service worker, content scripts, and shared utilities:
+The extension is structured around Manifest V3 best practices, separating the UI layer, background service worker, and shared utilities:
 
 ```text
 hckr-browser-ext/
 ├── e2e/                      # Playwright end-to-end test suites
 │   ├── fixtures/             # HTML test fixtures & helpers
-│   ├── content-script.spec.ts
 │   ├── navigation-storage.spec.ts
 │   ├── tools-core.spec.ts
 │   └── tools-advanced.spec.ts
@@ -139,7 +138,6 @@ hckr-browser-ext/
 ├── src/
 │   ├── content/              # Content scripts injected into web pages
 │   │   ├── detector.ts       # On-page JSON/JWT/Base64 detector
-│   │   └── widget.css        # Injected widget styling
 │   ├── service-worker.ts     # Background service worker (tabs, context menu, IPC)
 │   ├── shared/               # Shared cross-context utilities
 │   │   ├── clipboard.ts      # Clipboard copy/read helpers

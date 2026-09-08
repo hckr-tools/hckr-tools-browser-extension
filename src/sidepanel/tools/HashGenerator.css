@@ -91,7 +91,7 @@
 }
 
 .hash-card:hover {
-  border-color: rgba(0, 210, 255, 0.4);
+  border-color: var(--border-focus);
 }
 
 .hash-card.hash-match {

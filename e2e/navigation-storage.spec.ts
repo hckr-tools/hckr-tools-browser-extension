@@ -76,20 +76,93 @@ test.describe('Navigation & Storage Persistence', () => {
 
   test('creates, moves, and saves explicit workspace context', async ({ sidepanelPage }) => {
     await expect(sidepanelPage.locator('.workspace-tool')).toBeVisible();
-    await sidepanelPage.locator('.workspace-bottom-grid input').first().fill('Investigate callback');
-    await sidepanelPage.locator('.workspace-bottom-grid input').nth(1).fill('https://example.test/callback');
-    await sidepanelPage.getByRole('button', { name: 'Add to Inbox' }).click();
+    await sidepanelPage.getByRole('button', { name: '+ New card' }).click();
+    const drawer = sidepanelPage.locator('.workspace-card-drawer');
+    await expect(drawer).toBeVisible();
+    await drawer.locator('#card-title-input').fill('Investigate callback');
+    await drawer.locator('#card-url-input').fill('https://example.test/callback');
+    await drawer.getByRole('button', { name: 'Create card' }).click();
+    await expect(drawer).not.toBeVisible();
+
     const inbox = sidepanelPage.locator('.workspace-column', { hasText: 'Inbox' });
     await expect(inbox.getByText('Investigate callback')).toBeVisible();
     await inbox.getByRole('button', { name: '→' }).click();
     const working = sidepanelPage.locator('.workspace-column', { hasText: 'Working' });
     await expect(working.getByText('Investigate callback')).toBeVisible();
 
-    const savedContext = sidepanelPage.locator('.workspace-bottom-grid .section').nth(1);
-    await savedContext.locator('input').fill('Callback notes');
-    await savedContext.locator('textarea').fill('Only manually saved text belongs in Cloud Sync.');
-    await savedContext.getByRole('button', { name: 'Save context' }).click();
-    await expect(savedContext.getByText('Callback notes')).toBeVisible();
+    // Click card to open drawer/modal and edit details + add comments
+    await working.locator('.workspace-card-title-btn').click();
+    await expect(drawer).toBeVisible();
+    await drawer.locator('#card-note-input').fill('Callback details in drawer');
+    await drawer.locator('#card-comment-input').fill('Investigating token refresh behavior');
+    await drawer.getByRole('button', { name: 'Comment' }).click();
+    await expect(drawer.locator('.card-comment-item')).toContainText('Investigating token refresh behavior');
+    await drawer.getByRole('button', { name: 'Save changes' }).click();
+    await expect(drawer).not.toBeVisible();
+
+    // Verify card displays comment count badge on board
+    await expect(working.locator('.workspace-card-comment-indicator')).toContainText('💬 1');
+
+    // Re-open card to verify comment persisted
+    await working.locator('.workspace-card-title-btn').click();
+    await expect(drawer).toBeVisible();
+    await expect(drawer.locator('.card-comment-item')).toContainText('Investigating token refresh behavior');
+    await drawer.getByRole('button', { name: 'Close card details' }).click();
+    await expect(drawer).not.toBeVisible();
+
+    // Switch to Saved Context view
+    await sidepanelPage.getByRole('tab', { name: /Saved Context/ }).click();
+    const contextView = sidepanelPage.locator('.workspace-saved-context-view');
+    await expect(contextView).toBeVisible();
+    await contextView.locator('input').fill('Callback notes');
+    await contextView.locator('textarea').fill('Only manually saved text belongs in Cloud Sync.');
+    await contextView.getByRole('button', { name: 'Save context' }).click();
+    await expect(contextView.getByText('Callback notes')).toBeVisible();
+  });
+
+  test('switches workspaces from header dropdown and updates details accordingly', async ({ sidepanelPage }) => {
+    await expect(sidepanelPage.locator('.workspace-tool')).toBeVisible();
+    const headerSelect = sidepanelPage.locator('.workspace-header #workspace-select');
+    await expect(headerSelect).toBeVisible();
+
+    // Create Alpha workspace via toolbar
+    await sidepanelPage.getByRole('button', { name: 'New workspace' }).click();
+    let nameInput = sidepanelPage.getByRole('textbox', { name: 'Workspace name' });
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill('Alpha Project');
+    await sidepanelPage.getByRole('button', { name: 'Create' }).click();
+
+    // Heading and header select should now reflect Alpha Project
+    await expect(sidepanelPage.locator('#workspace-heading')).toHaveText('Alpha Project');
+
+    // Create Beta workspace via toolbar
+    await sidepanelPage.getByRole('button', { name: 'New workspace' }).click();
+    nameInput = sidepanelPage.getByRole('textbox', { name: 'Workspace name' });
+    await expect(nameInput).toBeVisible();
+    await nameInput.fill('Beta Project');
+    await sidepanelPage.getByRole('button', { name: 'Create' }).click();
+
+    // Heading should now be Beta Project
+    await expect(sidepanelPage.locator('#workspace-heading')).toHaveText('Beta Project');
+
+    // Switch back to Alpha Project using the header select
+    const alphaOption = await headerSelect.locator('option', { hasText: 'Alpha Project' }).getAttribute('value');
+    await headerSelect.selectOption(alphaOption!);
+
+    // Details and heading update back to Alpha Project
+    await expect(sidepanelPage.locator('#workspace-heading')).toHaveText('Alpha Project');
+
+    // Switch back to Beta Project and archive it
+    const betaOption = await headerSelect.locator('option', { hasText: 'Beta Project' }).getAttribute('value');
+    await headerSelect.selectOption(betaOption!);
+    await expect(sidepanelPage.locator('#workspace-heading')).toHaveText('Beta Project');
+
+    const archiveBtn = sidepanelPage.getByRole('button', { name: 'Archive workspace' });
+    await expect(archiveBtn).toBeVisible();
+    await archiveBtn.click();
+
+    // Automatically transitions away from archived Beta Project
+    await expect(sidepanelPage.locator('#workspace-heading')).not.toHaveText('Beta Project');
   });
 
   test('saves formatted JSON only after an explicit workspace action', async ({ sidepanelPage }) => {
@@ -99,6 +172,7 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(saveButton).toBeEnabled();
     await saveButton.click();
     await sidepanelPage.locator('.tab-item', { hasText: 'Workspace', exact: true }).click();
+    await sidepanelPage.getByRole('tab', { name: /Saved Context/ }).click();
     await expect(sidepanelPage.locator('.workspace-items')).toContainText('JSON snippet');
     await expect(sidepanelPage.locator('.workspace-items')).toContainText('"workspace": true');
   });

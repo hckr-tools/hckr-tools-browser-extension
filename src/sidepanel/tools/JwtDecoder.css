@@ -174,8 +174,8 @@
 }
 
 .jwt-status-badge.valid {
-  background: #22c55e;
-  color: #000;
+  background: var(--success);
+  color: #ffffff;
 }
 
 .jwt-status-badge.expired {
