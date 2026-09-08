@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>hckr-tools // Command Center AST Tiler</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+    @layer base {
+      html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+      body { overscroll-behavior: none; }
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0b0e14; }
+    ::-webkit-scrollbar-thumb { background: #272a30; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #464554; }
+  </style>
+<script src="https://cdn.tailwindcss.com"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface": "#101319",
+            "surface-dim": "#0b0e14",
+            "surface-container-lowest": "#080a0e",
+            "surface-container-low": "#14171d",
+            "surface-container": "#191c22",
+            "surface-container-high": "#232833",
+            "surface-container-highest": "#2d3340",
+            "primary": "#c0c1ff",
+            "primary-container": "#8083ff",
+            "on-primary": "#1000a9",
+            "secondary": "#4edea3",
+            "secondary-container": "#00a572",
+            "tertiary": "#ffb783",
+            "tertiary-dim": "#ffb783",
+            "on-surface": "#e1e2eb",
+            "on-surface-variant": "#9ca1b3",
+            "outline": "#656a7d",
+            "outline-variant": "#2a2e3b",
+            "error": "#ffb4ab",
+            "type-str": "#4edea3",
+            "type-num": "#ffb783",
+            "type-bool": "#ff8e8e",
+            "type-obj": "#c0c1ff",
+            "type-null": "#9ca1b3"
+          },
+          fontFamily: {
+            "mono": ["JetBrains Mono", "monospace"],
+            "sans": ["Geist", "sans-serif"]
+          },
+          fontSize: {
+            "2xs": ["0.6875rem", { lineHeight: "0.875rem", letterSpacing: "0.02em" }],
+            "xs": ["0.75rem", { lineHeight: "1.125rem" }],
+            "sm": ["0.8125rem", { lineHeight: "1.25rem" }]
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-surface font-sans text-xs text-on-surface antialiased select-none h-screen flex flex-col overflow-hidden">
+<!-- TOP BAR: Unified Command Center Header & Query Runner -->
+<header class="h-11 bg-surface-dim border-b border-surface-container-high px-3 flex items-center justify-between gap-3 shrink-0 z-30">
+<!-- Brand + Workspace Chip -->
+<div class="flex items-center gap-2.5 shrink-0">
+<div class="flex items-center gap-1.5 font-mono font-semibold tracking-tight text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[16px]">terminal</span>
+<span>hckr<span class="text-primary">-tools</span></span>
+</div>
+<div class="h-3 w-px bg-surface-container-high"></div>
+<div class="flex items-center gap-1 font-mono text-2xs text-outline">
+<span class="text-on-surface-variant">buffer</span>
+<span>/</span>
+<span class="text-primary font-medium">ast-root</span>
+</div>
+<div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/25 text-secondary font-mono text-[10px]" title="Client-Side In-Memory Execution">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary inline-block animate-pulse"></span>
+<span class="font-medium tracking-wider uppercase">Local</span>
+</div>
+</div>
+<!-- Embedded High-Productivity Command Line & Live JMES/JSONPath Query Runner -->
+<div class="flex-1 max-w-2xl mx-auto flex items-center">
+<div class="w-full flex items-center bg-surface-container-lowest border border-surface-container-high focus-within:border-primary/70 rounded h-7 px-2 gap-2 shadow-inner transition-colors group">
+<span class="material-symbols-outlined text-[14px] text-outline group-focus-within:text-primary transition-colors">terminal</span>
+<!-- Command Mode Badge -->
+<span class="px-1 py-0.2 rounded bg-surface-container text-primary font-mono text-[10px] border border-surface-container-high flex items-center gap-0.5">
+<span>QUERY</span>
+</span>
+<!-- Syntax-highlighted Command / Path Filter input -->
+<div class="flex-1 flex items-center font-mono text-xs overflow-hidden">
+<input class="w-full bg-transparent text-on-surface font-mono placeholder:text-outline/70 focus:outline-none text-xs" id="global-query-input" spellcheck="false" type="text" value="$.user.quotas[?(@.burst_capacity &gt; 100)]"/>
+</div>
+<!-- Live Evaluation Result Count & Execution Latency -->
+<div class="flex items-center gap-1.5 shrink-0 font-mono text-[10px]">
+<span class="px-1.5 py-0.2 rounded bg-secondary/15 text-secondary border border-secondary/30 font-medium">14 records matched in 0.2ms</span>
+<kbd class="px-1 py-0.5 rounded bg-surface-container-high text-outline text-[9px] border border-surface-container-highest">⌘K</kbd>
+</div>
+</div>
+</div>
+<!-- Quick Action Toolbelt -->
+<div class="flex items-center gap-1 shrink-0 font-mono text-xs">
+<button class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-high transition-colors" id="btn-top-beautify" title="⌘↵ Beautify">
+<span class="material-symbols-outlined text-[13px] text-primary">auto_fix_high</span>
+<span class="text-2xs">Format</span>
+</button>
+<button class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-high transition-colors" id="btn-top-minify" title="⌘M Minify">
+<span class="material-symbols-outlined text-[13px]">compress</span>
+<span class="text-2xs">Min</span>
+</button>
+<button class="flex items-center gap-1 px-2 py-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface border border-surface-container-high transition-colors" id="btn-top-sort" title="Sort Keys Ascending">
+<span class="material-symbols-outlined text-[13px]">sort_by_alpha</span>
+<span class="text-2xs">Sort</span>
+</button>
+<div class="h-3 w-px bg-surface-container-high mx-0.5"></div>
+<button class="flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-on-primary font-medium hover:bg-primary/90 transition-all font-sans text-2xs shadow-sm" id="btn-top-copy">
+<span class="material-symbols-outlined text-[13px]">content_copy</span>
+<span>Copy AST</span>
+</button>
+</div>
+</header>
+<!-- MAIN VIEWPORT CONTAINER -->
+<div class="flex-1 flex overflow-hidden">
+<!-- SLIM COLLAPSED ICON RAIL (Max horizontal workspace, keyboard hotkey badges) -->
+<aside class="w-11 bg-surface-dim border-r border-surface-container-high flex flex-col items-center py-2 shrink-0 z-20 justify-between">
+<div class="flex flex-col items-center gap-1.5 w-full">
+<!-- Active Tool: JSON (⌘1) -->
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center bg-surface-container-high text-primary border-l-2 border-primary transition-all">
+<span class="material-symbols-outlined text-[17px]">data_object</span>
+</button>
+<!-- Floating Tooltip -->
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">JSON AST Tiler</span>
+<kbd class="px-1 py-0.2 bg-surface-dim rounded text-[9px] font-mono text-outline">⌘1</kbd>
+</div>
+</div>
+<!-- Tool: YAML (⌘2) -->
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[17px]">reorder</span>
+</button>
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">YAML Transformer</span>
+<kbd class="px-1 py-0.2 bg-surface-dim rounded text-[9px] font-mono text-outline">⌘2</kbd>
+</div>
+</div>
+<!-- Tool: Base64 (⌘3) -->
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[17px]">lock</span>
+</button>
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">Base64 Codec</span>
+<kbd class="px-1 py-0.2 bg-surface-dim rounded text-[9px] font-mono text-outline">⌘3</kbd>
+</div>
+</div>
+<!-- Tool: URL (⌘4) -->
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[17px]">link</span>
+</button>
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">URL Parser</span>
+<kbd class="px-1 py-0.2 bg-surface-dim rounded text-[9px] font-mono text-outline">⌘4</kbd>
+</div>
+</div>
+<!-- Tool: JWT (⌘5) -->
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[17px]">token</span>
+</button>
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">JWT Debugger</span>
+<kbd class="px-1 py-0.2 bg-surface-dim rounded text-[9px] font-mono text-outline">⌘5</kbd>
+</div>
+</div>
+<div class="w-5 h-px bg-surface-container-high my-1"></div>
+<!-- Diff & Regex -->
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[17px]">difference</span>
+</button>
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">Diff Engine</span>
+</div>
+</div>
+<div class="relative group flex justify-center w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[17px]">regular_expression</span>
+</button>
+<div class="absolute left-11 top-1 px-2 py-1 bg-surface-container-highest border border-surface-container-high rounded shadow-xl whitespace-nowrap hidden group-hover:flex items-center gap-2 z-50 pointer-events-none">
+<span class="font-mono text-2xs text-on-surface">Regex Lab</span>
+</div>
+</div>
+</div>
+<!-- Rail Footer Actions -->
+<div class="flex flex-col items-center gap-1.5 w-full">
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" title="Keyboard Shortcuts (?)">
+<span class="material-symbols-outlined text-[16px]">keyboard</span>
+</button>
+<button class="w-8 h-8 rounded flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" title="Settings">
+<span class="material-symbols-outlined text-[16px]">settings</span>
+</button>
+<div class="w-2 h-2 rounded-full bg-secondary/80 mt-1" title="Engine Healthy"></div>
+</div>
+</aside>
+<!-- KEYBOARD-FIRST TILING WORKSPACE (SIDE-BY-SIDE TILES) -->
+<main class="flex-1 grid grid-cols-1 md:grid-cols-2 divide-x divide-surface-container-high bg-surface-dim overflow-hidden">
+<!-- TILE 1: Raw Input Terminal Pane -->
+<section class="flex flex-col h-full overflow-hidden bg-surface-dim">
+<!-- Tile Header Bar -->
+<div class="h-8 bg-surface-container-low border-b border-surface-container-high px-2.5 flex items-center justify-between shrink-0 select-none">
+<div class="flex items-center gap-2 font-mono text-2xs">
+<span class="material-symbols-outlined text-[14px] text-primary">edit_square</span>
+<span class="font-medium text-on-surface uppercase tracking-wider">Source Buffer</span>
+<span class="px-1 py-0.2 rounded bg-surface-container-high text-outline text-[10px]">stdin</span>
+</div>
+<div class="flex items-center gap-2 font-mono text-2xs">
+<label class="flex items-center gap-1 text-outline cursor-pointer hover:text-on-surface transition-colors">
+<input checked="" class="accent-secondary w-3 h-3 rounded" type="checkbox"/>
+<span>Live Parse</span>
+</label>
+<div class="h-3 w-px bg-surface-container-high"></div>
+<button class="text-outline hover:text-on-surface transition-colors px-1 rounded flex items-center gap-0.5" id="tile1-paste">
+<span class="material-symbols-outlined text-[12px]">content_paste</span>
+<span>Paste</span>
+</button>
+<button class="text-outline hover:text-error transition-colors px-1 rounded flex items-center gap-0.5" id="tile1-clear">
+<span class="material-symbols-outlined text-[12px]">backspace</span>
+<span>Clear</span>
+</button>
+</div>
+</div>
+<!-- Line Numbers + Editable Monospace Raw Area -->
+<div class="flex-1 flex overflow-hidden font-mono text-xs leading-[1.4rem]">
+<!-- Gutter / Line Numbers -->
+<div class="w-10 py-2.5 pr-2 bg-surface-container-lowest/60 text-outline-variant font-mono text-right select-none border-r border-surface-container-high/40 text-[11px] leading-[1.4rem]">
+            1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9<br/>10<br/>11<br/>12<br/>13<br/><span class="text-primary font-bold">14</span><br/>15<br/>16<br/>17<br/>18<br/>19<br/>20<br/>21<br/>22<br/>23<br/>24<br/>25<br/>26<br/>27
+          </div>
+<!-- Raw Code Content Area -->
+<div class="flex-1 p-2.5 overflow-auto text-on-surface whitespace-pre focus:outline-none bg-surface-dim font-mono select-text" contenteditable="true" id="raw-code-input" spellcheck="false">{
+  <span class="text-primary">"session_id"</span>: <span class="text-type-str">"sess_99a8x01d0a"</span>,
+  <span class="text-primary">"status"</span>: <span class="text-type-str">"active"</span>,
+  <span class="text-primary">"authenticated"</span>: <span class="text-type-bool">true</span>,
+  <span class="text-primary">"cluster_zone"</span>: <span class="text-type-str">"us-west-2a"</span>,
+  <span class="text-primary">"user"</span>: {
+    <span class="text-primary">"id"</span>: <span class="text-type-str">"usr_88204"</span>,
+    <span class="text-primary">"handle"</span>: <span class="text-type-str">"0x_vector"</span>,
+    <span class="text-primary">"role"</span>: <span class="text-type-str">"site_reliability_lead"</span>,
+    <span class="text-primary">"org_tier"</span>: <span class="text-type-str">"enterprise_core"</span>,
+    <span class="text-primary">"quotas"</span>: {
+      <span class="text-primary">"max_workers"</span>: <span class="text-type-num">64</span>,
+      <span class="text-primary">"burst_capacity"</span>: <span class="text-type-num">128</span>,
+      <span class="text-primary">"dedicated_vpc"</span>: <span class="text-type-bool">true</span>
+    }
+  },
+  <span class="text-primary">"security_context"</span>: {
+    <span class="text-primary">"enforce_mfa"</span>: <span class="text-type-bool">true</span>,
+    <span class="text-primary">"ip_allowlist"</span>: [
+      <span class="text-type-str">"192.168.1.0/24"</span>,
+      <span class="text-type-str">"10.0.40.12/32"</span>
+    ],
+    <span class="text-primary">"token_ttl_seconds"</span>: <span class="text-type-num">86400</span>,
+    <span class="text-primary">"cipher_suite"</span>: <span class="text-type-str">"TLS_AES_256_GCM_SHA384"</span>
+  }
+}</div>
+</div>
+<!-- Raw Tile Footer Mini-Metrics -->
+<div class="h-6 bg-surface-container-low border-t border-surface-container-high px-2 flex items-center justify-between text-outline font-mono text-[10px]">
+<span class="flex items-center gap-1.5">
+<span class="text-secondary font-medium">Valid JSON 5.0</span>
+<span>·</span>
+<span>27 lines</span>
+</span>
+<span>Ln 14, Col 32 · 528 B</span>
+</div>
+</section>
+<!-- TILE 2: AST Tree Visualizer & Node Explorer Pane -->
+<section class="flex flex-col h-full overflow-hidden bg-surface-container-lowest">
+<!-- Tile Header Bar & Views -->
+<div class="h-8 bg-surface-container-low border-b border-surface-container-high px-2.5 flex items-center justify-between shrink-0 select-none">
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 font-mono text-2xs">
+<span class="material-symbols-outlined text-[14px] text-secondary">account_tree</span>
+<span class="font-medium text-on-surface uppercase tracking-wider">AST Tree Visualizer</span>
+</div>
+<!-- Tree Stats -->
+<span class="px-1.5 py-0.2 rounded bg-surface-container-high text-primary font-mono text-[10px]">19 nodes</span>
+</div>
+<!-- Tree Actions & Modes -->
+<div class="flex items-center gap-1.5 font-mono text-2xs">
+<button class="px-1.5 py-0.5 rounded hover:bg-surface-container text-outline hover:text-on-surface transition-colors flex items-center gap-0.5" title="Fold All Nodes">
+<span class="material-symbols-outlined text-[13px]">unfold_less</span>
+<span class="text-[10px]">Fold</span>
+</button>
+<button class="px-1.5 py-0.5 rounded hover:bg-surface-container text-outline hover:text-on-surface transition-colors flex items-center gap-0.5" title="Expand All Nodes">
+<span class="material-symbols-outlined text-[13px]">unfold_more</span>
+<span class="text-[10px]">Expand</span>
+</button>
+<div class="h-3 w-px bg-surface-container-high"></div>
+<button class="px-1.5 py-0.5 rounded bg-surface-container hover:bg-surface-container-high text-outline hover:text-primary transition-colors text-[10px]" title="Copy TypeScript Interface (⌘⇧C)">
+              TS Types
+            </button>
+</div>
+</div>
+<!-- Interactive AST Visualizer Tree Content Area -->
+<div class="flex-1 p-2.5 overflow-auto font-mono text-xs leading-[1.5rem] select-text">
+<!-- AST Root Object -->
+<div class="group/root flex items-center gap-1 text-on-surface-variant hover:text-on-surface">
+<span class="cursor-pointer select-none text-outline hover:text-primary text-[10px] w-3.5">▼</span>
+<span class="text-outline font-semibold">root</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-primary text-[10px] border border-surface-container-high">object[6]</span>
+<span class="text-outline text-2xs opacity-0 group-hover/root:opacity-100 transition-opacity ml-2">$/</span>
+</div>
+<!-- Tree Children Level 1 -->
+<div class="pl-4 border-l border-surface-container-high/60 ml-1.5 mt-0.5 space-y-0.5">
+<!-- Node 1: session_id -->
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary font-medium">session_id</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"sess_99a8x01d0a"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]" title="Copy JSONPath: $.session_id">copy path</button>
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]" title="Copy node value">copy val</button>
+</div>
+</div>
+<!-- Node 2: status -->
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary font-medium">status</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"active"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy val</button>
+</div>
+</div>
+<!-- Node 3: authenticated -->
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary font-medium">authenticated</span>
+<span class="text-outline">:</span>
+<span class="text-type-bool font-medium">true</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-bool text-[9px] border border-surface-container-high select-none">boolean</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy val</button>
+</div>
+</div>
+<!-- Node 4: cluster_zone -->
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5 overflow-hidden">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary font-medium">cluster_zone</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"us-west-2a"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy val</button>
+</div>
+</div>
+<!-- Node 5: user (OBJECT NODE) -->
+<div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="cursor-pointer select-none text-outline hover:text-primary text-[10px] w-3.5">▼</span>
+<span class="text-primary font-medium">user</span>
+<span class="px-1 py-0.2 rounded bg-primary/10 text-primary text-[9px] border border-primary/20 select-none">object[5]</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]" title="Copy path: $.user">copy path</button>
+</div>
+</div>
+<!-- Nested user properties -->
+<div class="pl-4 border-l border-surface-container-high/60 ml-1.5 space-y-0.5 mt-0.5">
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">id</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"usr_88204"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">handle</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"0x_vector"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">role</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"site_reliability_lead"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<!-- Sub-nested quotas -->
+<div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="cursor-pointer select-none text-outline hover:text-primary text-[10px] w-3.5">▼</span>
+<span class="text-primary">quotas</span>
+<span class="px-1 py-0.2 rounded bg-primary/10 text-primary text-[9px] border border-primary/20 select-none">object[3]</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="pl-4 border-l border-surface-container-high/60 ml-1.5 space-y-0.5 mt-0.5">
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">max_workers</span>
+<span class="text-outline">:</span>
+<span class="text-type-num font-medium">64</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-num text-[9px] border border-surface-container-high select-none">number</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">burst_capacity</span>
+<span class="text-outline">:</span>
+<span class="text-type-num font-medium">128</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-num text-[9px] border border-surface-container-high select-none">number</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">dedicated_vpc</span>
+<span class="text-outline">:</span>
+<span class="text-type-bool font-medium">true</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-bool text-[9px] border border-surface-container-high select-none">boolean</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Node 6: security_context (OBJECT & ARRAY) -->
+<div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="cursor-pointer select-none text-outline hover:text-primary text-[10px] w-3.5">▼</span>
+<span class="text-primary font-medium">security_context</span>
+<span class="px-1 py-0.2 rounded bg-primary/10 text-primary text-[9px] border border-primary/20 select-none">object[4]</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<!-- Nested Security properties -->
+<div class="pl-4 border-l border-surface-container-high/60 ml-1.5 space-y-0.5 mt-0.5">
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">enforce_mfa</span>
+<span class="text-outline">:</span>
+<span class="text-type-bool font-medium">true</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-bool text-[9px] border border-surface-container-high select-none">boolean</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<!-- Array ip_allowlist -->
+<div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="cursor-pointer select-none text-outline hover:text-primary text-[10px] w-3.5">▼</span>
+<span class="text-primary">ip_allowlist</span>
+<span class="px-1 py-0.2 rounded bg-secondary/10 text-secondary text-[9px] border border-secondary/20 select-none">array[2]</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="pl-4 border-l border-surface-container-high/60 ml-1.5 space-y-0.5 mt-0.5">
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] font-mono text-[9px] w-3.5 select-none">0:</span>
+<span class="text-type-str">"192.168.1.0/24"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy val</button>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] font-mono text-[9px] w-3.5 select-none">1:</span>
+<span class="text-type-str">"10.0.40.12/32"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy val</button>
+</div>
+</div>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">token_ttl_seconds</span>
+<span class="text-outline">:</span>
+<span class="text-type-num font-medium">86400</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-num text-[9px] border border-surface-container-high select-none">number</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+<div class="group flex items-center justify-between hover:bg-surface-container-low/70 py-0.5 px-1.5 rounded -mx-1">
+<div class="flex items-center gap-1.5">
+<span class="text-outline text-[10px] w-3.5 select-none">▪</span>
+<span class="text-primary">cipher_suite</span>
+<span class="text-outline">:</span>
+<span class="text-type-str">"TLS_AES_256_GCM_SHA384"</span>
+<span class="px-1 py-0.2 rounded bg-surface-container text-type-str text-[9px] border border-surface-container-high select-none">string</span>
+</div>
+<div class="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0">
+<button class="px-1 py-0.2 rounded bg-surface-container-high text-outline hover:text-on-surface text-[10px]">copy path</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Tree Tile Footer Mini-Metrics -->
+<div class="h-6 bg-surface-container-low border-t border-surface-container-high px-2 flex items-center justify-between text-outline font-mono text-[10px]">
+<span class="flex items-center gap-1">
+<span class="text-secondary font-medium">Tree Canonicalized</span>
+<span>·</span>
+<span>Max Depth: 3</span>
+</span>
+<span class="text-primary">Selected: $.user.quotas</span>
+</div>
+</section>
+</main>
+</div>
+<!-- RICH TERMINAL TELEMETRY & HOTKEY RIBBON BOTTOM STRIP -->
+<footer class="h-7 bg-surface-container-lowest border-t border-surface-container-high px-3 flex items-center justify-between text-outline font-mono text-[11px] shrink-0 z-30 select-none">
+<!-- Left: Telemetry & Memory Diagnostics -->
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-on-surface-variant font-medium">100% In-Memory Sandbox</span>
+</div>
+<span>·</span>
+<span class="text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px] text-primary">memory</span>
+<span>1.2 MB RAM</span>
+</span>
+<span>·</span>
+<span>0 Remote Calls</span>
+<span>·</span>
+<span class="text-on-surface-variant">UTF-8 · LF</span>
+</div>
+<!-- Center: Hotkey Reference Ribbon -->
+<div class="hidden lg:flex items-center gap-3 text-[10px] text-outline">
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.2 bg-surface-container rounded text-on-surface-variant border border-surface-container-high">⌘↵</kbd>
+<span>Beautify</span>
+</span>
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.2 bg-surface-container rounded text-on-surface-variant border border-surface-container-high">⌘M</kbd>
+<span>Minify</span>
+</span>
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.2 bg-surface-container rounded text-on-surface-variant border border-surface-container-high">⌘F</kbd>
+<span>Filter</span>
+</span>
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.2 bg-surface-container rounded text-on-surface-variant border border-surface-container-high">⌘⇧C</kbd>
+<span>Copy TS Type</span>
+</span>
+<span class="flex items-center gap-1">
+<kbd class="px-1 py-0.2 bg-surface-container rounded text-on-surface-variant border border-surface-container-high">?</kbd>
+<span>Commands</span>
+</span>
+</div>
+<!-- Right: Architecture Engine & Version -->
+<div class="flex items-center gap-2 text-[10px]">
+<span class="text-secondary flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[12px]">bolt</span>
+        WASM Core v1.4.2
+      </span>
+<span>·</span>
+<span class="text-on-surface-variant">ECMA-404</span>
+</div>
+</footer>
+<script>
+    // Copy micro-interaction
+    const topCopyBtn = document.getElementById('btn-top-copy');
+    if (topCopyBtn) {
+      topCopyBtn.addEventListener('click', () => {
+        const originalText = topCopyBtn.innerHTML;
+        topCopyBtn.innerHTML = '<span class="material-symbols-outlined text-[13px]">check</span><span>Copied!</span>';
+        setTimeout(() => { topCopyBtn.innerHTML = originalText; }, 1400);
+      });
+    }
+
+    // Quick node copy notification
+    document.querySelectorAll('button[title^="Copy"]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const orig = btn.textContent;
+        btn.textContent = 'done!';
+        setTimeout(() => { btn.textContent = orig; }, 1000);
+      });
+    });
+
+    // Clear Source Buffer
+    const clearBtn = document.getElementById('tile1-clear');
+    const inputArea = document.getElementById('raw-code-input');
+    if (clearBtn && inputArea) {
+      clearBtn.addEventListener('click', () => {
+        inputArea.textContent = '{\n  \n}';
+        inputArea.focus();
+      });
+    }
+  </script>
+</body></html>
