@@ -4,6 +4,7 @@ import './WorkspaceCardDrawer.css';
 
 export interface WorkspaceCardDrawerProps {
   card: WorkspaceCard | null;
+  ticketKey?: string;
   initialColumnId?: string;
   columns: WorkspaceColumn[];
   isOpen: boolean;
@@ -23,6 +24,7 @@ export interface WorkspaceCardDrawerProps {
 
 export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
   card,
+  ticketKey,
   initialColumnId,
   columns,
   isOpen,
@@ -232,19 +234,28 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
       >
         <header className="drawer-header">
           <div className="drawer-header-left">
-            <span className="drawer-badge">{card ? 'Card' : 'New Card'}</span>
-            <select
-              className="drawer-column-select"
-              value={columnId}
-              onChange={(e) => handleColumnChange(e.target.value)}
-              aria-label="Card status"
-            >
-              {columns.map((col) => (
-                <option key={col.id} value={col.id}>
-                  {col.name}
-                </option>
-              ))}
-            </select>
+            {ticketKey ? (
+              <span className="drawer-ticket-key" title="Ticket ID">
+                {ticketKey}
+              </span>
+            ) : (
+              <span className="drawer-badge">{card ? 'Card' : 'New Card'}</span>
+            )}
+            <div className="drawer-status-wrapper">
+              <span className="drawer-status-label">STATUS</span>
+              <select
+                className="drawer-column-select drawer-status-select"
+                value={columnId}
+                onChange={(e) => handleColumnChange(e.target.value)}
+                aria-label="Card status"
+              >
+                {columns.map((col) => (
+                  <option key={col.id} value={col.id}>
+                    {col.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <button
             className="drawer-close-btn"

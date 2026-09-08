@@ -110,26 +110,27 @@
   font-size: 13px;
 }
 
-.workspace-star-btn {
+.workspace-settings-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 22px;
   height: 22px;
-  margin-left: 2px;
+  margin-left: 3px;
   padding: 0;
-  border: 0;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
   background: transparent;
   color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
-  transition: color var(--transition), background var(--transition);
+  transition: all var(--transition, 0.15s ease);
 }
 
-.workspace-star-btn:hover {
-  color: var(--warning);
+.workspace-settings-btn:hover {
   background: var(--surface-hover);
+  border-color: var(--border);
+  color: var(--text-primary);
 }
 
 .workspace-topic-divider {
@@ -200,7 +201,6 @@
 @media (max-width: 700px) {
   .workspace-tool-description,
   .workspace-topic-divider,
-  .workspace-star-btn,
   .workspace-privacy,
   .workspace-command-trigger > span:nth-child(2) {
     display: none;

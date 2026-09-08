@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  archiveCard, archiveWorkspace, createWorkspace, ensureWorkspace, moveCard, saveCard, saveWorkspaceItem,
+  archiveCard, archiveWorkspace, createWorkspace, ensureWorkspace, generateWorkspaceKey, getCardTicketKey, moveCard, saveCard, saveWorkspaceItem,
   type SavedItemType, type WorkspaceCard, type WorkspaceSnapshot,
 } from '../../shared/workspace';
 import { tabLocationLabel } from '../../shared/browserTabs';
@@ -16,6 +16,7 @@ const ITEM_TYPES: Array<{ value: SavedItemType; label: string }> = [
 const WorkspaceTool: React.FC = () => {
   const [snapshot, setSnapshot] = useState<WorkspaceSnapshot>(EMPTY_SNAPSHOT);
   const [workspaceName, setWorkspaceName] = useState('');
+  const [workspaceKey, setWorkspaceKey] = useState('');
   const [itemTitle, setItemTitle] = useState('');
   const [itemContent, setItemContent] = useState('');
   const [itemType, setItemType] = useState<SavedItemType>('text');
@@ -135,7 +136,7 @@ const WorkspaceTool: React.FC = () => {
           <button className="btn" onClick={() => void captureCurrentTab()}>
             Capture current tab
           </button>
-          <button className="btn" onClick={() => setWorkspaceName('New workspace')}>
+          <button className="btn" onClick={() => { setWorkspaceName('New workspace'); setWorkspaceKey('NW'); }}>
             New workspace
           </button>
           {snapshot.workspaces.filter((w) => !w.archived).length > 1 && activeWorkspace && (
@@ -156,20 +157,38 @@ const WorkspaceTool: React.FC = () => {
           onSubmit={(event) => {
             event.preventDefault();
             void run(async () => {
-              await createWorkspace(workspaceName);
+              const generatedKey = workspaceKey.trim() || generateWorkspaceKey(workspaceName);
+              await createWorkspace(workspaceName, generatedKey.toUpperCase());
               setWorkspaceName('');
+              setWorkspaceKey('');
             });
           }}
         >
           <input
             className="input"
             aria-label="Workspace name"
+            placeholder="Workspace name (e.g. Backend Services)"
             value={workspaceName}
-            onChange={(event) => setWorkspaceName(event.target.value)}
+            onChange={(event) => {
+              const val = event.target.value;
+              setWorkspaceName(val);
+              if (!workspaceKey || workspaceKey === generateWorkspaceKey(workspaceName)) {
+                setWorkspaceKey(generateWorkspaceKey(val));
+              }
+            }}
             autoFocus
           />
+          <input
+            className="input workspace-key-input"
+            aria-label="Workspace key"
+            placeholder="Key (e.g. BCKD)"
+            value={workspaceKey}
+            maxLength={8}
+            style={{ width: '100px', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', fontWeight: 700 }}
+            onChange={(event) => setWorkspaceKey(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8))}
+          />
           <button className="btn btn-primary">Create</button>
-          <button className="btn" type="button" onClick={() => setWorkspaceName('')}>
+          <button className="btn" type="button" onClick={() => { setWorkspaceName(''); setWorkspaceKey(''); }}>
             Cancel
           </button>
         </form>
@@ -224,6 +243,7 @@ const WorkspaceTool: React.FC = () => {
                   {columnCards.map((card) => {
                     const isCardDragging = dragCardId === card.id;
                     const isCardOver = dragOverCardId === card.id;
+                    const ticketKey = getCardTicketKey(activeWorkspace, card);
                     return (
                       <article
                         className={`workspace-card ${isCardDragging ? 'dragging' : ''} ${isCardOver ? 'card-over' : ''}`}
@@ -266,11 +286,35 @@ const WorkspaceTool: React.FC = () => {
                           setDragOverCardId(null);
                         }}
                         onClick={(event) => {
-                          if ((event.target as HTMLElement).closest('button, a')) return;
+                          if ((event.target as HTMLElement).closest('.card-open-link-btn')) return;
                           setSelectedCard(card);
                           setIsDrawerOpen(true);
                         }}
                       >
+                        <div className="workspace-card-header">
+                          <span className="workspace-card-key">{ticketKey}</span>
+                          <div className="workspace-card-meta">
+                            {card.comments && card.comments.length > 0 && (
+                              <span className="workspace-card-comment-indicator" title={`${card.comments.length} comment${card.comments.length === 1 ? '' : 's'}`}>
+                                💬 {card.comments.length}
+                              </span>
+                            )}
+                            {card.url && (
+                              <button
+                                className="card-open-link-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void openCard(card);
+                                }}
+                                title={`Open ${card.url}`}
+                                aria-label="Open URL in new tab"
+                              >
+                                ↗
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="workspace-card-title">
                           {card.favIconUrl && (
                             <img
@@ -293,76 +337,22 @@ const WorkspaceTool: React.FC = () => {
                           </button>
                         </div>
 
-                        {card.url && (
-                          <div className="workspace-card-url-row">
-                            <span className="workspace-card-url">{tabLocationLabel(card.url)}</span>
-                            <button
-                              className="card-open-link-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void openCard(card);
-                              }}
-                              title={`Open ${card.url}`}
-                              aria-label="Open URL in new tab"
-                            >
-                              ↗
-                            </button>
-                          </div>
-                        )}
-
                         {card.note && <p className="workspace-card-note">{card.note}</p>}
 
-                        {card.tags.length > 0 && (
-                          <div className="workspace-tags">
-                            {card.tags.map((tag) => (
-                              <span key={tag}>{tag}</span>
-                            ))}
+                        {(card.tags.length > 0 || (card.url && !card.tags.length)) && (
+                          <div className="workspace-card-footer">
+                            {card.tags.length > 0 && (
+                              <div className="workspace-tags">
+                                {card.tags.map((tag) => (
+                                  <span key={tag}>{tag}</span>
+                                ))}
+                              </div>
+                            )}
+                            {card.url && card.tags.length === 0 && (
+                              <span className="workspace-card-url">{tabLocationLabel(card.url)}</span>
+                            )}
                           </div>
                         )}
-
-                        {card.comments && card.comments.length > 0 && (
-                          <div className="workspace-card-comment-indicator" title={`${card.comments.length} comment${card.comments.length === 1 ? '' : 's'}`}>
-                            💬 {card.comments.length}
-                          </div>
-                        )}
-
-                        <div className="workspace-card-actions">
-                          <button
-                            className="btn btn-sm"
-                            disabled={columns.findIndex((candidate) => candidate.id === column.id) === 0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const previous = columns[columns.findIndex((candidate) => candidate.id === column.id) - 1];
-                              if (previous) void run(() => moveCard(card, previous.id));
-                            }}
-                            title="Move left"
-                          >
-                            ←
-                          </button>
-                          <button
-                            className="btn btn-sm"
-                            disabled={columns.findIndex((candidate) => candidate.id === column.id) === columns.length - 1}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const next = columns[columns.findIndex((candidate) => candidate.id === column.id) + 1];
-                              if (next) void run(() => moveCard(card, next.id));
-                            }}
-                            title="Move right"
-                          >
-                            →
-                          </button>
-                          <button
-                            className="btn btn-sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void run(() => archiveCard(card));
-                            }}
-                            title="Archive card"
-                            aria-label="Archive card"
-                          >
-                            Archive
-                          </button>
-                        </div>
                       </article>
                     );
                   })}
@@ -427,6 +417,7 @@ const WorkspaceTool: React.FC = () => {
       {/* Jira-style Card Detail Drawer */}
       <WorkspaceCardDrawer
         card={selectedCard}
+        ticketKey={selectedCard ? getCardTicketKey(activeWorkspace, selectedCard) : undefined}
         initialColumnId={drawerColumnId}
         columns={columns}
         isOpen={isDrawerOpen}

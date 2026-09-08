@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSyncStatus, signInWithGitHub, signOutCloudSync, flushCloudSync, type SyncStatus } from '../../shared/cloudSync';
-import { ToolIcon } from './ToolIcon';
+import { GitHubIcon, ToolIcon } from './ToolIcon';
 import './TabBar.css';
 
 export type ToolCategory = 'Workspace' | 'Transform' | 'Create' | 'View' | 'Inspect' | 'Browser';
@@ -148,8 +148,14 @@ const TabBar: React.FC<TabBarProps> = ({
                   <span className="profile-popover-name">
                     {syncStatus.signedIn && syncStatus.email ? syncStatus.email : 'Developer Account'}
                   </span>
-                  <span className="profile-popover-badge">
-                    {syncStatus.signedIn ? 'Cloud Sync Active' : 'Local Only'}
+                  <span className={`profile-popover-badge ${syncStatus.signedIn ? 'signed-in' : ''}`}>
+                    {syncStatus.signedIn ? (
+                      <>
+                        <GitHubIcon size={11} /> Cloud Sync Active
+                      </>
+                    ) : (
+                      'Local Only'
+                    )}
                   </span>
                 </div>
                 <button
@@ -166,14 +172,39 @@ const TabBar: React.FC<TabBarProps> = ({
                   {syncStatus.configured
                     ? syncStatus.signedIn
                       ? 'Only explicitly saved cards and notes sync to your private cloud storage.'
-                      : 'Sign in to enable optional private backup and cross-device sync.'
+                      : 'Sign in with GitHub to enable optional private backup and cross-device sync.'
                     : 'Cloud Sync is not configured in this build. Local workspaces remain fully active.'}
                 </p>
-                {syncStatus.lastSyncAt && (
-                  <p className="profile-popover-meta">
-                    Last synced: {new Date(syncStatus.lastSyncAt).toLocaleTimeString()}
-                  </p>
-                )}
+
+                <div className="profile-sync-card">
+                  <div className="profile-sync-row">
+                    <span className="profile-sync-dot-label">
+                      <span className={`sync-dot ${syncStatus.signedIn ? 'active' : ''}`} />
+                      <span>{syncStatus.signedIn ? 'GitHub Cloud Sync' : 'Local Storage Only'}</span>
+                    </span>
+                    {syncStatus.signedIn && (
+                      <span className="profile-sync-auth-tag">
+                        <GitHubIcon size={11} /> OAuth
+                      </span>
+                    )}
+                  </div>
+                  <div className="profile-sync-time-row">
+                    <span className="profile-sync-label">Last cloud sync:</span>
+                    <span className="profile-sync-time">
+                      {syncStatus.signedIn
+                        ? syncStatus.lastSyncAt
+                          ? new Date(syncStatus.lastSyncAt).toLocaleString([], {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : 'Not synced yet'
+                        : 'Local only'}
+                    </span>
+                  </div>
+                </div>
+
                 {(signInError ?? syncStatus.error) && (
                   <p className="profile-popover-error error-msg">{signInError ?? syncStatus.error}</p>
                 )}
@@ -205,7 +236,7 @@ const TabBar: React.FC<TabBarProps> = ({
                   </>
                 ) : (
                   <button
-                    className="btn btn-sm btn-primary"
+                    className="btn btn-sm btn-primary btn-github"
                     disabled={!syncStatus.configured || isSigningIn}
                     onClick={async () => {
                       setSignInError(undefined);
@@ -220,7 +251,8 @@ const TabBar: React.FC<TabBarProps> = ({
                       }
                     }}
                   >
-                    {isSigningIn ? 'Opening GitHub…' : 'Sign in with GitHub'}
+                    <GitHubIcon size={15} />
+                    <span>{isSigningIn ? 'Opening GitHub…' : 'Sign in with GitHub'}</span>
                   </button>
                 )}
               </div>

@@ -6,6 +6,7 @@ export type SavedItemType = 'json' | 'regex' | 'diff' | 'markdown' | 'text' | 'c
 export interface Workspace {
   id: string;
   name: string;
+  key?: string;
   archived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -30,6 +31,7 @@ export interface WorkspaceCard {
   id: string;
   workspaceId: string;
   columnId: string;
+  ticketNumber?: number;
   title: string;
   url: string;
   favIconUrl: string;
@@ -163,11 +165,49 @@ async function enqueue(entity: CloudOutboxRecord['entity'], operation: CloudOutb
   void chrome.runtime.sendMessage({ type: 'FLUSH_CLOUD_SYNC' }).catch(() => undefined);
 }
 
+export function generateWorkspaceKey(name: string): string {
+  const words = name
+    .trim()
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return 'WS';
+
+  if (words.length >= 2) {
+    const initials = words.map((w) => w[0]?.toUpperCase()).join('').slice(0, 4);
+    if (initials.length >= 2) return initials;
+  }
+
+  const single = words[0].toUpperCase();
+  if (single.length <= 4) return single;
+
+  // Single word: e.g. "BACKEND" -> strip vowels except first letter -> "BCKD"
+  const stripped = single[0] + single.slice(1).replace(/[AEIOU]/g, '');
+  if (stripped.length >= 3) {
+    return stripped.slice(0, 4);
+  }
+  return single.slice(0, 4);
+}
+
+export function getCardTicketKey(workspace: Workspace | undefined, card: WorkspaceCard): string {
+  const key = (workspace?.key || generateWorkspaceKey(workspace?.name || 'HCKR')).toUpperCase();
+  return `${key}-${card.ticketNumber ?? 1}`;
+}
+
 export async function ensureWorkspace(): Promise<WorkspaceSnapshot> {
   const all = await values<Workspace>('workspaces');
   if (all.length === 0) {
     const createdAt = now();
-    const workspace: Workspace = { id: id('workspace'), name: 'My workspace', archived: false, createdAt, updatedAt: createdAt, revision: 1 };
+    const workspace: Workspace = {
+      id: id('workspace'),
+      name: 'My workspace',
+      key: 'HCKR',
+      archived: false,
+      createdAt,
+      updatedAt: createdAt,
+      revision: 1,
+    };
     const db = await database();
     const transaction = db.transaction(['workspaces', 'columns', 'settings'], 'readwrite');
     transaction.objectStore('workspaces').put(workspace);
@@ -188,6 +228,25 @@ export async function loadWorkspaceSnapshot(): Promise<WorkspaceSnapshot> {
   const activeWorkspaceId = activeId && workspaces.some((workspace) => workspace.id === activeId)
     ? activeId
     : workspaces.find((workspace) => !workspace.archived)?.id ?? workspaces[0]?.id ?? '';
+
+  // Backfill ticketNumber on cards in memory if missing (for legacy or upgraded cards)
+  const cardsByWorkspace = new Map<string, WorkspaceCard[]>();
+  for (const card of cards) {
+    const list = cardsByWorkspace.get(card.workspaceId) ?? [];
+    list.push(card);
+    cardsByWorkspace.set(card.workspaceId, list);
+  }
+  for (const [, wsCards] of cardsByWorkspace) {
+    wsCards.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    let nextNum = 1;
+    for (const card of wsCards) {
+      if (!card.ticketNumber) {
+        card.ticketNumber = nextNum;
+      }
+      nextNum = Math.max(nextNum, card.ticketNumber) + 1;
+    }
+  }
+
   return { workspaces: [...workspaces].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)), activeWorkspaceId, columns, cards, items };
 }
 
@@ -196,11 +255,20 @@ export async function setActiveWorkspace(workspaceId: string): Promise<void> {
   globalThis.dispatchEvent(new CustomEvent('hckr-workspace-changed'));
 }
 
-export async function createWorkspace(name: string): Promise<Workspace> {
+export async function createWorkspace(name: string, key?: string): Promise<Workspace> {
   const trimmed = name.trim();
   if (!trimmed) throw new Error('Workspace name is required');
+  const assignedKey = (key?.trim() || generateWorkspaceKey(trimmed)).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'WS';
   const createdAt = now();
-  const workspace: Workspace = { id: id('workspace'), name: trimmed.slice(0, 100), archived: false, createdAt, updatedAt: createdAt, revision: 1 };
+  const workspace: Workspace = {
+    id: id('workspace'),
+    name: trimmed.slice(0, 100),
+    key: assignedKey,
+    archived: false,
+    createdAt,
+    updatedAt: createdAt,
+    revision: 1,
+  };
   const db = await database();
   const transaction = db.transaction(['workspaces', 'columns', 'settings'], 'readwrite');
   transaction.objectStore('workspaces').put(workspace);
@@ -223,12 +291,44 @@ export async function archiveWorkspace(workspace: Workspace): Promise<void> {
   await enqueue('workspace', 'upsert', next as unknown as Record<string, unknown>);
 }
 
-export async function saveCard(input: Omit<WorkspaceCard, 'id' | 'createdAt' | 'updatedAt' | 'revision' | 'position' | 'archived'> & Partial<Pick<WorkspaceCard, 'id' | 'position' | 'archived'>>): Promise<WorkspaceCard> {
+export async function updateWorkspace(workspaceId: string, updates: { name?: string; key?: string }): Promise<Workspace> {
+  const all = await values<Workspace>('workspaces');
+  const target = all.find((candidate) => candidate.id === workspaceId);
+  if (!target) throw new Error('Workspace not found');
+  const trimmedName = updates.name !== undefined ? updates.name.trim().slice(0, 100) : target.name;
+  if (!trimmedName) throw new Error('Workspace name cannot be empty');
+  const trimmedKey = updates.key !== undefined
+    ? updates.key.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || generateWorkspaceKey(trimmedName)
+    : (target.key || generateWorkspaceKey(trimmedName));
+
+  const next: Workspace = {
+    ...target,
+    name: trimmedName,
+    key: trimmedKey,
+    updatedAt: now(),
+    revision: target.revision + 1,
+  };
+  await put('workspaces', next);
+  await enqueue('workspace', 'upsert', next as unknown as Record<string, unknown>);
+  return next;
+}
+
+export async function saveCard(input: Omit<WorkspaceCard, 'id' | 'createdAt' | 'updatedAt' | 'revision' | 'position' | 'archived'> & Partial<Pick<WorkspaceCard, 'id' | 'position' | 'archived' | 'ticketNumber'>>): Promise<WorkspaceCard> {
   const existing = input.id ? (await values<WorkspaceCard>('cards')).find((card) => card.id === input.id) : undefined;
   const cards = await values<WorkspaceCard>('cards');
   const createdAt = existing?.createdAt ?? now();
+
+  // Assign auto-incrementing ticketNumber if missing
+  let ticketNumber = existing?.ticketNumber ?? input.ticketNumber;
+  if (!ticketNumber) {
+    const workspaceCards = cards.filter((c) => c.workspaceId === input.workspaceId);
+    const maxNum = workspaceCards.reduce((max, c) => Math.max(max, c.ticketNumber ?? 0), 0);
+    ticketNumber = maxNum + 1;
+  }
+
   const card: WorkspaceCard = {
     id: existing?.id ?? id('card'), workspaceId: input.workspaceId, columnId: input.columnId,
+    ticketNumber,
     title: input.title.trim().slice(0, 240) || 'Untitled card', url: input.url.trim(), favIconUrl: input.favIconUrl,
     note: input.note.slice(0, MAX_SAVED_ITEM_CHARS), tags: input.tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
     comments: input.comments ?? existing?.comments ?? [],

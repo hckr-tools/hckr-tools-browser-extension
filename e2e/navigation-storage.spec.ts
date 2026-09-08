@@ -86,7 +86,15 @@ test.describe('Navigation & Storage Persistence', () => {
 
     const inbox = sidepanelPage.locator('.workspace-column', { hasText: 'Inbox' });
     await expect(inbox.getByText('Investigate callback')).toBeVisible();
-    await inbox.getByRole('button', { name: '→' }).click();
+    await expect(inbox.locator('.workspace-card-key')).toHaveText(/^[A-Z0-9]+-1$/);
+
+    // Open card to move status to Working (sleek cards have no direct ← → buttons)
+    await inbox.locator('.workspace-card-title-btn').click();
+    await expect(drawer).toBeVisible();
+    await drawer.locator('.drawer-status-select').selectOption({ label: 'Working' });
+    await drawer.getByRole('button', { name: 'Close card details' }).click();
+    await expect(drawer).not.toBeVisible();
+
     const working = sidepanelPage.locator('.workspace-column', { hasText: 'Working' });
     await expect(working.getByText('Investigate callback')).toBeVisible();
 
@@ -163,6 +171,36 @@ test.describe('Navigation & Storage Persistence', () => {
 
     // Automatically transitions away from archived Beta Project
     await expect(sidepanelPage.locator('#workspace-heading')).not.toHaveText('Beta Project');
+  });
+
+  test('opens workspace settings dialog to inspect overview and rename workspace', async ({ sidepanelPage }) => {
+    await expect(sidepanelPage.locator('.workspace-tool')).toBeVisible();
+    const settingsBtn = sidepanelPage.locator('.workspace-settings-btn');
+    await expect(settingsBtn).toBeVisible();
+    await settingsBtn.click();
+
+    const dialog = sidepanelPage.getByRole('dialog', { name: 'Workspace Settings' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('Active Cards')).toBeVisible();
+    await expect(dialog.getByText('Danger Zone')).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Export JSON' })).toBeVisible();
+
+    await dialog.getByRole('button', { name: 'Done' }).click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test('profile popover displays GitHub auth button with icon and last cloud sync status', async ({ sidepanelPage }) => {
+    const profileBtn = sidepanelPage.locator('.profile-avatar-btn');
+    await profileBtn.click();
+
+    const popover = sidepanelPage.locator('.profile-popover');
+    await expect(popover).toBeVisible();
+    await expect(popover.locator('.btn-github')).toBeVisible();
+    await expect(popover.locator('.btn-github svg')).toBeVisible();
+    await expect(popover.locator('.profile-sync-card')).toContainText('Last cloud sync:');
+
+    await popover.locator('.profile-popover-close').click();
+    await expect(popover).not.toBeVisible();
   });
 
   test('saves formatted JSON only after an explicit workspace action', async ({ sidepanelPage }) => {

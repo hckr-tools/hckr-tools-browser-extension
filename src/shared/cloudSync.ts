@@ -108,6 +108,25 @@ function tableFor(record: CloudOutboxRecord): string {
   return record.entity === 'workspace' ? 'workspaces' : record.entity;
 }
 
+const SYNC_DEPENDENCY_ORDER: Record<CloudOutboxRecord['entity'], number> = {
+  workspace: 0,
+  board_columns: 1,
+  board_cards: 2,
+  saved_items: 2,
+  saved_item_versions: 3,
+};
+
+function orderedOutbox(records: CloudOutboxRecord[]): CloudOutboxRecord[] {
+  return [...records].sort((left, right) => {
+    if (left.operation !== right.operation) return left.operation === 'upsert' ? -1 : 1;
+    const leftOrder = SYNC_DEPENDENCY_ORDER[left.entity];
+    const rightOrder = SYNC_DEPENDENCY_ORDER[right.entity];
+    const dependencyOrder = left.operation === 'delete' ? rightOrder - leftOrder : leftOrder - rightOrder;
+    if (dependencyOrder !== 0) return dependencyOrder;
+    return left.createdAt.localeCompare(right.createdAt);
+  });
+}
+
 function toCloudPayload(record: CloudOutboxRecord, ownerId: string): Record<string, unknown> {
   const payload = record.payload;
   const base = { id: payload.id, owner_id: ownerId };
@@ -121,7 +140,7 @@ function toCloudPayload(record: CloudOutboxRecord, ownerId: string): Record<stri
 export async function flushCloudSync(): Promise<SyncStatus> {
   const status = await getSyncStatus();
   if (!status.configured || !status.signedIn) return status;
-  const outbox = await listOutbox();
+  const outbox = orderedOutbox(await listOutbox());
   try {
     for (const record of outbox) {
       const table = tableFor(record);

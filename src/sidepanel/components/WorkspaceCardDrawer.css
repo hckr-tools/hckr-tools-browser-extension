@@ -67,19 +67,43 @@
   min-width: 0;
 }
 
+.drawer-ticket-key {
+  font: 700 11px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
 .drawer-badge {
   font: 600 10px var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 2px 7px;
   border-radius: var(--radius-xs);
-  background: var(--accent-dim);
-  color: var(--accent);
+  background: var(--surface-hover);
+  color: var(--text-muted);
+}
+
+.drawer-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drawer-status-label {
+  font: 700 9px var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .drawer-column-select {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);

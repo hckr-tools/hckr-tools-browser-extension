@@ -420,6 +420,98 @@
   margin-top: 2px;
 }
 
+.btn-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: #24292f;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  transition: all var(--transition);
+}
+
+.btn-github:hover:not(:disabled) {
+  background: #1a1e22;
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
+.profile-popover-badge.signed-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--success);
+}
+
+.profile-sync-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--surface-container);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  margin-top: 4px;
+}
+
+.profile-sync-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.profile-sync-dot-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+}
+
+.profile-sync-dot-label .sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.profile-sync-dot-label .sync-dot.active {
+  background: var(--success);
+  box-shadow: 0 0 0 2px rgba(43, 172, 118, 0.25);
+}
+
+.profile-sync-auth-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.profile-sync-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  padding-top: 2px;
+  border-top: 1px dashed var(--border);
+}
+
+.profile-sync-label {
+  color: var(--text-muted);
+}
+
+.profile-sync-time {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
 /* Responsive Compact Rail */
 @media (max-width: 920px) {
   .tab-bar {
