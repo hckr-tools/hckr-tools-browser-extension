@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "surface-container-low": "#191c20",
+          "on-primary-container": "#002e41",
+          "inverse-on-surface": "#2e3135",
+          "primary-fixed": "#c5e7ff",
+          "on-tertiary-fixed": "#261900",
+          "surface-container": "#1d2024",
+          "error-container": "#93000a",
+          "tertiary": "#f8bd39",
+          "primary-container": "#1d9bd1",
+          "tertiary-fixed": "#ffdea4",
+          "on-primary": "#00344a",
+          "on-secondary-fixed-variant": "#005234",
+          "on-primary-fixed-variant": "#004c6a",
+          "secondary-fixed": "#82f9bd",
+          "secondary-fixed-dim": "#64dca2",
+          "primary-fixed-dim": "#7fd0ff",
+          "on-surface-variant": "#bec8d0",
+          "on-tertiary-fixed-variant": "#5d4200",
+          "surface-container-lowest": "#0b0e12",
+          "on-secondary-container": "#00311d",
+          "on-secondary-fixed": "#002112",
+          "surface": "#111417",
+          "outline": "#88929a",
+          "surface-container-highest": "#323539",
+          "tertiary-container": "#bb8900",
+          "on-background": "#e1e2e8",
+          "inverse-primary": "#00658c",
+          "surface-container-high": "#272a2e",
+          "on-secondary": "#003822",
+          "error": "#ffb4ab",
+          "on-tertiary-container": "#392700",
+          "on-error": "#690005",
+          "on-tertiary": "#412d00",
+          "surface-bright": "#36393e",
+          "on-error-container": "#ffdad6",
+          "background": "#111417",
+          "secondary": "#1264a3",
+          "surface-tint": "#7fd0ff",
+          "outline-variant": "#3e484f",
+          "surface-variant": "#323539",
+          "secondary-container": "#1ea46f",
+          "on-primary-fixed": "#001e2d",
+          "tertiary-fixed-dim": "#f8bd39",
+          "surface-dim": "#111417",
+          "on-surface": "#e1e2e8",
+          "inverse-surface": "#e1e2e8",
+          "primary": "#7fd0ff"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.125rem",
+          "lg": "0.25rem",
+          "xl": "0.5rem",
+          "full": "0.75rem"
+        },
+        "spacing": {
+          "space-md": "0.75rem",
+          "space-2xs": "0.125rem",
+          "space-3xl": "2rem",
+          "space-lg": "1rem",
+          "space-2xl": "1.5rem",
+          "space-xs": "0.25rem",
+          "space-xl": "1.25rem",
+          "sidebar-width": "16.25rem",
+          "header-height": "2.75rem",
+          "space-sm": "0.5rem",
+          "space-base": "1rem",
+          "space-xxs": "0.125rem"
+        },
+        "fontFamily": {
+          "code-md": ["Geist", "monospace"],
+          "headline-sm": ["Geist", "sans-serif"],
+          "body-sm": ["Geist", "sans-serif"],
+          "body-md": ["Geist", "sans-serif"],
+          "body-lg": ["Geist", "sans-serif"],
+          "label-sm": ["Geist", "sans-serif"],
+          "label-md": ["Geist", "sans-serif"],
+          "headline-lg": ["Geist", "sans-serif"],
+          "code-sm": ["JetBrains Mono", "monospace"],
+          "headline-md": ["Geist", "sans-serif"],
+          "title-sm": ["Geist", "sans-serif"],
+          "title-md": ["Geist", "sans-serif"]
+        },
+        "fontSize": {
+          "code-md": ["13px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
+          "headline-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+          "body-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.005em", "fontWeight": "400" }],
+          "body-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }],
+          "body-lg": ["15px", { "lineHeight": "22px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+          "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+          "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+          "headline-lg": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+          "code-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400" }],
+          "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+          "title-sm": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+          "title-md": ["15px", { "lineHeight": "22px", "fontWeight": "700" }]
+        }
+      }
+    }
+  }
+</script></head><body class="bg-[#1a1d21] font-body-md text-body-md text-[#e1e2e8] antialiased selection:bg-[#1264a3]/40 selection:text-white"><header class="fixed top-0 left-0 right-0 z-50 h-12 bg-[#120713] text-[#d1c2d9] border-b border-[#2a142c] shadow-sm"><div class="h-12 w-full px-space-base flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm w-64"><div class="w-8 h-8 rounded-lg bg-[#241126] border border-[#3d1e40] flex items-center justify-center font-headline-sm text-headline-sm text-[#f3e8f6] shadow-inner"><span class="material-symbols-outlined text-[18px]">terminal</span></div><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-title-sm text-title-sm text-white tracking-tight font-bold">hckr-tools</span><span class="material-symbols-outlined text-[16px] text-[#a78bfa]">expand_more</span></div><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-[#34d399]"></span><span class="font-label-sm text-label-sm text-[#a394ab]">active</span></div></div></div><div class="flex-1 max-w-2xl mx-auto"><div class="relative flex items-center w-full"><span class="material-symbols-outlined absolute left-3 text-[18px] text-[#9ca3af] pointer-events-none">search</span><input class="w-full h-8 pl-9 pr-4 rounded-lg bg-[#27152a] text-[#f3f4f6] placeholder-[#9ca3af] font-body-sm text-body-sm focus:outline-none border border-[#3e1f42] focus:border-[#7fd0ff] cursor-pointer select-none" placeholder="Search hckr-tools or type a command... ⌘K" readonly="" type="text"/><kbd class="absolute right-3 font-code-sm text-[11px] text-[#d1c2d9] bg-[#3a1d3e] px-1.5 py-0.5 rounded border border-[#522957]">⌘K</kbd></div></div><div class="flex items-center gap-space-md justify-end w-64"><button class="w-7 h-7 rounded-lg flex items-center justify-center text-[#d1c2d9] hover:bg-[#27152a] hover:text-white transition-colors" title="Tool Settings" type="button"><span class="material-symbols-outlined text-[18px]">tune</span></button><button class="w-7 h-7 rounded-lg flex items-center justify-center text-[#d1c2d9] hover:bg-[#27152a] hover:text-white transition-colors" title="Command Palette" type="button"><span class="material-symbols-outlined text-[18px]">help</span></button><div class="relative"><div class="w-8 h-8 rounded-full bg-[#301633] flex items-center justify-center ring-1 ring-white/10"><span class="material-symbols-outlined text-[#d1c2d9] text-[18px]">person</span></div><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#34d399] ring-2 ring-[#120713]"></span></div></div></div></header><aside class="fixed left-0 top-12 bottom-0 w-64 bg-[#1f0e22] text-[#d1c2d9] z-40 flex flex-col border-r border-[#2d1631] shadow-sm"><div class="px-space-base py-space-sm flex items-center justify-between bg-[#1f0e22] border-b border-[#2d1631]"><div class="flex items-center gap-space-xs text-white"><span class="font-title-sm text-title-sm font-bold tracking-tight">Workspace DevSuite</span></div><button class="w-7 h-7 rounded-lg flex items-center justify-center text-[#d1c2d9] hover:bg-[#2f1534] hover:text-white transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">edit_square</span></button></div><div class="flex-1 overflow-y-auto px-space-sm py-space-xs space-y-space-md"><nav class="flex flex-col gap-space-xxs"><div class="px-space-xs py-space-xxs flex items-center justify-between text-[#a394ab]"><span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Starred</span><span class="material-symbols-outlined text-[14px]">star</span></div><a class="flex items-center px-space-xs py-1 rounded-lg bg-[#1264a3] text-white font-bold font-body-sm text-body-sm shadow-sm" data-path="json-formatter" href="#"><span class="w-5 text-center font-code-sm text-white/80 mr-1.5">#</span>json-formatter</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="ast-visualizer" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>ast-visualizer</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="api-debugger" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>api-debugger</a></nav><nav class="flex flex-col gap-space-xxs"><div class="px-space-xs py-space-xxs flex items-center justify-between text-[#a394ab]"><span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Utility Channels</span><span class="material-symbols-outlined text-[14px]">transform</span></div><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="json-types" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>json-types</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="yaml-converter" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>yaml</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="base64-codec" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>base64</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="jwt-decoder" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>jwt-decoder</a></nav><nav class="flex flex-col gap-space-xxs"><div class="px-space-xs py-space-xxs flex items-center justify-between text-[#a394ab]"><span class="font-label-sm text-label-sm uppercase tracking-wider font-semibold">Inspect &amp; Debug</span><span class="material-symbols-outlined text-[14px]">troubleshoot</span></div><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="regex-lab" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>regex-lab</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="diff-inspector" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>diff-inspector</a><a class="flex items-center px-space-xs py-1 rounded-lg text-[#d1c2d9] hover:bg-[#2d1631] hover:text-white transition-colors font-body-sm text-body-sm" data-path="tab-switcher" href="#"><span class="w-5 text-center font-code-sm text-[#a394ab] mr-1.5">#</span>tab-switcher</a></nav></div><div class="p-space-xs bg-[#160918] flex items-center justify-between text-[#a394ab] border-t border-[#2d1631]"><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-[16px] text-[#7fd0ff]">terminal</span><span class="font-code-sm text-code-sm text-[#d1c2d9]">v2.4.0-stable</span></div><span class="material-symbols-outlined text-[16px] text-[#34d399]">cloud_done</span></div></aside><div class="pl-64"><div class="fixed top-12 left-64 right-0 z-30 h-10 bg-[#1e2227] border-b border-[#2d3136] flex items-center justify-between px-space-base shadow-sm"><nav class="flex items-center gap-space-lg h-full"><a class="h-full flex items-center font-label-md text-label-md text-[#7fd0ff] border-b-2 border-[#1264a3] font-bold" data-path="json-ast-workbench" href="#">JSON &amp; AST Workbench</a><a class="h-full flex items-center font-label-md text-label-md text-[#9ca3af] hover:text-white transition-colors" data-path="api-inspector" href="#">API Inspector</a><a class="h-full flex items-center font-label-md text-label-md text-[#9ca3af] hover:text-white transition-colors" data-path="type-schema" href="#">Type Schema</a><a class="h-full flex items-center font-label-md text-label-md text-[#9ca3af] hover:text-white transition-colors" data-path="output-console" href="#">Output Console</a></nav><div class="flex items-center gap-space-xs text-[#9ca3af]"><span class="font-code-sm text-code-sm bg-[#272a2e] px-2 py-0.5 rounded text-[#e1e2e8] border border-[#323539]">UTF-8</span><span class="font-code-sm text-code-sm bg-[#272a2e] px-2 py-0.5 rounded text-[#e1e2e8] border border-[#323539]">Spaces: 2</span></div></div><main class="relative pt-24 w-full px-space-base bg-[#1a1d21] min-h-screen text-[#e1e2e8]"><div class="flex flex-col w-full">
+<div class="flex flex-col gap-space-sm pb-space-2xl">
+<!-- 1. Workspace Header & Channel Bar with Slack Sub-tabs and Pinned Bar -->
+<div class="flex flex-col bg-[#1e2227] rounded-xl shadow-sm border border-[#2d3136] overflow-hidden">
+<!-- Top Document / Payload Sub-tabs -->
+<div class="flex items-center justify-between bg-[#15181c] px-space-sm pt-1.5 border-b border-[#2d3136]">
+<div class="flex items-center gap-1 overflow-x-auto text-label-sm">
+<div class="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e2227] text-white font-semibold rounded-t-lg border-t-2 border-[#1264a3] shadow-sm cursor-pointer">
+<span class="font-code-sm text-[#7fd0ff] text-xs">#</span>
+<span class="text-xs">json-formatter</span>
+<span class="text-[10px] bg-[#1264a3]/30 text-[#7fd0ff] border border-[#1264a3]/50 px-1 rounded font-bold">active</span>
+<button class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#2d3136] text-[#88929a] ml-1 hover:text-white"><span class="material-symbols-outlined text-[12px]">close</span></button>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 text-[#9ca3af] hover:text-white hover:bg-[#22252a] rounded-t-lg transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[14px] text-[#88929a]">description</span>
+<span class="text-xs">api-response.json</span>
+<button class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#2d3136] text-[#88929a] hover:text-white"><span class="material-symbols-outlined text-[12px]">close</span></button>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1.5 text-[#9ca3af] hover:text-white hover:bg-[#22252a] rounded-t-lg transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[14px] text-[#88929a]">key</span>
+<span class="text-xs">tokens.jwt</span>
+<button class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-[#2d3136] text-[#88929a] hover:text-white"><span class="material-symbols-outlined text-[12px]">close</span></button>
+</div>
+<button class="w-6 h-6 rounded flex items-center justify-center text-[#88929a] hover:text-white hover:bg-[#272a2e] ml-1" title="Open new document"><span class="material-symbols-outlined text-[15px]">add</span></button>
+</div>
+<div class="flex items-center gap-2 pb-1 text-[#9ca3af] text-label-sm font-label-sm">
+<span class="font-code-sm text-xs bg-[#272a2e] px-2 py-0.5 rounded text-[#bec8d0] border border-[#323539]">RFC 8259</span>
+</div>
+</div>
+<!-- Main Channel Title & Actions -->
+<header class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm px-space-md py-space-sm bg-[#1e2227]">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="flex items-center gap-space-xs shrink-0">
+<span class="font-headline-sm text-headline-sm text-white font-bold"># json-formatter</span>
+<button aria-label="Star channel" class="flex items-center text-[#7fd0ff] hover:text-[#c5e7ff] transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px] fill-1 text-[#7fd0ff]">star</span>
+</button>
+<div class="flex items-center gap-space-xxs px-space-xs py-0.5 rounded-full bg-[#272a2e] text-[#bec8d0] border border-[#323539] text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[13px]">lock</span>
+<span>local sandbox only</span>
+</div>
+</div>
+<span class="hidden xl:inline text-[#3e484f]">|</span>
+<p class="hidden xl:block font-body-sm text-body-sm text-[#9ca3af] truncate">
+        In-memory RFC 8259 parser &amp; AST visualizer · 0.2ms latency
+      </p>
+</div>
+<div class="flex items-center gap-space-xs shrink-0">
+<div class="flex items-center -space-x-1.5 mr-space-xs">
+<img class="w-6 h-6 rounded-full ring-2 ring-[#1e2227] object-cover" data-alt="Small developer user profile headshot with ambient violet tech backdrop" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuLN2qkFF08yGjsrD7NWb8JOUxGtXSHU9T6ZbhBC8G5olmFL50jvjYvFfrZrC5W3hCGzg8ousz7vxYAju-qbFB8bgj-oW5XntUCH-OPOTcZw1EDwsSElj7TLmGOmFtAVLxCLrny1lEE4NkvSJfMjiF6m1XWVrpLGSBruo5wcScrHibk5D_bVOZ3v2TXTpZM5ygk1xTAw2ntjbWoXGhe-bMHw8C0UFT2ruH77ZhSpdzxn52d6IgkyidRQ"/>
+<img class="w-6 h-6 rounded-full ring-2 ring-[#1e2227] object-cover" data-alt="Second engineering collaborator avatar profile circle with dark aubergine gradient background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxHHN0_rIZBXb4QePL_AvCmI23KUXS7WOF1XN0OD6qmbCCnJ0wxsWKRgQu_q0Buo0Q-4R0J24dWtgwCkTYFc7c9-mZd8B2ovPDHhykxFHSfGpmj-E9TJaHvUvGrqgu_j9ruxUHIsFNPkZqnJL5LIcowxPGX3POWpMHGr2JXrWX0QXCkTc_crVsYJStYf2wYWwohebNfIuK3x8J_Po3R0tTHKiL2p1Pz2_H475ElYDxggxLG2j9RMCdPA"/>
+<span class="w-6 h-6 rounded-full bg-[#272a2e] text-[#bec8d0] font-label-sm text-label-sm flex items-center justify-center ring-2 ring-[#1e2227] font-bold border border-[#323539]">
+          +3
+        </span>
+</div>
+<button class="w-7 h-7 rounded-lg bg-[#272a2e] hover:bg-[#323539] text-[#e1e2e8] flex items-center justify-center transition-colors border border-[#323539]" title="Slack Canvas View" type="button">
+<span class="material-symbols-outlined text-[17px]">article</span>
+</button>
+<button class="w-7 h-7 rounded-lg bg-[#272a2e] hover:bg-[#323539] text-[#e1e2e8] flex items-center justify-center transition-colors border border-[#323539]" title="Saved Bookmarks" type="button">
+<span class="material-symbols-outlined text-[17px]">bookmark</span>
+</button>
+<button class="w-7 h-7 rounded-lg bg-[#272a2e] hover:bg-[#323539] text-[#e1e2e8] flex items-center justify-center transition-colors border border-[#323539]" title="Side by Side Thread" type="button">
+<span class="material-symbols-outlined text-[17px]">forum</span>
+</button>
+<button class="w-7 h-7 rounded-lg bg-[#1264a3] text-white hover:bg-[#0f568d] flex items-center justify-center shadow-sm transition-colors" title="Toggle Split View" type="button">
+<span class="material-symbols-outlined text-[17px]">vertical_split</span>
+</button>
+</div>
+</header>
+<!-- Pinned / Bookmarked Strip (Slack Style) -->
+<div class="flex items-center gap-space-sm px-space-md py-1 bg-[#15181c] border-t border-[#2d3136] text-label-sm overflow-x-auto">
+<div class="flex items-center gap-1 text-[#88929a] shrink-0">
+<span class="material-symbols-outlined text-[14px]">push_pin</span>
+<span class="text-[11px] font-semibold uppercase tracking-wider">Pinned:</span>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<a class="flex items-center gap-1 px-2 py-0.5 rounded bg-[#22252a] text-[#e1e2e8] hover:text-[#7fd0ff] border border-[#2d3136] transition-colors" href="#">
+<span class="material-symbols-outlined text-[13px] text-[#7fd0ff]">code</span>
+<span>Schema Specs</span>
+</a>
+<a class="flex items-center gap-1 px-2 py-0.5 rounded bg-[#22252a] text-[#e1e2e8] hover:text-[#34d399] border border-[#2d3136] transition-colors" href="#">
+<span class="material-symbols-outlined text-[13px] text-[#34d399]">lan</span>
+<span>AST Definition</span>
+</a>
+<a class="flex items-center gap-1 px-2 py-0.5 rounded bg-[#22252a] text-[#e1e2e8] hover:text-[#7fd0ff] border border-[#2d3136] transition-colors" href="#">
+<span class="material-symbols-outlined text-[13px] text-[#88929a]">tune</span>
+<span>Bench: 0.194ms</span>
+</a>
+</div>
+<button class="ml-auto text-[11px] text-[#7fd0ff] hover:underline flex items-center gap-0.5 shrink-0">
+<span>+ Add a bookmark</span>
+</button>
+</div>
+</div>
+<!-- Operational Formatting Sub-Toolbar -->
+<div class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-space-sm bg-[#1e2227] p-space-sm rounded-xl border border-[#2d3136]">
+<!-- Left: Indent + Action Buttons -->
+<div class="flex flex-wrap items-center gap-space-xs">
+<!-- Indent Switcher -->
+<div class="inline-flex bg-[#15181c] p-0.5 rounded-lg text-label-sm font-label-sm border border-[#2d3136]">
+<button class="px-space-xs py-1 rounded bg-[#1264a3] text-white shadow-sm transition-all font-bold" id="btn-indent-2">2 sp</button>
+<button class="px-space-xs py-1 rounded text-[#9ca3af] hover:text-white transition-colors font-medium" id="btn-indent-4">4 sp</button>
+<button class="px-space-xs py-1 rounded text-[#9ca3af] hover:text-white transition-colors font-medium" id="btn-indent-tab">Tab</button>
+</div>
+<button class="flex items-center gap-space-xxs px-space-sm py-1.5 rounded-lg bg-[#1264a3] hover:bg-[#0f568d] text-white font-label-md text-label-md shadow-sm transition-all font-semibold" id="btn-beautify" type="button">
+<span class="material-symbols-outlined text-[15px]">bolt</span>
+<span>Beautify (⌘B)</span>
+</button>
+<button class="px-space-xs py-1.5 rounded-lg bg-[#2b2f36] hover:bg-[#373c45] text-[#e5e7eb] font-label-md text-label-md shadow-sm transition-colors border border-[#3d434d]" id="btn-minify" type="button">
+          Minify
+        </button>
+<button class="flex items-center gap-space-xxs px-space-xs py-1.5 rounded-lg bg-[#2b2f36] hover:bg-[#373c45] text-[#e5e7eb] font-label-md text-label-md shadow-sm transition-colors border border-[#3d434d]" id="btn-copy-ast" type="button">
+<span class="material-symbols-outlined text-[15px]">content_copy</span>
+<span>Copy AST</span>
+</button>
+<button class="flex items-center gap-space-xxs px-space-xs py-1.5 rounded-lg bg-[#2b2f36] hover:bg-[#373c45] text-[#e5e7eb] font-label-md text-label-md shadow-sm transition-colors border border-[#3d434d]" id="btn-sort" type="button">
+<span class="material-symbols-outlined text-[15px]">sort_by_alpha</span>
+<span>Sort Keys</span>
+</button>
+<button class="px-space-xs py-1.5 rounded-lg bg-[#2b2f36] hover:bg-[#4a1c1d] hover:text-[#ffb4ab] hover:border-[#7a282a] text-[#bec8d0] font-label-md text-label-md shadow-sm transition-colors border border-[#3d434d]" id="btn-clear" type="button">
+          Clear
+        </button>
+</div>
+<!-- Right: Search & Trust Badge -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-xs flex-1 xl:max-w-xl">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-2.5 top-2 text-[16px] text-[#88929a] pointer-events-none">filter_alt</span>
+<input class="w-full h-8 pl-8 pr-3 rounded-lg bg-[#15181c] text-[#f3f4f6] placeholder-[#88929a] font-body-sm text-body-sm shadow-sm border border-[#2d3136] focus:outline-none focus:ring-2 focus:ring-[#1264a3] transition-all" id="jmespath-query" placeholder="Filter payload with JMESPath (e.g. $.user.quotas)..." type="text"/>
+</div>
+<div class="flex items-center gap-space-xs px-space-sm py-1 bg-[#0e382b] border border-[#134e3a] text-[#34d399] rounded-lg font-label-sm text-label-sm shrink-0">
+<span class="w-2 h-2 rounded-full bg-[#34d399] animate-pulse"></span>
+<span>Local Sandbox (Zero Remote Calls · 1.2 MB RAM)</span>
+</div>
+</div>
+</div>
+<!-- Main Dual-Pane Slack-Workspace Body -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-start">
+<!-- Left Pane: Code Snippet Card (7 cols) - Authentically styled Slack code snippet card -->
+<div class="lg:col-span-7 flex flex-col rounded-xl bg-[#191c20] shadow-sm border border-[#2d3136] overflow-hidden">
+<!-- Message/Snippet Header Bar -->
+<div class="flex items-center justify-between px-space-md py-2 bg-[#22262c] border-b border-[#2d3136]">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[17px] text-[#7fd0ff]">code_blocks</span>
+<span class="font-title-sm text-title-sm text-white font-semibold">session_v2.json</span>
+<span class="px-2 py-0.5 rounded bg-[#191c20] text-[#bec8d0] font-code-sm text-[11px] border border-[#2d3136]">JSON Snippet</span>
+</div>
+<div class="flex items-center gap-space-xs text-[#bec8d0]">
+<span class="font-code-sm text-code-sm text-[#88929a]">26 lines · 842 B</span>
+<button class="w-7 h-7 rounded flex items-center justify-center hover:bg-[#2d3136] transition-colors text-[#bec8d0] hover:text-white" id="copy-raw-btn" title="Copy snippet contents" type="button">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+</button>
+<button class="w-7 h-7 rounded flex items-center justify-center hover:bg-[#2d3136] transition-colors text-[#bec8d0] hover:text-white" id="download-raw-btn" title="Download raw JSON" type="button">
+<span class="material-symbols-outlined text-[16px]">download</span>
+</button>
+</div>
+</div>
+<!-- Editor View with Left Accent Slack Attachment Bar -->
+<div class="relative flex font-code-sm text-code-sm bg-[#15181c] selection:bg-[#1264a3]/50">
+<!-- Slack Rich Card Stripe -->
+<div class="w-1.5 bg-[#1264a3] shrink-0"></div>
+<!-- Line Numbers -->
+<div class="py-space-md px-space-xs text-right select-none bg-[#121519] border-r border-[#22262c] text-[#64748b] shrink-0 space-y-1 w-10 font-code-sm text-[12px]">
+<div>01</div><div>02</div><div>03</div><div>04</div><div>05</div>
+<div>06</div><div>07</div><div>08</div><div>09</div><div>10</div>
+<div>11</div><div>12</div><div>13</div><div>14</div><div>15</div>
+<div>16</div><div>17</div><div>18</div><div>19</div><div>20</div>
+<div>21</div><div>22</div><div>23</div><div>24</div><div>25</div>
+<div>26</div>
+</div>
+<!-- Highlighted JSON Tokens -->
+<div class="py-space-md px-space-md overflow-x-auto w-full space-y-1 text-[#e1e2e8] leading-relaxed font-code-sm text-[12px]">
+<div>{</div>
+<div class="pl-4"><span class="text-[#93c5fd] font-bold">"session_id"</span>: <span class="text-[#4ade80] font-medium">"sess_99a8x01d0a"</span>,</div>
+<div class="pl-4"><span class="text-[#93c5fd] font-bold">"status"</span>: <span class="text-[#4ade80] font-medium">"active"</span>,</div>
+<div class="pl-4"><span class="text-[#93c5fd] font-bold">"cluster_zone"</span>: <span class="text-[#4ade80] font-medium">"us-east-virginia"</span>,</div>
+<div class="pl-4"><span class="text-[#93c5fd] font-bold">"authenticated"</span>: <span class="text-[#c084fc] font-bold">true</span>,</div>
+<div class="pl-4"><span class="text-[#93c5fd] font-bold">"user"</span>: {</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"id"</span>: <span class="text-[#4ade80] font-medium">"usr_88204"</span>,</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"handle"</span>: <span class="text-[#4ade80] font-medium">"0x_vector"</span>,</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"verified"</span>: <span class="text-[#c084fc] font-bold">true</span>,</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"quotas"</span>: {</div>
+<div class="pl-12"><span class="text-[#93c5fd] font-bold">"max_workers"</span>: <span class="text-[#fbbf24] font-bold">64</span>,</div>
+<div class="pl-12"><span class="text-[#93c5fd] font-bold">"burst_capacity"</span>: <span class="text-[#fbbf24] font-bold">128</span>,</div>
+<div class="pl-12"><span class="text-[#93c5fd] font-bold">"egress_rate_mbps"</span>: <span class="text-[#fbbf24] font-bold">1024</span>,</div>
+<div class="pl-12"><span class="text-[#93c5fd] font-bold">"rate_unlimited"</span>: <span class="text-[#c084fc] font-bold">false</span></div>
+<div class="pl-8">},</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"scopes"</span>: [</div>
+<div class="pl-12"><span class="text-[#4ade80] font-medium">"workspace:read"</span>,</div>
+<div class="pl-12"><span class="text-[#4ade80] font-medium">"ast:mutate"</span>,</div>
+<div class="pl-12"><span class="text-[#4ade80] font-medium">"debug:telemetry"</span></div>
+<div class="pl-8">]</div>
+<div class="pl-4">},</div>
+<div class="pl-4"><span class="text-[#93c5fd] font-bold">"telemetry"</span>: {</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"latency_ms"</span>: <span class="text-[#fbbf24] font-bold">0.194</span>,</div>
+<div class="pl-8"><span class="text-[#93c5fd] font-bold">"wasm_compilation"</span>: <span class="text-[#c084fc] font-bold">true</span></div>
+<div class="pl-4">}</div>
+<div>}</div>
+</div>
+</div>
+<!-- Editor Bottom Reaction / Quick Stats Bar -->
+<div class="flex items-center justify-between px-space-md py-space-xs bg-[#191c20] border-t border-[#2d3136]">
+<div class="flex items-center gap-space-xs">
+<span class="text-label-sm font-label-sm text-[#bec8d0] font-medium">Validated RFC 8259</span>
+<div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#22262c] text-label-sm font-label-sm text-[#e1e2e8] shadow-sm border border-[#2d3136] cursor-pointer hover:border-[#1264a3]">
+<span>🚀</span>
+<span class="text-[#7fd0ff] font-bold">14</span>
+</div>
+<div class="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#22262c] text-label-sm font-label-sm text-[#e1e2e8] shadow-sm border border-[#2d3136] cursor-pointer hover:border-[#1264a3]">
+<span>⚡</span>
+<span class="font-medium">8</span>
+</div>
+<button class="w-6 h-6 rounded-full border border-dashed border-[#3e484f] flex items-center justify-center text-[#88929a] hover:text-white hover:bg-[#272a2e] text-xs" title="Add reaction">+</button>
+</div>
+<button class="font-label-sm text-label-sm text-[#7fd0ff] hover:underline flex items-center gap-space-xxs font-semibold" id="btn-quick-format">
+<span>Re-format Buffer</span>
+<span class="material-symbols-outlined text-[13px]">auto_fix_high</span>
+</button>
+</div>
+</div>
+<!-- Right Pane: AST Canvas Inspector (5 cols) -->
+<div class="lg:col-span-5 flex flex-col rounded-xl bg-[#1d2126] shadow-sm border border-[#2d3136] overflow-hidden">
+<!-- Canvas Header -->
+<div class="flex items-center justify-between px-space-md py-space-xs bg-[#22262c] text-white border-b border-[#2d3136]">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[18px] text-[#7fd0ff]">account_tree</span>
+<span class="font-title-sm text-title-sm font-bold">AST Canvas Inspector</span>
+</div>
+<div class="flex items-center gap-space-xxs">
+<button class="px-2 py-0.5 rounded bg-[#2b2f36] text-[#e5e7eb] font-label-sm text-label-sm hover:bg-[#383d47] border border-[#3d434d] transition-colors font-medium" id="btn-expand-all" type="button">Expand</button>
+<button class="px-2 py-0.5 rounded bg-[#2b2f36] text-[#e5e7eb] font-label-sm text-label-sm hover:bg-[#383d47] border border-[#3d434d] transition-colors font-medium" id="btn-collapse-all" type="button">Fold</button>
+</div>
+</div>
+<!-- 3. Slack Canvas Summary & Checklist Card -->
+<div class="p-space-sm bg-[#181c20] border-b border-[#2d3136] flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#34d399]">verified</span>
+<span class="font-label-sm text-label-sm font-bold text-white">Canvas Summary</span>
+<span class="px-1.5 py-0.2 rounded bg-[#064e3b] text-[#6ee7b7] border border-[#047857]/40 font-code-sm text-[10px] font-bold">RFC VALID</span>
+</div>
+<span class="text-[#88929a] font-code-sm text-[11px]">Depth: 4 levels</span>
+</div>
+<div class="grid grid-cols-3 gap-1.5 text-center font-code-sm text-[11px]">
+<div class="bg-[#262b33] rounded p-1 border border-[#323842]">
+<div class="text-[#88929a] text-[10px] uppercase">Keys</div>
+<div class="font-bold text-[#f3f4f6]">11</div>
+</div>
+<div class="bg-[#262b33] rounded p-1 border border-[#323842]">
+<div class="text-[#88929a] text-[10px] uppercase">Objects</div>
+<div class="font-bold text-[#7fd0ff]">3</div>
+</div>
+<div class="bg-[#262b33] rounded p-1 border border-[#323842]">
+<div class="text-[#88929a] text-[10px] uppercase">Arrays</div>
+<div class="font-bold text-[#c084fc]">1</div>
+</div>
+</div>
+<!-- Quick Jump Badges for Root Keys -->
+<div class="flex items-center gap-1 overflow-x-auto pt-0.5 text-label-sm">
+<span class="text-[10px] text-[#88929a] font-semibold uppercase shrink-0">Jump:</span>
+<button class="px-1.5 py-0.5 rounded bg-[#262b33] hover:bg-[#323842] text-[#bec8d0] font-code-sm text-[10px] shrink-0 transition-colors font-medium border border-[#323842]">user</button>
+<button class="px-1.5 py-0.5 rounded bg-[#172554] border border-[#2563eb] text-[#93c5fd] font-code-sm text-[10px] shrink-0 font-bold">quotas</button>
+<button class="px-1.5 py-0.5 rounded bg-[#262b33] hover:bg-[#323842] text-[#bec8d0] font-code-sm text-[10px] shrink-0 transition-colors font-medium border border-[#323842]">scopes</button>
+<button class="px-1.5 py-0.5 rounded bg-[#262b33] hover:bg-[#323842] text-[#bec8d0] font-code-sm text-[10px] shrink-0 transition-colors font-medium border border-[#323842]">telemetry</button>
+</div>
+</div>
+<!-- Breadcrumb Bar -->
+<div class="flex items-center justify-between px-space-md py-space-xs bg-[#22262c] text-[#bec8d0] font-code-sm text-code-sm border-b border-[#2d3136]">
+<div class="flex items-center gap-space-xxs overflow-x-auto">
+<span class="text-[#7fd0ff] font-bold">root</span>
+<span class="text-[#64748b]">&gt;</span>
+<span class="text-white">user</span>
+<span class="text-[#64748b]">&gt;</span>
+<span class="px-1.5 py-0.5 rounded bg-[#172554] text-[#93c5fd] border border-[#2563eb] font-bold">quotas</span>
+</div>
+<button class="flex items-center gap-1 text-label-sm font-label-sm text-[#7fd0ff] hover:underline font-semibold" id="btn-copy-path" title="Copy breadcrumb path" type="button">
+<span class="material-symbols-outlined text-[13px]">link</span>
+<span>Copy</span>
+</button>
+</div>
+<!-- Interactive AST Tree Nodes -->
+<div class="p-space-md space-y-space-xs font-body-sm text-body-sm max-h-[500px] overflow-y-auto" id="ast-tree-container">
+<!-- Root Node -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-xs p-1 rounded-lg hover:bg-[#262b33] transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[16px] text-[#88929a]">expand_more</span>
+<span class="font-title-sm text-title-sm text-[#7fd0ff] font-bold">root</span>
+<span class="px-2 py-0.2 rounded-full bg-[#272a2e] text-[#bec8d0] border border-[#323539] font-code-sm text-code-sm">object[6]</span>
+</div>
+<!-- Level 1 Items -->
+<div class="pl-space-md flex flex-col gap-1">
+<!-- Key: session_id -->
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c] transition-colors">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-[#64748b]">remove</span>
+<span class="font-code-sm text-code-sm text-[#e1e2e8] font-semibold">session_id:</span>
+<span class="font-code-sm text-code-sm text-[#4ade80]">"sess_99a8x01d0a"</span>
+</div>
+<span class="px-1.5 py-0.2 rounded bg-[#064e3b] text-[#6ee7b7] border border-[#047857]/40 font-code-sm text-[10px]">string</span>
+</div>
+<!-- Key: status -->
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c] transition-colors">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-[#64748b]">remove</span>
+<span class="font-code-sm text-code-sm text-[#e1e2e8] font-semibold">status:</span>
+<span class="font-code-sm text-code-sm text-[#4ade80]">"active"</span>
+</div>
+<span class="px-1.5 py-0.2 rounded bg-[#064e3b] text-[#6ee7b7] border border-[#047857]/40 font-code-sm text-[10px]">string</span>
+</div>
+<!-- Key: authenticated -->
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c] transition-colors">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-[#64748b]">remove</span>
+<span class="font-code-sm text-code-sm text-[#e1e2e8] font-semibold">authenticated:</span>
+<span class="font-code-sm text-code-sm text-[#c084fc] font-bold">true</span>
+</div>
+<span class="px-1.5 py-0.2 rounded bg-[#3b0764] text-[#d8b4fe] border border-[#6b21a8]/50 font-code-sm text-[10px]">boolean</span>
+</div>
+<!-- Nested User Node -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-xs p-1 rounded hover:bg-[#262b33] transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[16px] text-[#88929a]">expand_more</span>
+<span class="font-code-sm text-code-sm text-[#7fd0ff] font-bold">user</span>
+<span class="px-1.5 py-0.2 rounded-full bg-[#272a2e] text-[#bec8d0] border border-[#323539] font-code-sm text-code-sm">object[5]</span>
+</div>
+<!-- Sub-tree: user -->
+<div class="pl-space-md flex flex-col gap-1">
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c]">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-[#64748b]">remove</span>
+<span class="font-code-sm text-code-sm text-[#e1e2e8]">handle:</span>
+<span class="font-code-sm text-code-sm text-[#4ade80]">"0x_vector"</span>
+</div>
+<span class="px-1.5 py-0.2 rounded bg-[#064e3b] text-[#6ee7b7] border border-[#047857]/40 font-code-sm text-[10px]">string</span>
+</div>
+<!-- Deeply Nested Quotas -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-xs p-1 rounded bg-[#1e3a5f]/40 border border-[#2563eb]/60 hover:bg-[#1e3a5f]/60 transition-colors cursor-pointer">
+<span class="material-symbols-outlined text-[16px] text-[#7fd0ff]">expand_more</span>
+<span class="font-code-sm text-code-sm text-[#7fd0ff] font-bold">quotas</span>
+<span class="px-1.5 py-0.2 rounded-full bg-[#1264a3] text-white font-code-sm text-[11px]">object[4]</span>
+</div>
+<div class="pl-space-md flex flex-col gap-1">
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c]">
+<span class="font-code-sm text-code-sm text-[#e1e2e8]">max_workers: <strong class="text-[#fbbf24]">64</strong></span>
+<span class="px-1.5 py-0.2 rounded bg-[#451a03] text-[#fcd34d] border border-[#78350f]/50 font-code-sm text-[10px]">int32</span>
+</div>
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c]">
+<span class="font-code-sm text-code-sm text-[#e1e2e8]">burst_capacity: <strong class="text-[#fbbf24]">128</strong></span>
+<span class="px-1.5 py-0.2 rounded bg-[#451a03] text-[#fcd34d] border border-[#78350f]/50 font-code-sm text-[10px]">int32</span>
+</div>
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c]">
+<span class="font-code-sm text-code-sm text-[#e1e2e8]">egress_rate_mbps: <strong class="text-[#fbbf24]">1024</strong></span>
+<span class="px-1.5 py-0.2 rounded bg-[#451a03] text-[#fcd34d] border border-[#78350f]/50 font-code-sm text-[10px]">int32</span>
+</div>
+</div>
+</div>
+<!-- scopes Array -->
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c]">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-[#64748b]">chevron_right</span>
+<span class="font-code-sm text-code-sm text-[#e1e2e8]">scopes</span>
+<span class="font-code-sm text-[11px] text-[#88929a]">[3 elements]</span>
+</div>
+<span class="px-1.5 py-0.2 rounded bg-[#1e293b] text-[#93c5fd] border border-[#334155] font-code-sm text-[10px]">array</span>
+</div>
+</div>
+</div>
+<!-- Telemetry Object -->
+<div class="flex items-center justify-between p-1 rounded hover:bg-[#22262c]">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[14px] text-[#64748b]">chevron_right</span>
+<span class="font-code-sm text-code-sm text-[#7fd0ff] font-bold">telemetry</span>
+<span class="font-code-sm text-[11px] text-[#88929a]">{2 keys}</span>
+</div>
+<span class="px-1.5 py-0.2 rounded bg-[#1e293b] text-[#cbd5e1] border border-[#334155] font-code-sm text-[10px]">object</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Schema Validation Summary Banner -->
+<div class="mt-auto p-space-sm bg-[#18221e] border-t border-[#059669]/40 flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-[#34d399] text-[18px]">check_circle</span>
+<span class="font-label-sm text-label-sm text-[#e1e2e8]">Schema inferred: <strong class="font-bold text-[#6ee7b7]">SessionV2Payload</strong></span>
+</div>
+<span class="font-code-sm text-code-sm text-[#34d399]">0 errors</span>
+</div>
+</div>
+</div>
+<!-- Bottom Docked Command Strip -->
+<footer class="flex flex-col md:flex-row items-center justify-between gap-space-sm bg-[#141619] p-space-sm rounded-xl text-[#bec8d0] border border-[#2d3136]">
+<!-- Shortcuts legend -->
+<div class="flex flex-wrap items-center gap-space-md">
+<div class="flex items-center gap-space-xxs">
+<kbd class="px-1.5 py-0.5 rounded bg-[#22252a] font-code-sm text-code-sm text-white shadow-sm border border-[#323842]">⌘B</kbd>
+<span class="font-label-sm text-label-sm">Beautify</span>
+</div>
+<div class="flex items-center gap-space-xxs">
+<kbd class="px-1.5 py-0.5 rounded bg-[#22252a] font-code-sm text-code-sm text-white shadow-sm border border-[#323842]">⌘F</kbd>
+<span class="font-label-sm text-label-sm">Filter Path</span>
+</div>
+<div class="flex items-center gap-space-xxs">
+<kbd class="px-1.5 py-0.5 rounded bg-[#22252a] font-code-sm text-code-sm text-white shadow-sm border border-[#323842]">⌘C</kbd>
+<span class="font-label-sm text-label-sm">Copy AST</span>
+</div>
+<div class="flex items-center gap-space-xxs">
+<kbd class="px-1.5 py-0.5 rounded bg-[#22252a] font-code-sm text-code-sm text-white shadow-sm border border-[#323842]">⇧⌘P</kbd>
+<span class="font-label-sm text-label-sm">Command Palette</span>
+</div>
+</div>
+<!-- WASM runtime indicator badge -->
+<div class="flex items-center gap-space-xs shrink-0">
+<div class="w-2 h-2 rounded-full bg-[#10b981]"></div>
+<span class="font-code-sm text-code-sm text-[#e1e2e8] font-medium">WebAssembly v1.42 (SIMD-accelerated)</span>
+<span class="px-1.5 py-0.5 rounded bg-[#1f2937] text-label-sm font-label-sm text-[#10b981] font-bold border border-[#374151]">READY</span>
+</div>
+</footer>
+</div>
+</div>
+<script>
+  // Micro-interactions for indentation toggle
+  const indentBtns = [
+    document.getElementById('btn-indent-2'),
+    document.getElementById('btn-indent-4'),
+    document.getElementById('btn-indent-tab')
+  ];
+
+  indentBtns.forEach(btn => {
+    btn?.addEventListener('click', () => {
+      indentBtns.forEach(b => {
+        b.classList.remove('bg-[#1264a3]', 'text-white', 'font-bold', 'shadow-sm');
+        b.classList.add('text-[#9ca3af]');
+      });
+      btn.classList.add('bg-[#1264a3]', 'text-white', 'font-bold', 'shadow-sm');
+      btn.classList.remove('text-[#9ca3af]');
+    });
+  });
+
+  // Action toasts / triggers
+  const beautifyBtn = document.getElementById('btn-beautify');
+  beautifyBtn?.addEventListener('click', () => {
+    beautifyBtn.classList.add('opacity-75');
+    setTimeout(() => beautifyBtn.classList.remove('opacity-75'), 180);
+  });
+
+  const copyAstBtn = document.getElementById('btn-copy-ast');
+  copyAstBtn?.addEventListener('click', () => {
+    const originalText = copyAstBtn.innerHTML;
+    copyAstBtn.innerHTML = '<span class="material-symbols-outlined text-[15px] text-[#34d399]">done</span><span>Copied!</span>';
+    setTimeout(() => {
+      copyAstBtn.innerHTML = originalText;
+    }, 1500);
+  });
+
+  const copyRawBtn = document.getElementById('copy-raw-btn');
+  copyRawBtn?.addEventListener('click', () => {
+    const originalIcon = copyRawBtn.innerHTML;
+    copyRawBtn.innerHTML = '<span class="material-symbols-outlined text-[16px] text-[#34d399]">check</span>';
+    setTimeout(() => {
+      copyRawBtn.innerHTML = originalIcon;
+    }, 1200);
+  });
+
+  const copyPathBtn = document.getElementById('btn-copy-path');
+  copyPathBtn?.addEventListener('click', () => {
+    copyPathBtn.textContent = 'Copied!';
+    setTimeout(() => {
+      copyPathBtn.innerHTML = '<span class="material-symbols-outlined text-[13px]">link</span><span>Copy</span>';
+    }, 1400);
+  });
+
+  // Keyboard shortcut for ⌘B Beautify
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      beautifyBtn?.click();
+    }
+  });
+</script></main></div></body></html>
