@@ -14,9 +14,19 @@ interface WorkspaceHeaderProps {
   activeTool?: ToolTab;
   onOpenCommandPalette?: () => void;
   cloudSyncEnabled?: boolean;
+  toolTabMode?: 'tool' | 'history';
+  onSelectToolTabMode?: (mode: 'tool' | 'history') => void;
+  historyCount?: number;
+  onOpenHistoryModal?: () => void;
 }
 
-const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ activeTool }) => {
+const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
+  activeTool,
+  toolTabMode = 'tool',
+  onSelectToolTabMode,
+  historyCount,
+  onOpenHistoryModal,
+}) => {
   const [snapshot, setSnapshot] = useState<WorkspaceSnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -108,13 +118,49 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ activeTool }) => {
             </button>
           </h1>
         ) : (
-          <h1>{activeTool?.label ?? 'Buffer'}</h1>
+          <div className="workspace-tool-title-group">
+            <h1>{activeTool?.label ?? 'Buffer'}</h1>
+            <div className="tool-view-toggle" role="tablist" aria-label="Tool view">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={toolTabMode === 'tool'}
+                className={`tool-view-tab ${toolTabMode === 'tool' ? 'active' : ''}`}
+                onClick={() => onSelectToolTabMode?.('tool')}
+              >
+                {activeTool?.label ?? 'Tool'}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={toolTabMode === 'history'}
+                className={`tool-view-tab ${toolTabMode === 'history' ? 'active' : ''}`}
+                onClick={() => onSelectToolTabMode?.('history')}
+              >
+                🕒 History {historyCount !== undefined && historyCount > 0 ? `(${historyCount})` : ''}
+              </button>
+            </div>
+          </div>
         )}
         {activeTool && (
           <>
             <span className="workspace-topic-divider" aria-hidden="true">|</span>
             <span className="workspace-tool-description">{activeTool.description}</span>
           </>
+        )}
+      </div>
+
+      <div className="workspace-header-actions">
+        {onOpenHistoryModal && (
+          <button
+            type="button"
+            className="workspace-history-shortcut-btn"
+            onClick={onOpenHistoryModal}
+            title="View all tools usage history"
+            aria-label="All tools history"
+          >
+            🕒 All History
+          </button>
         )}
       </div>
 

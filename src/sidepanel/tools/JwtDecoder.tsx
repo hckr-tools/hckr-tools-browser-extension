@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './JwtDecoder.css';
 
 interface JwtDecoderProps {
@@ -357,6 +358,17 @@ const JwtDecoder: React.FC<JwtDecoderProps> = ({ initialInput }) => {
 
     // Save state
     saveToolState('jwt-decoder', { input: tokenInput });
+
+    if (result.decoded && tokenInput.trim()) {
+      void recordToolUsage({
+        toolId: 'jwt-decoder',
+        toolTitle: 'JWT Decoder',
+        action: 'Decode JWT',
+        input: tokenInput.trim(),
+        output: `${result.decoded.headerFormatted}\n\n${result.decoded.payloadFormatted}`,
+        summary: `alg: ${result.decoded.claims.alg || 'unknown'} · ${result.decoded.expiryStatus}`,
+      });
+    }
   }, [tokenInput, currentTime, decodeToken]);
 
   const handleClear = () => {

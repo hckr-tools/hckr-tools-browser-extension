@@ -3,6 +3,7 @@ import { dump, loadAll, YAMLException } from 'js-yaml';
 import { copyToClipboard } from '../../shared/clipboard';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './YamlJsonConverter.css';
 
 interface YamlJsonConverterProps {
@@ -142,6 +143,18 @@ const YamlJsonConverter: React.FC<YamlJsonConverterProps> = ({ initialInput }) =
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       saveToolState(TOOL_ID, { input: nextInput, options: { mode: nextMode } }).catch(console.error);
+      const res = convert(nextInput, nextMode);
+      if (!res.error && res.output && nextInput.trim()) {
+        void recordToolUsage({
+          toolId: TOOL_ID,
+          toolTitle: 'YAML Converter',
+          action: nextMode === 'yaml-to-json' ? 'YAML → JSON' : 'JSON → YAML',
+          input: nextInput.trim(),
+          output: res.output,
+          options: { mode: nextMode },
+          summary: `${res.docs} doc(s) converted`,
+        });
+      }
     }, 250);
   }, []);
 

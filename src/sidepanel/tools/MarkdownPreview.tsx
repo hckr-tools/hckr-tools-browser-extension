@@ -3,6 +3,7 @@ import { copyToClipboard } from '../../shared/clipboard';
 import { saveToolState, loadToolState } from '../../shared/storage';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import { saveWorkspaceItem } from '../../shared/workspace';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './MarkdownPreview.css';
 
 export interface MarkdownPreviewProps {
@@ -504,6 +505,15 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ initialInput }) => {
         input: markdown,
         options: { viewMode },
       });
+      if (markdown.trim()) {
+        void recordToolUsage({
+          toolId: TOOL_ID,
+          toolTitle: 'Markdown Preview',
+          action: 'Preview Markdown',
+          input: markdown.trim(),
+          summary: `${markdown.trim().length} chars · ${viewMode} view`,
+        });
+      }
     }, 400);
 
     return () => {

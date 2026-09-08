@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './Base64Tool.css';
 
 interface Base64ToolProps {
@@ -177,6 +178,24 @@ const Base64Tool: React.FC<Base64ToolProps> = ({ initialInput }) => {
         input: currentInput,
         options: { mode: currentMode, urlSafe: currentUrlSafe },
       });
+      if (currentInput.trim()) {
+        try {
+          const out = currentMode === 'encode' ? utf8ToBase64(currentInput, currentUrlSafe) : base64ToUtf8(currentInput.trim());
+          if (out) {
+            void recordToolUsage({
+              toolId: TOOL_ID,
+              toolTitle: 'Base64 Tool',
+              action: currentMode === 'encode' ? 'Base64 Encode' : 'Base64 Decode',
+              input: currentInput.trim(),
+              output: out,
+              options: { mode: currentMode, urlSafe: currentUrlSafe },
+              summary: `${currentInput.trim().length} chars`,
+            });
+          }
+        } catch {
+          // ignore decode errors
+        }
+      }
     }, 300);
   }, []);
 

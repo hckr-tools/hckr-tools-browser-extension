@@ -67,12 +67,14 @@ test.describe('Cloud Sync', () => {
         },
       });
 
-      const openReq = indexedDB.open('hckr-workspaces-v1', 1);
+      const openReq = indexedDB.open('hckr-workspaces-v1', 3);
       await new Promise<void>((resolve, reject) => {
         openReq.onupgradeneeded = () => {
           const db = openReq.result;
-          if (!db.objectStoreNames.contains('settings')) {
-            db.createObjectStore('settings', { keyPath: 'id' });
+          for (const store of ['workspaces', 'columns', 'cards', 'items', 'versions', 'outbox', 'settings', 'tool_history']) {
+            if (!db.objectStoreNames.contains(store)) {
+              db.createObjectStore(store, { keyPath: 'id' });
+            }
           }
         };
         openReq.onsuccess = () => {

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import {
   archiveWorkspace,
   generateWorkspaceKey,
+  unarchiveWorkspace,
   updateWorkspace,
   type Workspace,
   type WorkspaceSnapshot,
 } from '../../shared/workspace';
+import { formatRelativeTime } from '../../shared/cloudSync';
 import './WorkspaceSettingsModal.css';
 
 interface WorkspaceSettingsModalProps {
@@ -48,6 +50,7 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
   if (!open || !activeWorkspace) return null;
 
   const activeWorkspaces = snapshot.workspaces.filter((w) => !w.archived);
+  const archivedWorkspaces = snapshot.workspaces.filter((w) => w.archived);
   const canArchive = activeWorkspaces.length > 1;
   const cardsCount = snapshot.cards.filter(
     (c) => c.workspaceId === activeWorkspace.id && !c.archived
@@ -192,12 +195,67 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
               </div>
               <div className="settings-stat-card">
                 <span className="stat-value">{activeWorkspaces.length}</span>
-                <span className="stat-label">Total Workspaces</span>
+                <span className="stat-label">Active Workspaces</span>
+              </div>
+              <div className="settings-stat-card">
+                <span className="stat-value">{archivedWorkspaces.length}</span>
+                <span className="stat-label">Archived</span>
               </div>
             </div>
           </section>
 
-          {/* Section 3: Data Export */}
+          {/* Section 3: Archived Workspaces */}
+          <section className="settings-section">
+            <h3 className="settings-section-title">
+              Archived Workspaces {archivedWorkspaces.length > 0 && `(${archivedWorkspaces.length})`}
+            </h3>
+            {archivedWorkspaces.length === 0 ? (
+              <p className="settings-empty-hint">No archived workspaces.</p>
+            ) : (
+              <div className="archived-workspace-list">
+                {archivedWorkspaces.map((ws) => {
+                  const wsCards = snapshot.cards.filter((c) => c.workspaceId === ws.id && !c.archived).length;
+                  const wsItems = snapshot.items.filter((i) => i.workspaceId === ws.id).length;
+                  return (
+                    <div key={ws.id} className="archived-workspace-item">
+                      <div className="archived-workspace-info">
+                        <div className="archived-workspace-title-row">
+                          <span className="archived-workspace-name">{ws.name}</span>
+                          {ws.key && <span className="archived-workspace-key">{ws.key}</span>}
+                        </div>
+                        <span className="archived-workspace-meta">
+                          {wsCards} {wsCards === 1 ? 'card' : 'cards'} · {wsItems} {wsItems === 1 ? 'snippet' : 'snippets'} · Updated {formatRelativeTime(ws.updatedAt)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary"
+                        disabled={isSubmitting}
+                        onClick={async () => {
+                          setIsSubmitting(true);
+                          setError(null);
+                          try {
+                            await unarchiveWorkspace(ws.id, true);
+                            setSavedSuccess(true);
+                            setTimeout(() => setSavedSuccess(false), 2000);
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Failed to restore workspace');
+                          } finally {
+                            setIsSubmitting(false);
+                          }
+                        }}
+                        title={`Restore ${ws.name} and make it active`}
+                      >
+                        ⎌ Restore to active
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Section 4: Data Export */}
           <section className="settings-section">
             <h3 className="settings-section-title">Backup & Export</h3>
             <div className="settings-action-row">
@@ -211,7 +269,7 @@ export const WorkspaceSettingsModal: React.FC<WorkspaceSettingsModalProps> = ({
             </div>
           </section>
 
-          {/* Section 4: Danger Zone - Archive */}
+          {/* Section 5: Danger Zone - Archive */}
           <section className="settings-section settings-danger-zone">
             <h3 className="settings-section-title danger">Danger Zone</h3>
             <div className="settings-action-row">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './UrlEncoder.css';
 
 interface UrlEncoderProps {
@@ -213,6 +214,18 @@ const UrlEncoder: React.FC<UrlEncoderProps> = ({ initialInput }) => {
       input,
       options: { mode, encodeMethod },
     });
+
+    if (output && input.trim()) {
+      void recordToolUsage({
+        toolId: 'url-encoder',
+        toolTitle: 'URL Encoder',
+        action: mode === 'encode' ? 'URL Encode' : 'URL Decode',
+        input: input.trim(),
+        output,
+        options: { mode, encodeMethod },
+        summary: `${input.trim().length} chars · ${encodeMethod}`,
+      });
+    }
   }, [input, output, mode, encodeMethod, parseUrlString]);
 
   // Rebuild URL and update input/output when components/params are edited in UI

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { copyToClipboard } from '../../shared/clipboard';
 import { saveWorkspaceItem } from '../../shared/workspace';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './DiffChecker.css';
 
 interface DiffCheckerProps {
@@ -300,6 +301,18 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
     setDiffResult(result);
     setCurrentDifferenceIndex(0);
     setExpandedUnchangedGroups(new Set());
+
+    if ((originalText.trim() || modifiedText.trim()) && result.isCompared) {
+      void recordToolUsage({
+        toolId: 'diff-checker',
+        toolTitle: 'Diff Checker',
+        action: 'Compare Diff',
+        input: `Original:\n${originalText.slice(0, 300)}\n\nModified:\n${modifiedText.slice(0, 300)}`,
+        output: `+${result.stats.added} -${result.stats.removed} lines (total: ${result.stats.total})`,
+        options: { ignoreWhitespace, ignoreCase, trimLines },
+        summary: `+${result.stats.added} -${result.stats.removed} lines diff`,
+      });
+    }
   }, [originalText, modifiedText, ignoreWhitespace, ignoreCase, trimLines]);
 
   const exceedsLimit = exceedsLiveTextLimit(originalText) || exceedsLiveTextLimit(modifiedText);

@@ -269,6 +269,7 @@ const SYNC_DEPENDENCY_ORDER: Record<CloudOutboxRecord['entity'], number> = {
   board_cards: 2,
   saved_items: 2,
   saved_item_versions: 3,
+  tool_history: 2,
 };
 
 function orderedOutbox(records: CloudOutboxRecord[]): CloudOutboxRecord[] {
@@ -289,6 +290,7 @@ function toCloudPayload(record: CloudOutboxRecord): Record<string, unknown> {
   if (record.entity === 'board_columns') return { ...base, workspace_id: payload.workspaceId, name: payload.name, position: payload.position, revision: payload.revision ?? 1, created_at: payload.createdAt ?? record.createdAt, updated_at: payload.updatedAt ?? record.createdAt };
   if (record.entity === 'board_cards') return { ...base, workspace_id: payload.workspaceId, column_id: payload.columnId, ticket_number: payload.ticketNumber, title: payload.title, url: payload.url, fav_icon_url: payload.favIconUrl, note: payload.note, tags: payload.tags, comments: payload.comments, position: payload.position, archived: payload.archived, revision: payload.revision, created_at: payload.createdAt, updated_at: payload.updatedAt };
   if (record.entity === 'saved_items') return { ...base, workspace_id: payload.workspaceId, type: payload.type, title: payload.title, content: payload.content, revision: payload.revision, created_at: payload.createdAt, updated_at: payload.updatedAt };
+  if (record.entity === 'tool_history') return { ...base, tool_id: payload.toolId, tool_title: payload.toolTitle, action: payload.action, input: payload.input, output: payload.output ?? '', options: payload.options ?? {}, summary: payload.summary ?? '', revision: payload.revision ?? 1, created_at: payload.createdAt ?? record.createdAt, updated_at: payload.updatedAt ?? record.createdAt };
   return { ...base, item_id: payload.itemId, content: payload.content, revision: payload.revision, created_at: payload.createdAt };
 }
 
@@ -301,6 +303,19 @@ function snapshotFromCloud(payload: unknown): CloudWorkspaceSnapshot {
     cards: array('cards').map((row) => ({ id: String(row.id), workspaceId: String(row.workspace_id), columnId: String(row.column_id), ticketNumber: typeof row.ticket_number === 'number' ? row.ticket_number : undefined, title: String(row.title), url: String(row.url), favIconUrl: String(row.fav_icon_url), note: String(row.note), tags: Array.isArray(row.tags) ? row.tags.filter((tag): tag is string => typeof tag === 'string') : [], comments: Array.isArray(row.comments) ? row.comments as CloudWorkspaceSnapshot['cards'][number]['comments'] : [], position: Number(row.position), archived: Boolean(row.archived), revision: Number(row.revision), createdAt: String(row.created_at), updatedAt: String(row.updated_at) })),
     items: array('items').map((row) => ({ id: String(row.id), workspaceId: String(row.workspace_id), type: String(row.type) as CloudWorkspaceSnapshot['items'][number]['type'], title: String(row.title), content: String(row.content), revision: Number(row.revision), createdAt: String(row.created_at), updatedAt: String(row.updated_at) })),
     versions: array('versions').map((row) => ({ id: String(row.id), itemId: String(row.item_id), content: String(row.content), revision: Number(row.revision), createdAt: String(row.created_at) })),
+    tool_history: array('tool_history').map((row) => ({
+      id: String(row.id),
+      toolId: String(row.tool_id || row.toolId),
+      toolTitle: String(row.tool_title || row.toolTitle || ''),
+      action: String(row.action),
+      input: String(row.input || ''),
+      output: typeof row.output === 'string' ? row.output : undefined,
+      options: (row.options && typeof row.options === 'object') ? row.options as Record<string, unknown> : undefined,
+      summary: typeof row.summary === 'string' ? row.summary : undefined,
+      revision: Number(row.revision ?? 1),
+      createdAt: String(row.created_at || row.createdAt),
+      updatedAt: String(row.updated_at || row.updatedAt || row.created_at || row.createdAt),
+    })),
   };
 }
 

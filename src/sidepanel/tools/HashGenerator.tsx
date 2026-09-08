@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './HashGenerator.css';
 
 interface HashGeneratorProps {
@@ -82,6 +83,16 @@ const HashGenerator: React.FC<HashGeneratorProps> = ({ initialInput }) => {
       }
 
       setHashes(results);
+      if (text.trim()) {
+        void recordToolUsage({
+          toolId: 'hash-generator',
+          toolTitle: 'Hash Generator',
+          action: 'Generate Hashes',
+          input: text.trim(),
+          output: `SHA-256: ${results['SHA-256']}\nSHA-1: ${results['SHA-1']}`,
+          summary: `SHA-256: ${results['SHA-256'].slice(0, 16)}…`,
+        });
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to compute hashes';
       setError(message);

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './UuidGenerator.css';
 
 interface UuidGeneratorProps {
@@ -128,6 +129,18 @@ const UuidGenerator: React.FC<UuidGeneratorProps> = () => {
       }
 
       setGeneratedList((prev) => [...newItems, ...prev]);
+
+      if (newItems.length > 0) {
+        void recordToolUsage({
+          toolId: 'uuid-generator',
+          toolTitle: 'UUID Generator',
+          action: `Generate ${mode.toUpperCase()}`,
+          input: `Generated ${count} ${mode.toUpperCase()}(s)`,
+          output: newItems.map((item) => item.value).join('\n'),
+          options: { mode, uppercase, includeHyphens, count },
+          summary: `${count} ${mode.toUpperCase()}(s)`,
+        });
+      }
     },
     [mode, uppercase, includeHyphens]
   );

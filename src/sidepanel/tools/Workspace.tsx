@@ -5,6 +5,7 @@ import {
 } from '../../shared/workspace';
 import { tabLocationLabel } from '../../shared/browserTabs';
 import { WorkspaceCardDrawer } from '../components/WorkspaceCardDrawer';
+import { WorkspaceSettingsModal } from '../components/WorkspaceSettingsModal';
 import './Workspace.css';
 
 const EMPTY_SNAPSHOT: WorkspaceSnapshot = { workspaces: [], activeWorkspaceId: '', columns: [], cards: [], items: [] };
@@ -21,6 +22,7 @@ const WorkspaceTool: React.FC = () => {
   const [itemContent, setItemContent] = useState('');
   const [itemType, setItemType] = useState<SavedItemType>('text');
   const [message, setMessage] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Kanban & Drawer state
   const [activeView, setActiveView] = useState<'board' | 'context'>('board');
@@ -146,6 +148,15 @@ const WorkspaceTool: React.FC = () => {
               title={`Archive ${activeWorkspace.name}`}
             >
               Archive workspace
+            </button>
+          )}
+          {snapshot.workspaces.filter((w) => w.archived).length > 0 && (
+            <button
+              className="btn btn-archived-workspaces"
+              onClick={() => setSettingsOpen(true)}
+              title="View and restore archived workspaces"
+            >
+              📦 Archived ({snapshot.workspaces.filter((w) => w.archived).length})
             </button>
           )}
         </div>
@@ -446,6 +457,15 @@ const WorkspaceTool: React.FC = () => {
           await refresh();
         }}
       />
+
+      {settingsOpen && activeWorkspace && (
+        <WorkspaceSettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          activeWorkspace={activeWorkspace}
+          snapshot={snapshot}
+        />
+      )}
     </section>
   );
 };

@@ -3,6 +3,7 @@ import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import { saveWorkspaceItem } from '../../shared/workspace';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './JsonFormatter.css';
 
 interface JsonFormatterProps {
@@ -349,6 +350,22 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
     debounceTimerRef.current = setTimeout(() => {
       processJson(val);
       saveToolState(TOOL_ID, { input: val });
+      try {
+        const trimmed = val.trim();
+        if (trimmed) {
+          const parsed = JSON.parse(trimmed);
+          void recordToolUsage({
+            toolId: TOOL_ID,
+            toolTitle: 'JSON Formatter',
+            action: 'Format JSON',
+            input: trimmed,
+            output: JSON.stringify(parsed, null, 2),
+            summary: `${trimmed.length} chars valid JSON`,
+          });
+        }
+      } catch {
+        // invalid json, don't record
+      }
     }, 250);
   };
 
@@ -404,6 +421,14 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
       setInput(formatted);
       setViewMode('code');
       saveToolState(TOOL_ID, { input: formatted });
+      void recordToolUsage({
+        toolId: TOOL_ID,
+        toolTitle: 'JSON Formatter',
+        action: 'Format JSON',
+        input: formatted,
+        output: formatted,
+        summary: `${formatted.split('\n').length} lines formatted`,
+      });
     }
   };
 
@@ -413,6 +438,14 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
       setInput(minified);
       setViewMode('minified');
       saveToolState(TOOL_ID, { input: minified });
+      void recordToolUsage({
+        toolId: TOOL_ID,
+        toolTitle: 'JSON Formatter',
+        action: 'Minify JSON',
+        input: minified,
+        output: minified,
+        summary: `${minified.length} chars minified`,
+      });
     }
   };
 

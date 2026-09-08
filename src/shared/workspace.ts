@@ -1,3 +1,6 @@
+import type { CardLabel, CardPriority, ChecklistItem } from './cardLabels';
+export type { CardLabel, CardPriority, ChecklistItem } from './cardLabels';
+
 export const MAX_SAVED_ITEM_CHARS = 250_000;
 export const MAX_ITEM_VERSIONS = 20;
 
@@ -41,6 +44,10 @@ export interface WorkspaceCard {
   note: string;
   tags: string[];
   comments?: CardComment[];
+  priority?: CardPriority;
+  dueDate?: string;
+  label?: CardLabel;
+  checklist?: ChecklistItem[];
   position: number;
   archived: boolean;
   createdAt: string;
@@ -75,9 +82,23 @@ export interface WorkspaceSnapshot {
   items: SavedItem[];
 }
 
+export interface ToolHistoryEntry {
+  id: string;
+  toolId: string;
+  toolTitle: string;
+  action: string;
+  input: string;
+  output?: string;
+  options?: Record<string, unknown>;
+  summary?: string;
+  createdAt: string;
+  updatedAt: string;
+  revision: number;
+}
+
 export interface CloudOutboxRecord {
   id: string;
-  entity: 'workspace' | 'board_columns' | 'board_cards' | 'saved_items' | 'saved_item_versions';
+  entity: 'workspace' | 'board_columns' | 'board_cards' | 'saved_items' | 'saved_item_versions' | 'tool_history';
   operation: 'upsert' | 'delete';
   payload: Record<string, unknown>;
   createdAt: string;
@@ -89,11 +110,12 @@ export interface CloudWorkspaceSnapshot {
   cards: WorkspaceCard[];
   items: SavedItem[];
   versions: SavedItemVersion[];
+  tool_history?: ToolHistoryEntry[];
 }
 
-type StoreName = 'workspaces' | 'columns' | 'cards' | 'items' | 'versions' | 'outbox' | 'settings';
-const DB_NAME = 'hckr-workspaces-v1';
-const DB_VERSION = 1;
+export type StoreName = 'workspaces' | 'columns' | 'cards' | 'items' | 'versions' | 'outbox' | 'settings' | 'tool_history';
+export const DB_NAME = 'hckr-workspaces-v1';
+export const DB_VERSION = 3;
 const DEFAULT_COLUMNS = ['Inbox', 'Working', 'Review', 'Done'];
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -146,7 +168,7 @@ function database(): Promise<IDBDatabase> {
     const open = indexedDB.open(DB_NAME, DB_VERSION);
     open.onupgradeneeded = () => {
       const db = open.result;
-      for (const store of ['workspaces', 'columns', 'cards', 'items', 'versions', 'outbox', 'settings'] as StoreName[]) {
+      for (const store of ['workspaces', 'columns', 'cards', 'items', 'versions', 'outbox', 'settings', 'tool_history'] as StoreName[]) {
         if (!db.objectStoreNames.contains(store)) db.createObjectStore(store, { keyPath: 'id' });
       }
     };
@@ -194,6 +216,22 @@ async function enqueue(entity: CloudOutboxRecord['entity'], operation: CloudOutb
   await put('outbox', { id: id('outbox'), entity, operation, payload, createdAt: now() });
   globalThis.dispatchEvent(new CustomEvent('hckr-workspace-changed'));
   void chrome.runtime.sendMessage({ type: 'FLUSH_CLOUD_SYNC' }).catch(() => undefined);
+}
+
+export async function idbValues<T>(store: StoreName): Promise<T[]> {
+  return values<T>(store);
+}
+
+export async function idbPut<T extends { id: string }>(store: StoreName, value: T): Promise<void> {
+  return put(store, value);
+}
+
+export async function idbRemove(store: StoreName, key: string): Promise<void> {
+  return remove(store, key);
+}
+
+export async function enqueueOutbox(entity: CloudOutboxRecord['entity'], operation: CloudOutboxRecord['operation'], payload: Record<string, unknown>): Promise<void> {
+  return enqueue(entity, operation, payload);
 }
 
 export function generateWorkspaceKey(name: string): string {
@@ -323,6 +361,24 @@ export async function archiveWorkspace(workspace: Workspace): Promise<void> {
   await enqueue('workspace', 'upsert', next as unknown as Record<string, unknown>);
 }
 
+export async function unarchiveWorkspace(workspaceId: string, makeActive = true): Promise<Workspace> {
+  const all = await values<Workspace>('workspaces');
+  const target = all.find((candidate) => candidate.id === workspaceId);
+  if (!target) throw new Error('Workspace not found');
+  const next: Workspace = {
+    ...target,
+    archived: false,
+    updatedAt: now(),
+    revision: target.revision + 1,
+  };
+  await put('workspaces', next);
+  if (makeActive) {
+    await saveSetting('active-workspace', next.id);
+  }
+  await enqueue('workspace', 'upsert', next as unknown as Record<string, unknown>);
+  return next;
+}
+
 export async function updateWorkspace(workspaceId: string, updates: { name?: string; key?: string }): Promise<Workspace> {
   const all = await values<Workspace>('workspaces');
   const target = all.find((candidate) => candidate.id === workspaceId);
@@ -345,7 +401,7 @@ export async function updateWorkspace(workspaceId: string, updates: { name?: str
   return next;
 }
 
-export async function saveCard(input: Omit<WorkspaceCard, 'id' | 'createdAt' | 'updatedAt' | 'revision' | 'position' | 'archived'> & Partial<Pick<WorkspaceCard, 'id' | 'position' | 'archived' | 'ticketNumber'>>): Promise<WorkspaceCard> {
+export async function saveCard(input: Omit<WorkspaceCard, 'id' | 'createdAt' | 'updatedAt' | 'revision' | 'position' | 'archived'> & Partial<Pick<WorkspaceCard, 'id' | 'position' | 'archived' | 'ticketNumber' | 'priority' | 'dueDate' | 'label' | 'checklist'>>): Promise<WorkspaceCard> {
   const existing = input.id ? (await values<WorkspaceCard>('cards')).find((card) => card.id === input.id) : undefined;
   const cards = await values<WorkspaceCard>('cards');
   const createdAt = existing?.createdAt ?? now();
@@ -364,6 +420,10 @@ export async function saveCard(input: Omit<WorkspaceCard, 'id' | 'createdAt' | '
     title: input.title.trim().slice(0, 240) || 'Untitled card', url: input.url.trim(), favIconUrl: input.favIconUrl,
     note: input.note.slice(0, MAX_SAVED_ITEM_CHARS), tags: input.tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 20),
     comments: input.comments ?? existing?.comments ?? [],
+    priority: input.priority ?? existing?.priority,
+    dueDate: input.dueDate ?? existing?.dueDate,
+    label: input.label ?? existing?.label,
+    checklist: input.checklist ?? existing?.checklist,
     position: input.position ?? (Math.max(-1024, ...cards.filter((candidate) => candidate.columnId === input.columnId).map((candidate) => candidate.position)) + 1024),
     archived: input.archived ?? false, createdAt, updatedAt: now(), revision: (existing?.revision ?? 0) + 1,
   };
@@ -379,6 +439,59 @@ export async function moveCard(card: WorkspaceCard, columnId: string): Promise<v
 export async function archiveCard(card: WorkspaceCard): Promise<void> {
   await saveCard({ ...card, id: card.id, archived: true });
 }
+
+// ---------------------------------------------------------------------------
+// Column CRUD
+// ---------------------------------------------------------------------------
+
+export async function addColumn(workspaceId: string, name: string): Promise<WorkspaceColumn> {
+  const trimmed = name.trim().slice(0, 60);
+  if (!trimmed) throw new Error('Column name is required');
+  const allColumns = (await values<WorkspaceColumn>('columns')).filter((c) => c.workspaceId === workspaceId);
+  const maxPosition = allColumns.reduce((max, c) => Math.max(max, c.position), -1);
+  const timestamp = now();
+  const column: WorkspaceColumn = {
+    id: id('column'), workspaceId, name: trimmed, position: maxPosition + 1,
+    createdAt: timestamp, updatedAt: timestamp, revision: 1,
+  };
+  await put('columns', column);
+  await enqueue('board_columns', 'upsert', column as unknown as Record<string, unknown>);
+  return column;
+}
+
+export async function renameColumn(column: WorkspaceColumn, name: string): Promise<WorkspaceColumn> {
+  const trimmed = name.trim().slice(0, 60);
+  if (!trimmed) throw new Error('Column name is required');
+  const next: WorkspaceColumn = {
+    ...column, name: trimmed, updatedAt: now(), revision: column.revision + 1,
+  };
+  await put('columns', next);
+  await enqueue('board_columns', 'upsert', next as unknown as Record<string, unknown>);
+  return next;
+}
+
+export async function reorderColumns(workspaceId: string, columnIds: string[]): Promise<void> {
+  const allColumns = (await values<WorkspaceColumn>('columns')).filter((c) => c.workspaceId === workspaceId);
+  const byId = new Map(allColumns.map((c) => [c.id, c]));
+  for (let i = 0; i < columnIds.length; i++) {
+    const col = byId.get(columnIds[i]);
+    if (col && col.position !== i) {
+      const next: WorkspaceColumn = { ...col, position: i, updatedAt: now(), revision: col.revision + 1 };
+      await put('columns', next);
+      await enqueue('board_columns', 'upsert', next as unknown as Record<string, unknown>);
+    }
+  }
+  globalThis.dispatchEvent(new CustomEvent('hckr-workspace-changed'));
+}
+
+export async function deleteColumn(column: WorkspaceColumn): Promise<void> {
+  const cards = (await values<WorkspaceCard>('cards')).filter((c) => c.columnId === column.id && !c.archived);
+  if (cards.length > 0) throw new Error('Move or archive all cards before deleting this column.');
+  await remove('columns', column.id);
+  await enqueue('board_columns', 'delete', { id: column.id, workspaceId: column.workspaceId } as unknown as Record<string, unknown>);
+  globalThis.dispatchEvent(new CustomEvent('hckr-workspace-changed'));
+}
+
 
 export async function saveWorkspaceItem(input: { workspaceId?: string; type: SavedItemType; title: string; content: string }): Promise<SavedItem> {
   if (input.content.length > MAX_SAVED_ITEM_CHARS) throw new Error(`Saved items are limited to ${MAX_SAVED_ITEM_CHARS.toLocaleString()} characters.`);
@@ -405,7 +518,7 @@ export async function loadCloudMetadata(): Promise<Record<string, unknown> | nul
  */
 export async function applyCloudSnapshot(snapshot: CloudWorkspaceSnapshot): Promise<void> {
   const db = await database();
-  const transaction = db.transaction(['workspaces', 'columns', 'cards', 'items', 'versions', 'outbox'], 'readwrite');
+  const transaction = db.transaction(['workspaces', 'columns', 'cards', 'items', 'versions', 'outbox', 'tool_history'], 'readwrite');
   const remoteWinners = new Set<string>();
 
   const merge = async <T extends { id: string; revision: number; updatedAt: string }>(store: StoreName, entity: CloudOutboxRecord['entity'], remoteRows: T[]): Promise<void> => {
@@ -423,6 +536,9 @@ export async function applyCloudSnapshot(snapshot: CloudWorkspaceSnapshot): Prom
   await merge('columns', 'board_columns', snapshot.columns.map(columnWithFreshness));
   await merge('cards', 'board_cards', snapshot.cards);
   await merge('items', 'saved_items', snapshot.items);
+  if (snapshot.tool_history && snapshot.tool_history.length > 0) {
+    await merge('tool_history', 'tool_history', snapshot.tool_history);
+  }
 
   const versions = transaction.objectStore('versions');
   for (const remote of snapshot.versions) {

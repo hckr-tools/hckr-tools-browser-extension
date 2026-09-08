@@ -7,6 +7,7 @@ import {
   parseCronExpression,
 } from '../../shared/cron';
 import { loadToolState, saveToolState } from '../../shared/storage';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './CronExplainer.css';
 
 interface CronExplainerProps {
@@ -72,6 +73,20 @@ const CronExplainer: React.FC<CronExplainerProps> = ({ initialInput }) => {
     if (!parsed.schedule || parsed.error) return [];
     return nextCronRuns(parsed.schedule, now, zoneId, NEXT_COUNT);
   }, [parsed, now, zoneId]);
+
+  useEffect(() => {
+    if (parsed.schedule && !parsed.error && expression.trim()) {
+      void recordToolUsage({
+        toolId: TOOL_ID,
+        toolTitle: 'Cron Explainer',
+        action: 'Explain Cron',
+        input: expression.trim(),
+        output: parsed.description,
+        options: { timezone },
+        summary: parsed.description,
+      });
+    }
+  }, [parsed.schedule, parsed.error, parsed.description, expression, timezone]);
 
   const handleExpressionChange = (value: string) => {
     setExpression(value);

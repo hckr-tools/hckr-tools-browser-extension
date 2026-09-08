@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { CardComment, WorkspaceCard, WorkspaceColumn } from '../../shared/workspace';
 import { formatRelativeTime } from '../../shared/cloudSync';
+import {
+  type CardPriority,
+  type CardLabel,
+  type ChecklistItem,
+  CARD_PRIORITIES,
+  CARD_LABELS,
+  getDueStatus,
+  formatDueDate,
+  checklistProgress,
+} from '../../shared/cardLabels';
 import './WorkspaceCardDrawer.css';
 
 export interface WorkspaceCardDrawerProps {
@@ -19,9 +29,14 @@ export interface WorkspaceCardDrawerProps {
     note: string;
     tags: string[];
     comments?: CardComment[];
+    priority?: CardPriority;
+    dueDate?: string;
+    label?: CardLabel;
+    checklist?: ChecklistItem[];
   }) => Promise<void>;
   onArchive?: (card: WorkspaceCard) => Promise<void>;
 }
+
 
 export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
   card,
@@ -40,6 +55,11 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
   const [columnId, setColumnId] = useState('');
   const [comments, setComments] = useState<CardComment[]>([]);
   const [newCommentText, setNewCommentText] = useState('');
+  const [priority, setPriority] = useState<CardPriority | undefined>();
+  const [dueDate, setDueDate] = useState<string>('');
+  const [label, setLabel] = useState<CardLabel | undefined>();
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [newChecklistText, setNewChecklistText] = useState('');
   const [savedStatus, setSavedStatus] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const prevCardIdRef = useRef<string | null>(null);
@@ -55,6 +75,11 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
         setColumnId(card.columnId);
         setComments(card.comments || []);
         setNewCommentText('');
+        setPriority(card.priority);
+        setDueDate(card.dueDate || '');
+        setLabel(card.label);
+        setChecklist(card.checklist || []);
+        setNewChecklistText('');
         prevCardIdRef.current = card.id;
       } else if (card.comments && card.comments.length !== comments.length) {
         setComments(card.comments);
@@ -67,6 +92,11 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
       setColumnId(initialColumnId || columns[0]?.id || '');
       setComments([]);
       setNewCommentText('');
+      setPriority(undefined);
+      setDueDate('');
+      setLabel(undefined);
+      setChecklist([]);
+      setNewChecklistText('');
       prevCardIdRef.current = null;
     }
     setSavedStatus(false);
@@ -113,6 +143,10 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
         note,
         tags: parsedTags(),
         comments,
+        priority,
+        dueDate,
+        label,
+        checklist,
       });
       setSavedStatus(true);
       setTimeout(() => setSavedStatus(false), 2000);
@@ -136,6 +170,10 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
         note,
         tags: parsedTags(),
         comments,
+        priority,
+        dueDate,
+        label,
+        checklist,
       });
       setSavedStatus(true);
       setTimeout(() => setSavedStatus(false), 2000);
@@ -183,6 +221,10 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
         note,
         tags: parsedTags(),
         comments: nextComments,
+        priority,
+        dueDate,
+        label,
+        checklist,
       });
       setSavedStatus(true);
       setTimeout(() => setSavedStatus(false), 2000);

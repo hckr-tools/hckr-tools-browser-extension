@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './TimestampConverter.css';
 
 interface TimestampConverterProps {
@@ -238,6 +239,19 @@ const TimestampConverter: React.FC<TimestampConverterProps> = ({ initialInput })
   }, [inputValue, liveDate]);
 
   const activeDate = parsed.date;
+
+  useEffect(() => {
+    if (inputValue.trim() && parsed.date && !parsed.error) {
+      void recordToolUsage({
+        toolId: 'timestamp',
+        toolTitle: 'Timestamp Converter',
+        action: 'Convert Timestamp',
+        input: inputValue.trim(),
+        output: `${parsed.date.toISOString()} (${parsed.detectedFormat})`,
+        summary: `${parsed.detectedFormat} → ${parsed.date.toISOString()}`,
+      });
+    }
+  }, [inputValue, parsed.date, parsed.error, parsed.detectedFormat]);
 
   // Build output rows
   const outputRows = useMemo<OutputRow[]>(() => {

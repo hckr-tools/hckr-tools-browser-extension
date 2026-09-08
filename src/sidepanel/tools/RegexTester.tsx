@@ -3,6 +3,7 @@ import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
 import { MAX_REGEX_TEST_CHARS } from '../../shared/inputLimits';
 import { saveWorkspaceItem } from '../../shared/workspace';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './RegexTester.css';
 
 interface RegexTesterProps {
@@ -271,6 +272,20 @@ const RegexTester: React.FC<RegexTesterProps> = ({ initialInput }) => {
 
     return { matches: results, error: null, hitLimit: isHitLimit };
   }, [pattern, flagsString, testString, flags.g]);
+
+  useEffect(() => {
+    if (pattern.trim() && !error && matches.length > 0) {
+      void recordToolUsage({
+        toolId: 'regex-tester',
+        toolTitle: 'Regex Tester',
+        action: 'Test Regex',
+        input: `/${pattern}/${flagsString}\n\n${testString.slice(0, 500)}`,
+        output: `${matches.length} match(es) found`,
+        options: { pattern, flags: flagsString },
+        summary: `/${pattern}/${flagsString} (${matches.length} matches)`,
+      });
+    }
+  }, [pattern, flagsString, testString, matches.length, error]);
 
   // Compute text segments for highlighting
   const highlightedSegments = useMemo(() => {

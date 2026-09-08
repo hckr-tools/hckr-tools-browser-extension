@@ -7,6 +7,7 @@ import initParquet, {
 } from 'parquet-wasm/esm';
 import parquetWasmUrl from 'parquet-wasm/esm/parquet_wasm_bg.wasm?url';
 import { copyToClipboard } from '../../shared/clipboard';
+import { recordToolUsage } from '../../shared/toolHistory';
 import './DummyDataGenerator.css';
 
 type FieldKind =
@@ -980,9 +981,19 @@ export const DummyDataGenerator: React.FC<DataWorkspaceProps> = ({
       );
       return;
     }
-    setRows(generateRows(fields, Math.max(1, Math.min(MAX_ROWS, count))));
+    const numRows = Math.max(1, Math.min(MAX_ROWS, count));
+    const generated = generateRows(fields, numRows);
+    setRows(generated);
     setPage(0);
     setError(null);
+    void recordToolUsage({
+      toolId: 'dummy-data',
+      toolTitle: 'Data Generator',
+      action: 'Generate Data',
+      input: `Fields: ${fields.map((f) => f.name).join(', ')} (${numRows} rows)`,
+      output: JSON.stringify(generated.slice(0, 3), null, 2),
+      summary: `Generated ${numRows} rows · ${fields.length} fields`,
+    });
   };
   const outputText = useMemo(
     () =>

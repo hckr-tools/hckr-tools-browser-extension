@@ -187,6 +187,42 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(dialog).not.toBeVisible();
   });
 
+  test('views archived workspaces in settings dialog and restores them back to active', async ({ sidepanelPage }) => {
+    // 1. Create a workspace to archive
+    await sidepanelPage.getByRole('button', { name: 'New workspace' }).click();
+    const nameInput = sidepanelPage.getByRole('textbox', { name: 'Workspace name' });
+    await nameInput.fill('Temporary Project');
+    await sidepanelPage.getByRole('button', { name: 'Create' }).click();
+    await expect(sidepanelPage.locator('#workspace-heading')).toHaveText('Temporary Project');
+
+    // 2. Archive this workspace via the toolbar button
+    await sidepanelPage.getByRole('button', { name: 'Archive workspace' }).click();
+    await expect(sidepanelPage.locator('#workspace-heading')).not.toHaveText('Temporary Project');
+
+    // 3. Verify toolbar shows Archived button
+    const archivedBtn = sidepanelPage.locator('.btn-archived-workspaces');
+    await expect(archivedBtn).toBeVisible();
+    await expect(archivedBtn).toContainText('Archived (1)');
+
+    // 4. Click Archived button to open settings dialog
+    await archivedBtn.click();
+    const dialog = sidepanelPage.getByRole('dialog', { name: 'Workspace Settings' });
+    await expect(dialog).toBeVisible();
+
+    // 5. Verify Archived Workspaces section lists Temporary Project
+    const archivedItem = dialog.locator('.archived-workspace-item');
+    await expect(archivedItem).toContainText('Temporary Project');
+
+    // 6. Click Restore to active
+    const restoreBtn = archivedItem.getByRole('button', { name: /Restore to active/ });
+    await restoreBtn.click();
+
+    // 7. Close dialog and verify Temporary Project is restored and active
+    await dialog.getByRole('button', { name: 'Done' }).click();
+    await expect(sidepanelPage.locator('#workspace-heading')).toHaveText('Temporary Project');
+    await expect(sidepanelPage.locator('#workspace-select')).toContainText('Temporary Project');
+  });
+
   test('profile popover displays GitHub auth button with icon and last cloud sync status', async ({ sidepanelPage }) => {
     const profileBtn = sidepanelPage.locator('.profile-avatar-btn');
     await profileBtn.click();
