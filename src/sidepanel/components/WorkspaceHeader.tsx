@@ -7,29 +7,18 @@ import {
   setActiveWorkspace,
   type WorkspaceSnapshot,
 } from '../../shared/workspace';
-import { getSyncStatus } from '../../shared/cloudSync';
 import { WorkspaceSettingsModal } from './WorkspaceSettingsModal';
 import './WorkspaceHeader.css';
 
 interface WorkspaceHeaderProps {
   activeTool?: ToolTab;
-  onOpenCommandPalette: () => void;
+  onOpenCommandPalette?: () => void;
   cloudSyncEnabled?: boolean;
 }
 
-function formatSyncShort(isoString?: string): string {
-  if (!isoString) return 'explicit saves only';
-  const date = new Date(isoString);
-  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diffSec < 45) return 'Synced just now';
-  if (diffSec < 3600) return `Synced ${Math.floor(diffSec / 60)}m ago`;
-  return `Synced ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-}
-
-const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ activeTool, onOpenCommandPalette, cloudSyncEnabled = false }) => {
+const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ activeTool }) => {
   const [snapshot, setSnapshot] = useState<WorkspaceSnapshot | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [lastSyncAt, setLastSyncAt] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let mounted = true;
@@ -48,17 +37,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ activeTool, onOpenCom
       mounted = false;
       globalThis.removeEventListener('hckr-workspace-changed', listener);
     };
-  }, []);
-
-  useEffect(() => {
-    const updateSync = () => {
-      void getSyncStatus().then((status) => {
-        setLastSyncAt(status.lastSyncAt);
-      });
-    };
-    updateSync();
-    globalThis.addEventListener('hckr-cloud-sync-changed', updateSync);
-    return () => globalThis.removeEventListener('hckr-cloud-sync-changed', updateSync);
   }, []);
 
   const activeWorkspaces = snapshot?.workspaces.filter((ws) => !ws.archived) ?? [];
@@ -138,25 +116,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({ activeTool, onOpenCom
             <span className="workspace-tool-description">{activeTool.description}</span>
           </>
         )}
-      </div>
-      <div className="workspace-header-actions">
-        <span
-          className="workspace-privacy"
-          title={lastSyncAt ? `Last cloud sync: ${new Date(lastSyncAt).toLocaleString()}` : undefined}
-        >
-          <span className="workspace-privacy-dot" aria-hidden="true" />
-          {cloudSyncEnabled ? `Cloud Sync · ${formatSyncShort(lastSyncAt)}` : '100% local · zero telemetry'}
-        </span>
-        <button
-          className="workspace-command-trigger"
-          onClick={onOpenCommandPalette}
-          aria-label="Search tools"
-          title="Search tools (Cmd/Ctrl+Shift+K)"
-        >
-          <span aria-hidden="true">⌕</span>
-          <span>Search</span>
-          <kbd>⇧⌘K</kbd>
-        </button>
       </div>
 
       {snapshot && currentWorkspace && (

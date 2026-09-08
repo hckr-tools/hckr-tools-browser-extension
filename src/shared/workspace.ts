@@ -18,6 +18,9 @@ export interface WorkspaceColumn {
   workspaceId: string;
   name: string;
   position: number;
+  createdAt: string;
+  updatedAt: string;
+  revision: number;
 }
 
 export interface CardComment {
@@ -80,10 +83,25 @@ export interface CloudOutboxRecord {
   createdAt: string;
 }
 
+export interface CloudWorkspaceSnapshot {
+  workspaces: Workspace[];
+  columns: WorkspaceColumn[];
+  cards: WorkspaceCard[];
+  items: SavedItem[];
+  versions: SavedItemVersion[];
+}
+
 type StoreName = 'workspaces' | 'columns' | 'cards' | 'items' | 'versions' | 'outbox' | 'settings';
 const DB_NAME = 'hckr-workspaces-v1';
 const DB_VERSION = 1;
 const DEFAULT_COLUMNS = ['Inbox', 'Working', 'Review', 'Done'];
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.type === 'CLOUD_SYNC_COMPLETED') {
+    globalThis.dispatchEvent(new CustomEvent('hckr-workspace-changed'));
+    globalThis.dispatchEvent(new CustomEvent('hckr-cloud-sync-changed'));
+  }
+});
 
 function now(): string {
   return new Date().toISOString();
@@ -91,6 +109,19 @@ function now(): string {
 
 function id(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function compareFreshness(
+  left: Pick<Workspace | WorkspaceColumn | WorkspaceCard | SavedItem, 'revision' | 'updatedAt'>,
+  right: Pick<Workspace | WorkspaceColumn | WorkspaceCard | SavedItem, 'revision' | 'updatedAt'>,
+): number {
+  if (left.revision !== right.revision) return left.revision - right.revision;
+  return left.updatedAt.localeCompare(right.updatedAt);
+}
+
+function columnWithFreshness(column: WorkspaceColumn): WorkspaceColumn {
+  const timestamp = column.updatedAt ?? column.createdAt ?? new Date(0).toISOString();
+  return { ...column, createdAt: column.createdAt ?? timestamp, updatedAt: timestamp, revision: column.revision ?? 1 };
 }
 
 function request<T>(value: IDBRequest<T>): Promise<T> {
@@ -211,7 +242,7 @@ export async function ensureWorkspace(): Promise<WorkspaceSnapshot> {
     const db = await database();
     const transaction = db.transaction(['workspaces', 'columns', 'settings'], 'readwrite');
     transaction.objectStore('workspaces').put(workspace);
-    DEFAULT_COLUMNS.forEach((name, position) => transaction.objectStore('columns').put({ id: id('column'), workspaceId: workspace.id, name, position } satisfies WorkspaceColumn));
+    DEFAULT_COLUMNS.forEach((name, position) => transaction.objectStore('columns').put({ id: id('column'), workspaceId: workspace.id, name, position, createdAt, updatedAt: createdAt, revision: 1 } satisfies WorkspaceColumn));
     transaction.objectStore('settings').put({ id: 'active-workspace', value: workspace.id });
     await complete(transaction);
     await enqueue('workspace', 'upsert', workspace as unknown as Record<string, unknown>);
@@ -222,9 +253,10 @@ export async function ensureWorkspace(): Promise<WorkspaceSnapshot> {
 }
 
 export async function loadWorkspaceSnapshot(): Promise<WorkspaceSnapshot> {
-  const [workspaces, columns, cards, items, activeId] = await Promise.all([
+  const [workspaces, storedColumns, cards, items, activeId] = await Promise.all([
     values<Workspace>('workspaces'), values<WorkspaceColumn>('columns'), values<WorkspaceCard>('cards'), values<SavedItem>('items'), setting<string>('active-workspace'),
   ]);
+  const columns = storedColumns.map(columnWithFreshness);
   const activeWorkspaceId = activeId && workspaces.some((workspace) => workspace.id === activeId)
     ? activeId
     : workspaces.find((workspace) => !workspace.archived)?.id ?? workspaces[0]?.id ?? '';
@@ -272,7 +304,7 @@ export async function createWorkspace(name: string, key?: string): Promise<Works
   const db = await database();
   const transaction = db.transaction(['workspaces', 'columns', 'settings'], 'readwrite');
   transaction.objectStore('workspaces').put(workspace);
-  DEFAULT_COLUMNS.forEach((columnName, position) => transaction.objectStore('columns').put({ id: id('column'), workspaceId: workspace.id, name: columnName, position } satisfies WorkspaceColumn));
+  DEFAULT_COLUMNS.forEach((columnName, position) => transaction.objectStore('columns').put({ id: id('column'), workspaceId: workspace.id, name: columnName, position, createdAt, updatedAt: createdAt, revision: 1 } satisfies WorkspaceColumn));
   transaction.objectStore('settings').put({ id: 'active-workspace', value: workspace.id });
   await complete(transaction);
   await enqueue('workspace', 'upsert', workspace as unknown as Record<string, unknown>);
@@ -366,3 +398,45 @@ export async function listOutbox(): Promise<CloudOutboxRecord[]> { return values
 export async function removeOutbox(id: string): Promise<void> { await remove('outbox', id); }
 export async function saveCloudMetadata(value: Record<string, unknown>): Promise<void> { await saveSetting('cloud-sync', value); }
 export async function loadCloudMetadata(): Promise<Record<string, unknown> | null> { return setting<Record<string, unknown>>('cloud-sync'); }
+
+/**
+ * Merge a cloud snapshot without enqueuing the imported rows. The remote row wins
+ * ties so two browsers converge even when their clocks report the same instant.
+ */
+export async function applyCloudSnapshot(snapshot: CloudWorkspaceSnapshot): Promise<void> {
+  const db = await database();
+  const transaction = db.transaction(['workspaces', 'columns', 'cards', 'items', 'versions', 'outbox'], 'readwrite');
+  const remoteWinners = new Set<string>();
+
+  const merge = async <T extends { id: string; revision: number; updatedAt: string }>(store: StoreName, entity: CloudOutboxRecord['entity'], remoteRows: T[]): Promise<void> => {
+    const objectStore = transaction.objectStore(store);
+    for (const remote of remoteRows) {
+      const local = await request(objectStore.get(remote.id) as IDBRequest<T | undefined>);
+      if (!local || compareFreshness(remote, local) >= 0) {
+        objectStore.put(remote);
+        remoteWinners.add(`${entity}:${remote.id}`);
+      }
+    }
+  };
+
+  await merge('workspaces', 'workspace', snapshot.workspaces);
+  await merge('columns', 'board_columns', snapshot.columns.map(columnWithFreshness));
+  await merge('cards', 'board_cards', snapshot.cards);
+  await merge('items', 'saved_items', snapshot.items);
+
+  const versions = transaction.objectStore('versions');
+  for (const remote of snapshot.versions) {
+    const local = await request(versions.get(remote.id) as IDBRequest<SavedItemVersion | undefined>);
+    if (!local) versions.put(remote);
+  }
+
+  const outbox = transaction.objectStore('outbox');
+  const queued = await request(outbox.getAll() as IDBRequest<CloudOutboxRecord[]>);
+  for (const record of queued) {
+    const payloadId = typeof record.payload.id === 'string' ? record.payload.id : '';
+    if (record.operation === 'upsert' && remoteWinners.has(`${record.entity}:${payloadId}`)) outbox.delete(record.id);
+  }
+
+  await complete(transaction);
+  globalThis.dispatchEvent(new CustomEvent('hckr-workspace-changed'));
+}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { CardComment, WorkspaceCard, WorkspaceColumn } from '../../shared/workspace';
+import { formatRelativeTime } from '../../shared/cloudSync';
 import './WorkspaceCardDrawer.css';
 
 export interface WorkspaceCardDrawerProps {
@@ -382,13 +383,11 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
                           {comment.author ? comment.author[0].toUpperCase() : 'Y'}
                         </span>
                         <span className="card-comment-author">{comment.author || 'You'}</span>
-                        <span className="card-comment-time">
-                          {new Date(comment.createdAt).toLocaleString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                        <span
+                          className="card-comment-time"
+                          title={new Date(comment.createdAt).toLocaleString()}
+                        >
+                          {formatRelativeTime(comment.createdAt)}
                         </span>
                       </div>
                       <button
@@ -438,8 +437,20 @@ export const WorkspaceCardDrawer: React.FC<WorkspaceCardDrawerProps> = ({
 
           {card && (
             <div className="drawer-meta-info">
-              <div>Created: {new Date(card.createdAt).toLocaleString()}</div>
-              <div>Updated: {new Date(card.updatedAt).toLocaleString()}</div>
+              <div className="drawer-meta-item">
+                <span className="drawer-meta-label">Created:</span>
+                <span className="drawer-meta-value" title={new Date(card.createdAt).toLocaleString()}>
+                  {formatRelativeTime(card.createdAt)}{' '}
+                  <span className="drawer-meta-full">({new Date(card.createdAt).toLocaleString()})</span>
+                </span>
+              </div>
+              <div className="drawer-meta-item">
+                <span className="drawer-meta-label">Updated:</span>
+                <span className="drawer-meta-value" title={new Date(card.updatedAt).toLocaleString()}>
+                  {formatRelativeTime(card.updatedAt)}{' '}
+                  <span className="drawer-meta-full">({new Date(card.updatedAt).toLocaleString()})</span>
+                </span>
+              </div>
             </div>
           )}
         </div>

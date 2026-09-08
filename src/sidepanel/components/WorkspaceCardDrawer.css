@@ -242,13 +242,36 @@
 .drawer-meta-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 10px 14px;
   background: var(--surface-container);
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   font: 11px var(--font-mono);
   color: var(--text-muted);
+}
+
+.drawer-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drawer-meta-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  min-width: 60px;
+}
+
+.drawer-meta-value {
+  color: var(--text-primary);
+}
+
+.drawer-meta-full {
+  color: var(--text-muted);
+  font-size: 10.5px;
 }
 
 /* Comments Section */

@@ -8,6 +8,19 @@ import {
 import { flushCloudSync } from './shared/cloudSync';
 
 const APP_PATH = 'src/sidepanel/index.html';
+let cloudSyncInFlight: Promise<Awaited<ReturnType<typeof flushCloudSync>>> | null = null;
+
+function runCloudSync(): Promise<Awaited<ReturnType<typeof flushCloudSync>>> {
+  if (!cloudSyncInFlight) {
+    cloudSyncInFlight = flushCloudSync()
+      .then(async (status) => {
+        await chrome.runtime.sendMessage({ type: 'CLOUD_SYNC_COMPLETED' }).catch(() => undefined);
+        return status;
+      })
+      .finally(() => { cloudSyncInFlight = null; });
+  }
+  return cloudSyncInFlight;
+}
 
 /**
  * Open or focus the hckr full-page tab.
@@ -149,7 +162,7 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === 'FLUSH_CLOUD_SYNC') {
-    void flushCloudSync().then((status) => sendResponse({ success: true, status })).catch((error) => sendResponse({ success: false, error: String(error) }));
+    void runCloudSync().then((status) => sendResponse({ success: true, status })).catch((error) => sendResponse({ success: false, error: String(error) }));
     return true;
   }
   if (message.type === 'OPEN_TAB_SWITCHER') {
@@ -163,7 +176,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
 chrome.alarms?.create('hckr-cloud-sync', { periodInMinutes: 5 });
 chrome.alarms?.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'hckr-cloud-sync') void flushCloudSync();
+  if (alarm.name === 'hckr-cloud-sync') void runCloudSync();
 });
 
 /* ==========================================================================

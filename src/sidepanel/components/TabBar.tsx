@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getSyncStatus, signInWithGitHub, signOutCloudSync, flushCloudSync, type SyncStatus } from '../../shared/cloudSync';
+import { getSyncStatus, signInWithGitHub, signOutCloudSync, flushCloudSync, formatRelativeTime, type SyncStatus } from '../../shared/cloudSync';
 import { GitHubIcon, ToolIcon } from './ToolIcon';
 import './TabBar.css';
 
@@ -39,6 +39,7 @@ const TabBar: React.FC<TabBarProps> = ({
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({ configured: false, signedIn: false });
   const [signInError, setSignInError] = useState<string>();
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -128,13 +129,30 @@ const TabBar: React.FC<TabBarProps> = ({
           <button
             className="profile-avatar-btn"
             onClick={() => setShowProfile((v) => !v)}
-            title={syncStatus.signedIn ? `Signed in as ${syncStatus.email}` : 'Profile & Cloud Sync'}
+            title={
+              syncStatus.signedIn
+                ? `Signed in as ${syncStatus.displayName || syncStatus.userName || syncStatus.email}`
+                : 'Profile & Cloud Sync'
+            }
             aria-label="Profile & Cloud Sync"
             aria-expanded={showProfile}
           >
-            <span className="profile-avatar-glyph">
-              {syncStatus.signedIn && syncStatus.email ? syncStatus.email[0].toUpperCase() : '⚡'}
-            </span>
+            {syncStatus.signedIn && syncStatus.avatarUrl ? (
+              <img
+                src={syncStatus.avatarUrl}
+                alt=""
+                className="profile-avatar-img"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="profile-avatar-glyph">
+                {syncStatus.signedIn
+                  ? (syncStatus.displayName || syncStatus.userName || syncStatus.email || 'A')[0].toUpperCase()
+                  : '⚡'}
+              </span>
+            )}
             <span className={`profile-status-dot ${syncStatus.signedIn ? 'signed-in' : ''}`} />
           </button>
 
@@ -142,12 +160,43 @@ const TabBar: React.FC<TabBarProps> = ({
             <div className="profile-popover" role="dialog" aria-label="Profile and Cloud Sync">
               <div className="profile-popover-header">
                 <div className="profile-popover-avatar">
-                  {syncStatus.signedIn && syncStatus.email ? syncStatus.email[0].toUpperCase() : '⚡'}
+                  {syncStatus.signedIn && syncStatus.avatarUrl ? (
+                    <img
+                      src={syncStatus.avatarUrl}
+                      alt=""
+                      className="profile-popover-avatar-img"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span>
+                      {syncStatus.signedIn
+                        ? (syncStatus.displayName || syncStatus.userName || syncStatus.email || 'A')[0].toUpperCase()
+                        : '⚡'}
+                    </span>
+                  )}
                 </div>
                 <div className="profile-popover-user">
-                  <span className="profile-popover-name">
-                    {syncStatus.signedIn && syncStatus.email ? syncStatus.email : 'Developer Account'}
-                  </span>
+                  <div className="profile-user-name-row">
+                    <span className="profile-popover-name">
+                      {syncStatus.signedIn
+                        ? syncStatus.displayName || syncStatus.userName || syncStatus.email
+                        : 'Developer Account'}
+                    </span>
+                    {syncStatus.signedIn && syncStatus.userName && (
+                      <a
+                        href={`https://github.com/${syncStatus.userName}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="profile-github-link"
+                        title={`View @${syncStatus.userName} on GitHub`}
+                        aria-label={`View @${syncStatus.userName} on GitHub`}
+                      >
+                        @{syncStatus.userName} ↗
+                      </a>
+                    )}
+                  </div>
                   <span className={`profile-popover-badge ${syncStatus.signedIn ? 'signed-in' : ''}`}>
                     {syncStatus.signedIn ? (
                       <>
@@ -193,12 +242,7 @@ const TabBar: React.FC<TabBarProps> = ({
                     <span className="profile-sync-time">
                       {syncStatus.signedIn
                         ? syncStatus.lastSyncAt
-                          ? new Date(syncStatus.lastSyncAt).toLocaleString([], {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
+                          ? `Synced ${formatRelativeTime(syncStatus.lastSyncAt)} (${new Date(syncStatus.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
                           : 'Not synced yet'
                         : 'Local only'}
                     </span>
@@ -206,7 +250,9 @@ const TabBar: React.FC<TabBarProps> = ({
                 </div>
 
                 {(signInError ?? syncStatus.error) && (
-                  <p className="profile-popover-error error-msg">{signInError ?? syncStatus.error}</p>
+                  <div className="profile-popover-error error-msg">
+                    <span>{signInError ?? syncStatus.error}</span>
+                  </div>
                 )}
               </div>
 
@@ -215,17 +261,25 @@ const TabBar: React.FC<TabBarProps> = ({
                   <>
                     <button
                       className="btn btn-sm btn-primary"
+                      disabled={isSyncing}
                       onClick={async () => {
-                        await flushCloudSync();
-                        const status = await getSyncStatus();
-                        setSyncStatus(status);
+                        setIsSyncing(true);
+                        setSignInError(undefined);
+                        try {
+                          await flushCloudSync();
+                        } finally {
+                          const status = await getSyncStatus();
+                          setSyncStatus(status);
+                          setIsSyncing(false);
+                        }
                       }}
                     >
-                      Sync now
+                      {isSyncing ? 'Syncing…' : 'Sync now'}
                     </button>
                     <button
                       className="btn btn-sm"
                       onClick={async () => {
+                        setSignInError(undefined);
                         await signOutCloudSync();
                         const status = await getSyncStatus();
                         setSyncStatus(status);
@@ -264,12 +318,32 @@ const TabBar: React.FC<TabBarProps> = ({
           className="status-indicator"
           title={
             cloudSyncEnabled || syncStatus.signedIn
-              ? 'Explicitly saved workspace content syncs to your private cloud account.'
+              ? syncStatus.error
+                ? `Sync error: ${syncStatus.error}`
+                : syncStatus.lastSyncAt
+                  ? `Last cloud sync: ${new Date(syncStatus.lastSyncAt).toLocaleString()}`
+                  : 'Cloud Sync active · Private storage'
               : 'Runs fully locally. No data leaves this browser.'
           }
         >
-          <span className="status-dot" />
-          <span className="status-label">{cloudSyncEnabled || syncStatus.signedIn ? 'Cloud Sync on' : 'Local only'}</span>
+          <span
+            className={`status-dot ${
+              syncStatus.error
+                ? 'error'
+                : cloudSyncEnabled || syncStatus.signedIn
+                  ? 'active'
+                  : ''
+            }`}
+          />
+          <span className="status-label">
+            {cloudSyncEnabled || syncStatus.signedIn
+              ? syncStatus.error
+                ? 'Sync error'
+                : syncStatus.lastSyncAt
+                  ? `Synced ${formatRelativeTime(syncStatus.lastSyncAt)}`
+                  : 'Not synced yet'
+              : 'Local only'}
+          </span>
         </span>
         <button
           className="theme-toggle-btn"

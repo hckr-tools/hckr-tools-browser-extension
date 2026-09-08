@@ -34,8 +34,6 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(sidepanelPage.locator('button.theme-toggle-btn')).toBeVisible();
     await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Workspace', 'Transform', 'Create', 'View', 'Inspect', 'Browser']);
     await expect(sidepanelPage.locator('.workspace-header')).toContainText('Workspace');
-    await expect(sidepanelPage.locator('.workspace-header')).toContainText('Workspace');
-    await expect(sidepanelPage.locator('.workspace-privacy')).toContainText('100% local');
   });
 
   test('switches tools when clicking tabs', async ({ sidepanelPage }) => {
