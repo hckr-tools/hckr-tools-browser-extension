@@ -1,7 +1,7 @@
 import React from 'react';
 import './TabBar.css';
 
-export type ToolCategory = 'Transform' | 'Create' | 'View' | 'Inspect' | 'Browser';
+export type ToolCategory = 'Workspace' | 'Transform' | 'Create' | 'View' | 'Inspect' | 'Browser';
 
 export interface ToolTab {
   id: string;
@@ -19,11 +19,12 @@ interface TabBarProps {
   onOpenCommandPalette: () => void;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  cloudSyncEnabled?: boolean;
 }
 
-const CATEGORIES: ToolCategory[] = ['Transform', 'Create', 'View', 'Inspect', 'Browser'];
+const CATEGORIES: ToolCategory[] = ['Workspace', 'Transform', 'Create', 'View', 'Inspect', 'Browser'];
 
-const TabBar: React.FC<TabBarProps> = ({ tools, activeToolId, onSelectTool, onOpenCommandPalette, theme, onToggleTheme }) => (
+const TabBar: React.FC<TabBarProps> = ({ tools, activeToolId, onSelectTool, onOpenCommandPalette, theme, onToggleTheme, cloudSyncEnabled = false }) => (
   <aside className="tab-bar">
     <div className="tab-bar-brand">
       <div className="brand-logo"><span className="brand-icon">↯</span><span className="brand-title">hckr-tools</span></div>
@@ -44,7 +45,7 @@ const TabBar: React.FC<TabBarProps> = ({ tools, activeToolId, onSelectTool, onOp
       })}
     </nav>
     <div className="tab-bar-actions">
-      <span className="status-indicator" title="Runs fully locally. No data leaves this browser."><span className="status-dot" /> <span className="status-label">Local only</span></span>
+      <span className="status-indicator" title={cloudSyncEnabled ? 'Explicitly saved workspace content syncs to your private cloud account.' : 'Runs fully locally. No data leaves this browser.'}><span className="status-dot" /> <span className="status-label">{cloudSyncEnabled ? 'Cloud Sync on' : 'Local only'}</span></span>
       <button className="theme-toggle-btn" onClick={onToggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`} aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}><span aria-hidden="true">{theme === 'dark' ? '☀' : '◐'}</span></button>
     </div>
   </aside>

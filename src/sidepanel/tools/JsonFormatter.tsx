@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
+import { saveWorkspaceItem } from '../../shared/workspace';
 import './JsonFormatter.css';
 
 interface JsonFormatterProps {
@@ -565,6 +566,9 @@ const JsonFormatter: React.FC<JsonFormatterProps> = ({ initialInput }) => {
               title="Copy formatted output to clipboard"
             >
               Copy Output
+            </button>
+            <button className="btn btn-sm" onClick={() => void saveWorkspaceItem({ type: 'json', title: 'JSON snippet', content: formattedJson })} disabled={parsedData === null} title="Explicitly save formatted JSON to the active workspace">
+              Save to workspace
             </button>
           </div>
         </div>

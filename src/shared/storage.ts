@@ -26,7 +26,7 @@ export async function loadPreferences(): Promise<HckrPreferences> {
   const result = await chrome.storage.local.get(PREFS_KEY);
   return (
     result[PREFS_KEY] ?? {
-      activeToolId: 'json-formatter',
+      activeToolId: 'workspace',
       pinnedTools: [],
       toolHistory: {},
       theme: 'dark',

@@ -25,7 +25,9 @@
     "contextMenus",
     "tabs",
     "history",
-    "activeTab"
+    "activeTab",
+    "identity",
+    "alarms"
   ],
   "commands": {
     "_execute_action": {

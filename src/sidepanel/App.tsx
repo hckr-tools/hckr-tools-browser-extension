@@ -5,6 +5,7 @@ import ToolCommandPalette from './components/ToolCommandPalette';
 import WorkspaceHeader from './components/WorkspaceHeader';
 import { loadPreferences, savePreferences, getPendingInput } from '../shared/storage';
 import { isOpenTabSwitcherHotkey } from '../shared/browserTabs';
+import { getSyncStatus } from '../shared/cloudSync';
 import './App.css';
 
 // Lazy-load all tools for fast initial load
@@ -26,8 +27,10 @@ const DataFileReader = lazy(async () => {
 const DiffChecker = lazy(() => import('./tools/DiffChecker'));
 const MarkdownPreview = lazy(() => import('./tools/MarkdownPreview'));
 const TabsNavigator = lazy(() => import('./tools/TabsNavigator'));
+const WorkspaceTool = lazy(() => import('./tools/Workspace'));
 
 const TOOLS: ToolTab[] = [
+  { id: 'workspace', label: 'Workspace', icon: '▤', category: 'Workspace', description: 'Organize tabs, notes, and saved developer context' },
   { id: 'json-formatter', label: 'JSON', icon: '{ }', category: 'Transform', description: 'Format, validate, and inspect JSON' },
   { id: 'yaml-json', label: 'YAML', icon: 'Y↦', category: 'Transform', description: 'Convert YAML and JSON locally' },
   { id: 'base64', label: 'Base64', icon: '↔', category: 'Transform', description: 'Encode and decode Base64 data' },
@@ -46,6 +49,7 @@ const TOOLS: ToolTab[] = [
 ];
 
 const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initialInput?: string }>>> = {
+  workspace: WorkspaceTool,
   'json-formatter': JsonFormatter,
   'yaml-json': YamlJsonConverter,
   'base64': Base64Tool,
@@ -64,12 +68,13 @@ const TOOL_COMPONENTS: Record<string, React.LazyExoticComponent<React.FC<{ initi
 };
 
 const App: React.FC = () => {
-  const [activeToolId, setActiveToolId] = useState('json-formatter');
+  const [activeToolId, setActiveToolId] = useState('workspace');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [initialInput, setInitialInput] = useState<string | undefined>(undefined);
   const [isLoaded, setIsLoaded] = useState(false);
   const [tabSwitcherOpen, setTabSwitcherOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
 
   // Load saved active tool and theme on mount
   useEffect(() => {
@@ -81,6 +86,13 @@ const App: React.FC = () => {
       document.documentElement.setAttribute('data-theme', initialTheme);
       setIsLoaded(true);
     })();
+  }, []);
+
+  useEffect(() => {
+    const refreshSync = () => { void getSyncStatus().then((status) => setCloudSyncEnabled(status.signedIn)); };
+    refreshSync();
+    globalThis.addEventListener('hckr-cloud-sync-changed', refreshSync);
+    return () => globalThis.removeEventListener('hckr-cloud-sync-changed', refreshSync);
   }, []);
 
   // Check for pending input from context menu or content script
@@ -162,9 +174,10 @@ const App: React.FC = () => {
         onOpenCommandPalette={() => setCommandPaletteOpen(true)}
         theme={theme}
         onToggleTheme={handleToggleTheme}
+        cloudSyncEnabled={cloudSyncEnabled}
       />
       <main className="tool-content">
-        <WorkspaceHeader activeTool={activeTool} onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
+        <WorkspaceHeader activeTool={activeTool} onOpenCommandPalette={() => setCommandPaletteOpen(true)} cloudSyncEnabled={cloudSyncEnabled} />
         <div className="tool-container-inner">
           <Suspense fallback={<div className="tool-loading">Loading tool...</div>}>
             {ActiveComponent && <ActiveComponent initialInput={initialInput} />}

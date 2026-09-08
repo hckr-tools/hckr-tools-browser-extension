@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
+import { saveWorkspaceItem } from '../../shared/workspace';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
 import './DiffChecker.css';
 
@@ -421,6 +422,9 @@ export const DiffChecker: React.FC<DiffCheckerProps> = ({ initialInput }) => {
             title="Clear all inputs and diff"
           >
             Clear
+          </button>
+          <button type="button" className="btn" disabled={!originalText && !modifiedText} onClick={() => void saveWorkspaceItem({ type: 'diff', title: 'Text comparison', content: JSON.stringify({ original: originalText, modified: modifiedText }, null, 2) })}>
+            Save to workspace
           </button>
         </div>
       </div>

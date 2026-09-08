@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { copyToClipboard } from '../../shared/clipboard';
 import { saveToolState, loadToolState } from '../../shared/storage';
 import { exceedsLiveTextLimit, MAX_LIVE_TEXT_CHARS } from '../../shared/inputLimits';
+import { saveWorkspaceItem } from '../../shared/workspace';
 import './MarkdownPreview.css';
 
 export interface MarkdownPreviewProps {
@@ -622,6 +623,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ initialInput }) => {
               title="Clear editor contents"
             >
               Clear
+            </button>
+            <button type="button" className="btn btn-sm" onClick={() => void saveWorkspaceItem({ type: 'markdown', title: 'Markdown note', content: markdown })} disabled={!markdown}>
+              Save to workspace
             </button>
           </div>
         </div>

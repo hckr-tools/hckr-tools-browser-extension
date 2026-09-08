@@ -5,6 +5,7 @@ import {
   MAX_HISTORY_PER_WINDOW,
   saveTabHistory,
 } from './shared/tabHistory';
+import { flushCloudSync } from './shared/cloudSync';
 
 const APP_PATH = 'src/sidepanel/index.html';
 
@@ -148,6 +149,10 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
 
 // Handle messages from content script widget -> open/focus full tab with data
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'FLUSH_CLOUD_SYNC') {
+    void flushCloudSync().then((status) => sendResponse({ success: true, status })).catch((error) => sendResponse({ success: false, error: String(error) }));
+    return true;
+  }
   if (message.type === 'SEND_TO_TOOL') {
     (async () => {
       await openOrFocusAppTab(message.toolId, message.text);
@@ -163,6 +168,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     })();
     return true;
   }
+});
+
+chrome.alarms?.create('hckr-cloud-sync', { periodInMinutes: 5 });
+chrome.alarms?.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'hckr-cloud-sync') void flushCloudSync();
 });
 
 /* ==========================================================================

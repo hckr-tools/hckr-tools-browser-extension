@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { copyToClipboard } from '../../shared/clipboard';
 import { loadToolState, saveToolState } from '../../shared/storage';
 import { MAX_REGEX_TEST_CHARS } from '../../shared/inputLimits';
+import { saveWorkspaceItem } from '../../shared/workspace';
 import './RegexTester.css';
 
 interface RegexTesterProps {
@@ -476,6 +477,9 @@ const RegexTester: React.FC<RegexTesterProps> = ({ initialInput }) => {
               title="Clear all fields"
             >
               Clear
+            </button>
+            <button type="button" className="btn btn-sm" disabled={!pattern} onClick={() => void saveWorkspaceItem({ type: 'regex', title: 'Regex pattern', content: JSON.stringify({ pattern, flags: flagsString, testText: testString }, null, 2) })} title="Explicitly save this pattern and test text to the active workspace">
+              Save to workspace
             </button>
           </div>
         </div>

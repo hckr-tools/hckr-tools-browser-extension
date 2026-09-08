@@ -1,13 +1,14 @@
 import { test, expect } from './fixtures';
 
 test.describe('Navigation & Storage Persistence', () => {
-  test('renders all 15 tool tabs in TabBar', async ({ sidepanelPage }) => {
+  test('renders all 16 tool tabs in TabBar', async ({ sidepanelPage }) => {
     const tabs = sidepanelPage.locator('.tab-item');
-    await expect(tabs).toHaveCount(15);
+    await expect(tabs).toHaveCount(16);
     await expect(sidepanelPage.locator('.app')).toHaveCSS('flex-direction', 'row');
     await expect(sidepanelPage.locator('aside.tab-bar')).toHaveCSS('flex-direction', 'column');
 
     const expectedLabels = [
+      'Workspace',
       'JSON',
       'YAML',
       'Base64',
@@ -31,15 +32,18 @@ test.describe('Navigation & Storage Persistence', () => {
 
     await expect(sidepanelPage.locator('.status-indicator')).toContainText('Local only');
     await expect(sidepanelPage.locator('button.theme-toggle-btn')).toBeVisible();
-    await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Transform', 'Create', 'View', 'Inspect', 'Browser']);
+    await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Workspace', 'Transform', 'Create', 'View', 'Inspect', 'Browser']);
     await expect(sidepanelPage.locator('.workspace-header')).toContainText('Workspace');
-    await expect(sidepanelPage.locator('.workspace-header')).toContainText('JSON');
+    await expect(sidepanelPage.locator('.workspace-header')).toContainText('Workspace');
     await expect(sidepanelPage.locator('.workspace-privacy')).toContainText('100% local');
   });
 
   test('switches tools when clicking tabs', async ({ sidepanelPage }) => {
-    // Default active tab is JSON
-    await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('JSON');
+    // New profiles start in Workspace; existing active tool preferences are retained.
+    await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('Workspace');
+    await expect(sidepanelPage.locator('.workspace-tool')).toBeVisible();
+
+    await sidepanelPage.locator('.tab-item', { hasText: 'JSON', exact: true }).click();
     await expect(sidepanelPage.locator('.json-formatter')).toBeVisible();
 
     // Click Base64 tab
@@ -70,6 +74,35 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(sidepanelPage.locator('.tabs-navigator')).toContainText('Ctrl');
   });
 
+  test('creates, moves, and saves explicit workspace context', async ({ sidepanelPage }) => {
+    await expect(sidepanelPage.locator('.workspace-tool')).toBeVisible();
+    await sidepanelPage.locator('.workspace-bottom-grid input').first().fill('Investigate callback');
+    await sidepanelPage.locator('.workspace-bottom-grid input').nth(1).fill('https://example.test/callback');
+    await sidepanelPage.getByRole('button', { name: 'Add to Inbox' }).click();
+    const inbox = sidepanelPage.locator('.workspace-column', { hasText: 'Inbox' });
+    await expect(inbox.getByText('Investigate callback')).toBeVisible();
+    await inbox.getByRole('button', { name: '→' }).click();
+    const working = sidepanelPage.locator('.workspace-column', { hasText: 'Working' });
+    await expect(working.getByText('Investigate callback')).toBeVisible();
+
+    const savedContext = sidepanelPage.locator('.workspace-bottom-grid .section').nth(1);
+    await savedContext.locator('input').fill('Callback notes');
+    await savedContext.locator('textarea').fill('Only manually saved text belongs in Cloud Sync.');
+    await savedContext.getByRole('button', { name: 'Save context' }).click();
+    await expect(savedContext.getByText('Callback notes')).toBeVisible();
+  });
+
+  test('saves formatted JSON only after an explicit workspace action', async ({ sidepanelPage }) => {
+    await sidepanelPage.locator('.tab-item', { hasText: 'JSON', exact: true }).click();
+    await sidepanelPage.locator('textarea.json-textarea').fill('{"workspace":true}');
+    const saveButton = sidepanelPage.getByRole('button', { name: 'Save to workspace' });
+    await expect(saveButton).toBeEnabled();
+    await saveButton.click();
+    await sidepanelPage.locator('.tab-item', { hasText: 'Workspace', exact: true }).click();
+    await expect(sidepanelPage.locator('.workspace-items')).toContainText('JSON snippet');
+    await expect(sidepanelPage.locator('.workspace-items')).toContainText('"workspace": true');
+  });
+
   test('opens the tool command palette with Control+Shift+K and switches tools', async ({ sidepanelPage }) => {
     await sidepanelPage.keyboard.press('Control+Shift+k');
     const palette = sidepanelPage.getByRole('dialog', { name: 'Search developer tools' });
@@ -87,9 +120,9 @@ test.describe('Navigation & Storage Persistence', () => {
 
   test('uses an accessible compact rail below the responsive breakpoint', async ({ sidepanelPage }) => {
     await sidepanelPage.setViewportSize({ width: 860, height: 700 });
-    await expect(sidepanelPage.getByRole('button', { name: 'Search tools' })).toBeVisible();
+    await expect(sidepanelPage.locator('.tool-search-trigger')).toBeVisible();
     await expect(sidepanelPage.locator('.tab-label').first()).toBeHidden();
-    await expect(sidepanelPage.locator('.tab-item').first()).toHaveAttribute('title', /JSON/);
+    await expect(sidepanelPage.locator('.tab-item').first()).toHaveAttribute('title', /Workspace/);
   });
 
   test('opens the tab switcher with Control+K, filters tabs, and closes with Escape', async ({

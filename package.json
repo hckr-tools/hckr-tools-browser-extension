@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
-    "build": "tsc && vite build && cp public/manifest.json dist/ && cp src/content/widget.css dist/content/",
+    "build": "tsc && vite build && node scripts/copy-manifest.mjs",
     "clean": "rm -rf dist hckr-tools-browser-extension.zip",
     "lint": "tsc --noEmit",
     "test:e2e": "playwright test",
