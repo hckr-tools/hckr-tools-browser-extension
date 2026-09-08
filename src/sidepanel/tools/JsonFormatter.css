@@ -3,7 +3,7 @@
 .json-formatter {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   height: 100%;
 }
 
@@ -29,12 +29,11 @@
 .json-section-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 600;
+  gap: 6px;
+  font: 500 10px var(--font-mono);
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
 }
 
 .json-input-wrapper {
@@ -64,22 +63,22 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  min-height: 20px;
+  padding: 2px 6px;
   border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 500;
+  font: 500 10px var(--font-mono);
 }
 
 .json-status-badge.valid {
-  background: rgba(34, 197, 94, 0.15);
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
   color: var(--success);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  border: 1px solid color-mix(in srgb, var(--success) 42%, var(--border));
 }
 
 .json-status-badge.invalid {
-  background: rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--error) 10%, var(--surface));
   color: var(--error);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid color-mix(in srgb, var(--error) 42%, var(--border));
 }
 
 .json-status-badge.empty {
@@ -92,12 +91,12 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 8px 12px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid var(--error);
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--error) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--error) 48%, var(--border));
   border-radius: var(--radius-sm);
   color: var(--error);
-  font-size: 12px;
+  font: 11px var(--font-mono);
   line-height: 1.4;
 }
 
@@ -132,35 +131,36 @@
   display: flex;
   flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--bg-input);
   overflow: hidden;
   min-height: 200px;
-  max-height: 380px;
+  max-height: none;
 }
 
 .json-output-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  background: var(--bg-secondary);
+  min-height: var(--panel-header-height);
+  padding: 5px 8px;
+  background: var(--surface-container);
   border-bottom: 1px solid var(--border);
-  font-size: 11px;
+  font: 10px var(--font-mono);
 }
 
 .json-output-stats {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   color: var(--text-muted);
-  font-size: 11px;
+  font: 10px var(--font-mono);
 }
 
 .json-output-content {
   overflow: auto;
   flex: 1;
-  padding: 8px 0;
+  padding: 5px 0;
 }
 
 /* Code View Styling */
@@ -200,34 +200,34 @@
 
 /* Syntax Highlighting Tokens */
 .json-tok-key {
-  color: #38bdf8;
+  color: var(--syntax-key);
   font-weight: 500;
 }
 
 .json-tok-string {
-  color: #4ade80;
+  color: var(--syntax-string);
 }
 
 .json-tok-number {
-  color: #fbbf24;
+  color: var(--syntax-number);
 }
 
 .json-tok-boolean {
-  color: #c084fc;
+  color: var(--syntax-boolean);
   font-weight: 600;
 }
 
 .json-tok-null {
-  color: #f87171;
+  color: var(--syntax-null);
   font-weight: 600;
 }
 
 .json-tok-punct {
-  color: #a1a1aa;
+  color: var(--text-secondary);
 }
 
 .json-tok-colon {
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-right: 4px;
 }
 
@@ -236,7 +236,7 @@
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.5;
-  padding: 4px 12px;
+  padding: 4px 8px;
 }
 
 .json-tree-node {
@@ -246,7 +246,8 @@
 .json-tree-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  min-height: 24px;
   padding: 2px 4px;
   border-radius: var(--radius-sm);
   cursor: default;
@@ -254,7 +255,7 @@
 }
 
 .json-tree-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
 }
 
 .json-tree-toggle {
@@ -284,20 +285,21 @@
 }
 
 .json-tree-key {
-  color: #38bdf8;
+  color: var(--syntax-key);
   cursor: pointer;
 }
 
 .json-tree-colon {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .json-tree-count-badge {
   display: inline-flex;
   align-items: center;
   padding: 0 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  background: var(--surface-container);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 10px;
   color: var(--text-muted);
   margin-left: 4px;
@@ -310,7 +312,7 @@
 }
 
 .json-tree-children {
-  border-left: 1px dashed rgba(255, 255, 255, 0.12);
+  border-left: 1px solid var(--border);
   margin-left: 7px;
   padding-left: 12px;
 }
@@ -342,6 +344,22 @@
   color: var(--accent);
   background: var(--bg-secondary);
 }
+
+.json-tree-type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin-left: 3px;
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-container);
+  color: var(--text-muted);
+  font: 500 9px/1 var(--font-mono);
+}
+.json-tree-type.string { border-color: color-mix(in srgb, var(--success) 38%, var(--border)); color: var(--success); }
+.json-tree-type.number { border-color: color-mix(in srgb, var(--warning) 42%, var(--border)); color: var(--warning); }
+.json-tree-type.boolean { border-color: color-mix(in srgb, var(--accent) 42%, var(--border)); color: var(--accent); }
 
 /* Empty placeholder */
 .json-empty-output {

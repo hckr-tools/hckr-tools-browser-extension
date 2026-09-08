@@ -32,6 +32,9 @@ test.describe('Navigation & Storage Persistence', () => {
     await expect(sidepanelPage.locator('.status-indicator')).toContainText('Local only');
     await expect(sidepanelPage.locator('button.theme-toggle-btn')).toBeVisible();
     await expect(sidepanelPage.locator('.tool-nav-heading')).toHaveText(['Transform', 'Create', 'View', 'Inspect', 'Browser']);
+    await expect(sidepanelPage.locator('.workspace-header')).toContainText('Workspace');
+    await expect(sidepanelPage.locator('.workspace-header')).toContainText('JSON');
+    await expect(sidepanelPage.locator('.workspace-privacy')).toContainText('100% local');
   });
 
   test('switches tools when clicking tabs', async ({ sidepanelPage }) => {
@@ -44,6 +47,7 @@ test.describe('Navigation & Storage Persistence', () => {
     await base64Tab.click();
     await expect(sidepanelPage.locator('.tab-item.active .tab-label')).toHaveText('Base64');
     await expect(sidepanelPage.locator('.base64-tool')).toBeVisible();
+    await expect(sidepanelPage.locator('.workspace-header h1')).toHaveText('Base64');
 
     // Click UUID tab
     const uuidTab = sidepanelPage.locator('.tab-item', { hasText: 'UUID' });

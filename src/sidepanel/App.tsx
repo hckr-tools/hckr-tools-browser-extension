@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import TabBar, { ToolTab } from './components/TabBar';
 import TabSwitcher from './components/TabSwitcher';
 import ToolCommandPalette from './components/ToolCommandPalette';
+import WorkspaceHeader from './components/WorkspaceHeader';
 import { loadPreferences, savePreferences, getPendingInput } from '../shared/storage';
 import { isOpenTabSwitcherHotkey } from '../shared/browserTabs';
 import './App.css';
@@ -142,6 +143,7 @@ const App: React.FC = () => {
   }, []);
 
   const ActiveComponent = TOOL_COMPONENTS[activeToolId];
+  const activeTool = TOOLS.find((tool) => tool.id === activeToolId);
 
   if (!isLoaded) {
     return (
@@ -162,6 +164,7 @@ const App: React.FC = () => {
         onToggleTheme={handleToggleTheme}
       />
       <main className="tool-content">
+        <WorkspaceHeader activeTool={activeTool} onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
         <div className="tool-container-inner">
           <Suspense fallback={<div className="tool-loading">Loading tool...</div>}>
             {ActiveComponent && <ActiveComponent initialInput={initialInput} />}

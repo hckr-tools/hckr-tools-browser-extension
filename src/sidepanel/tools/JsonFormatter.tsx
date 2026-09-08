@@ -14,6 +14,13 @@ interface ParseError {
   column?: number;
 }
 
+function jsonValueKind(value: unknown): string {
+  if (Array.isArray(value)) return `array[${value.length}]`;
+  if (value === null) return 'null';
+  if (typeof value === 'object') return `object[${Object.keys(value as Record<string, unknown>).length}]`;
+  return typeof value;
+}
+
 const TOOL_ID = 'json-formatter';
 
 const SAMPLE_JSON = `{
@@ -192,6 +199,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           </>
         )}
         {valueDisplay}
+        <span className={`json-tree-type ${typeof data}`}>{jsonValueKind(data)}</span>
         {!isLast && <span className="json-tok-punct">,</span>}
         <div className="json-tree-actions">
           <button
@@ -234,6 +242,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           </>
         )}
         <span className="json-tok-punct">{openBracket}</span>
+        <span className="json-tree-type object-type">{jsonValueKind(data)}</span>
         {isCollapsed ? (
           <>
             <span className="json-tree-count-badge">
