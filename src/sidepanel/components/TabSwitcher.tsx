@@ -221,18 +221,61 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
         aria-labelledby="tab-switcher-title"
         onKeyDownCapture={handleKeyDown}
       >
+        <div className="tab-switcher-brand-bar">
+          <div className="tab-switcher-brand-left">
+            <div className="tab-switcher-brand-tile" aria-hidden="true">
+              <span className="tab-switcher-brand-icon">#</span>
+            </div>
+            <div className="tab-switcher-brand-text">
+              <span className="tab-switcher-brand-title">hckr-tools</span>
+              <span className="tab-switcher-brand-sep">/</span>
+              <span className="tab-switcher-brand-subtitle">Quick Switcher</span>
+            </div>
+          </div>
+          <div className="tab-switcher-brand-right">
+            <span className="tab-switcher-tab-count">
+              {tabs.length} {tabs.length === 1 ? 'tab' : 'tabs'}
+            </span>
+            <button
+              className="tab-switcher-close-btn"
+              onClick={onClose}
+              title="Close (Esc)"
+              aria-label="Close tab switcher"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
         <div className="tab-switcher-header">
           <h2 id="tab-switcher-title" className="tab-switcher-sr-only">hckr-tools tab switcher</h2>
-          <input
-            ref={inputRef}
-            className="tab-switcher-input"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search open tabs…"
-            aria-label="Search open tabs"
-            autoComplete="off"
-          />
+          <div className="tab-switcher-search-wrap">
+            <span className="tab-switcher-search-icon" aria-hidden="true">⌕</span>
+            <input
+              ref={inputRef}
+              className="tab-switcher-input"
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search open tabs or history… (↑↓ to navigate)"
+              aria-label="Search open tabs"
+              autoComplete="off"
+            />
+            {query && (
+              <button
+                className="tab-switcher-clear-btn"
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  inputRef.current?.focus();
+                }}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {error && <p className="tab-switcher-empty" role="alert">{error}</p>}
@@ -300,10 +343,15 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
         </div>
 
         <div className="tab-switcher-hint">
-          <span><span className="tab-switcher-hint-key">1–9</span> Jump</span>
-          <span><span className="tab-switcher-hint-key">↑↓</span> Select</span>
-          <span><span className="tab-switcher-hint-key">↵</span> Open</span>
-          <span><span className="tab-switcher-hint-key">esc</span> Close</span>
+          <div className="tab-switcher-hint-keys">
+            <span><span className="tab-switcher-hint-key">1–9</span> Jump</span>
+            <span><span className="tab-switcher-hint-key">↑↓</span> Select</span>
+            <span><span className="tab-switcher-hint-key">↵</span> Open</span>
+            <span><span className="tab-switcher-hint-key">esc</span> Close</span>
+          </div>
+          <span className="tab-switcher-hint-count">
+            {searchResults.length} {searchResults.length === 1 ? 'tab' : 'tabs'}
+          </span>
         </div>
       </div>
     </div>

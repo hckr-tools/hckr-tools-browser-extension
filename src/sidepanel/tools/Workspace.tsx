@@ -272,8 +272,9 @@ const WorkspaceTool: React.FC = () => {
               setSelectMode(!selectMode);
               if (selectMode) setSelectedCardIds(new Set());
             }}
+            title={selectMode ? 'Exit multi-select mode' : 'Select multiple cards for bulk actions'}
           >
-            {selectMode ? 'Cancel Select' : 'Select'}
+            {selectMode ? '✓ Done Selecting' : '☑ Multi-Select'}
           </button>
           <button
             className="btn btn-primary"
@@ -356,43 +357,85 @@ const WorkspaceTool: React.FC = () => {
 
       {activeView === 'board' && (
         <div className="workspace-filter-bar">
-          <input
-            placeholder="Search cards..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value as any)}>
-            <option value="">All Priorities</option>
-            <option value="p0">P0</option>
-            <option value="p1">P1</option>
-            <option value="p2">P2</option>
-            <option value="p3">P3</option>
-            <option value="none">No priority</option>
-          </select>
-          <select value={filterLabel} onChange={(e) => setFilterLabel(e.target.value as any)}>
-            <option value="">All Labels</option>
-            <option value="bug">Bug</option>
-            <option value="feature">Feature</option>
-            <option value="tech-debt">Tech Debt</option>
-            <option value="research">Research</option>
-            <option value="improvement">Improvement</option>
-            <option value="blocked">Blocked</option>
-            <option value="none">No label</option>
-          </select>
-          <select value={filterDue} onChange={(e) => setFilterDue(e.target.value as any)}>
-            <option value="">All Dates</option>
-            <option value="overdue">Overdue</option>
-            <option value="today">Due today</option>
-            <option value="this-week">Due this week</option>
-            <option value="none">No due date</option>
-          </select>
+          <div className="workspace-search-wrap">
+            <span className="workspace-search-icon" aria-hidden="true">⌕</span>
+            <input
+              className="workspace-search-input"
+              placeholder="Search cards by title, tag, or notes…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                className="workspace-search-clear-btn"
+                type="button"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <div className="workspace-filter-selects">
+            <select
+              className={`workspace-filter-select ${filterPriority ? 'active' : ''}`}
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value as any)}
+              aria-label="Filter by priority"
+            >
+              <option value="">⚡ All Priorities</option>
+              <option value="p0">🔴 P0 Critical</option>
+              <option value="p1">🟠 P1 High</option>
+              <option value="p2">🟡 P2 Medium</option>
+              <option value="p3">⚪ P3 Low</option>
+              <option value="none">∅ No priority</option>
+            </select>
+            <select
+              className={`workspace-filter-select ${filterLabel ? 'active' : ''}`}
+              value={filterLabel}
+              onChange={(e) => setFilterLabel(e.target.value as any)}
+              aria-label="Filter by label"
+            >
+              <option value="">🏷️ All Labels</option>
+              <option value="bug">🔴 Bug</option>
+              <option value="feature">🔵 Feature</option>
+              <option value="tech-debt">🟡 Tech Debt</option>
+              <option value="research">🟢 Research</option>
+              <option value="improvement">🟣 Improvement</option>
+              <option value="blocked">⚫ Blocked</option>
+              <option value="none">∅ No label</option>
+            </select>
+            <select
+              className={`workspace-filter-select ${filterDue ? 'active' : ''}`}
+              value={filterDue}
+              onChange={(e) => setFilterDue(e.target.value as any)}
+              aria-label="Filter by due date"
+            >
+              <option value="">📅 All Dates</option>
+              <option value="overdue">⚠️ Overdue</option>
+              <option value="today">📅 Due today</option>
+              <option value="this-week">🗓️ Due this week</option>
+              <option value="none">∅ No due date</option>
+            </select>
+            {(searchQuery || filterPriority || filterLabel || filterDue) && (
+              <button
+                className="workspace-filter-clear"
+                onClick={() => {
+                  setSearchQuery('');
+                  setFilterPriority('');
+                  setFilterLabel('');
+                  setFilterDue('');
+                }}
+              >
+                ✕ Clear filters
+              </button>
+            )}
+          </div>
           {(searchQuery || filterPriority || filterLabel || filterDue) && (
-            <button className="workspace-filter-clear" onClick={() => {
-              setSearchQuery('');
-              setFilterPriority('');
-              setFilterLabel('');
-              setFilterDue('');
-            }}>Clear filters</button>
+            <span className="workspace-filter-stats">
+              {filteredCards.length} of {cards.length} cards
+            </span>
           )}
         </div>
       )}
@@ -439,20 +482,61 @@ const WorkspaceTool: React.FC = () => {
                       autoFocus
                     />
                   ) : (
-                    <h2 onDoubleClick={() => {
-                      setEditingColumnId(column.id);
-                      setEditingColumnName(column.name);
-                    }}>
-                      {column.name}
+                    <h2
+                      onDoubleClick={() => {
+                        setEditingColumnId(column.id);
+                        setEditingColumnName(column.name);
+                      }}
+                      title="Double-click to rename column"
+                    >
+                      <span className="column-title-text">{column.name}</span>
                       <span className="column-count">{columnCards.length}</span>
                     </h2>
                   )}
                   <div className="column-actions">
-                    {colIdx > 0 && <button className="column-reorder-btn" onClick={() => handleReorderColumn(column.id, 'left')} title="Move left">◀</button>}
-                    {colIdx < columns.length - 1 && <button className="column-reorder-btn" onClick={() => handleReorderColumn(column.id, 'right')} title="Move right">▶</button>}
-                    {columnCards.length === 0 && <button className="column-delete-btn" onClick={() => handleDeleteColumn(column)} title="Delete column">×</button>}
                     <button
-                      className="column-add-btn"
+                      className="column-action-btn column-edit-btn"
+                      onClick={() => {
+                        setEditingColumnId(column.id);
+                        setEditingColumnName(column.name);
+                      }}
+                      title={`Rename ${column.name}`}
+                      aria-label={`Rename ${column.name}`}
+                    >
+                      ✎
+                    </button>
+                    {colIdx > 0 && (
+                      <button
+                        className="column-action-btn column-reorder-btn"
+                        onClick={() => handleReorderColumn(column.id, 'left')}
+                        title="Move column left"
+                        aria-label="Move column left"
+                      >
+                        ◀
+                      </button>
+                    )}
+                    {colIdx < columns.length - 1 && (
+                      <button
+                        className="column-action-btn column-reorder-btn"
+                        onClick={() => handleReorderColumn(column.id, 'right')}
+                        title="Move column right"
+                        aria-label="Move column right"
+                      >
+                        ▶
+                      </button>
+                    )}
+                    {columnCards.length === 0 && (
+                      <button
+                        className="column-action-btn column-delete-btn"
+                        onClick={() => handleDeleteColumn(column)}
+                        title="Delete empty column"
+                        aria-label="Delete empty column"
+                      >
+                        ×
+                      </button>
+                    )}
+                    <button
+                      className="column-action-btn column-add-btn"
                       onClick={() => handleNewCard(column.id)}
                       title={`Add card to ${column.name}`}
                       aria-label={`Add card to ${column.name}`}
@@ -609,8 +693,17 @@ const WorkspaceTool: React.FC = () => {
                               </span>
                             )}
                             {progress.total > 0 && (
-                              <span className="workspace-card-checklist-progress">
-                                {progress.done}/{progress.total} ✓
+                              <span
+                                className="workspace-card-checklist-progress"
+                                title={`${progress.done} of ${progress.total} checklist items completed`}
+                              >
+                                <span className="checklist-mini-bar" aria-hidden="true">
+                                  <span
+                                    className="checklist-mini-fill"
+                                    style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                                  />
+                                </span>
+                                <span>{progress.done}/{progress.total} ✓</span>
                               </span>
                             )}
                           </div>
@@ -638,9 +731,14 @@ const WorkspaceTool: React.FC = () => {
 
           {addingColumn ? (
             <div className="column-add-form">
+              <div className="column-add-form-header">
+                <span className="column-add-form-title">New column</span>
+                <span className="column-add-hint">↵ Save</span>
+              </div>
               <input
                 autoFocus
-                placeholder="Column name"
+                className="column-add-input"
+                placeholder="Column name (e.g. In Review)"
                 value={newColumnName}
                 onChange={(e) => setNewColumnName(e.target.value)}
                 onKeyDown={(e) => {
@@ -648,8 +746,14 @@ const WorkspaceTool: React.FC = () => {
                   if (e.key === 'Escape') setAddingColumn(false);
                 }}
               />
-              <button className="btn btn-primary" onClick={handleAddColumn}>Add</button>
-              <button className="btn" onClick={() => setAddingColumn(false)}>Cancel</button>
+              <div className="column-add-actions">
+                <button className="btn btn-sm btn-primary" onClick={handleAddColumn}>
+                  Add
+                </button>
+                <button className="btn btn-sm" onClick={() => setAddingColumn(false)}>
+                  Cancel
+                </button>
+              </div>
             </div>
           ) : (
             <button className="workspace-add-column" onClick={() => setAddingColumn(true)}>
@@ -711,32 +815,51 @@ const WorkspaceTool: React.FC = () => {
       )}
 
       {selectMode && selectedCardIds.size > 0 && (
-        <div className="workspace-bulk-bar">
-          <span>{selectedCardIds.size} card{selectedCardIds.size !== 1 ? 's' : ''} selected</span>
-          <select onChange={handleBulkMove} defaultValue="">
-            <option value="" disabled>Move to...</option>
-            {columns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select onChange={handleBulkLabel} defaultValue="">
-            <option value="" disabled>Set label...</option>
-            <option value="bug">Bug</option>
-            <option value="feature">Feature</option>
-            <option value="tech-debt">Tech Debt</option>
-            <option value="research">Research</option>
-            <option value="improvement">Improvement</option>
-            <option value="blocked">Blocked</option>
-            <option value="none">Clear label</option>
-          </select>
-          <select onChange={handleBulkPriority} defaultValue="">
-            <option value="" disabled>Set priority...</option>
-            <option value="p0">P0 Critical</option>
-            <option value="p1">P1 High</option>
-            <option value="p2">P2 Medium</option>
-            <option value="p3">P3 Low</option>
-            <option value="none">Clear priority</option>
-          </select>
-          <button className="btn" onClick={handleBulkArchive}>Archive</button>
-          <button className="btn" onClick={() => setSelectedCardIds(new Set())}>Deselect all</button>
+        <div className="workspace-bulk-bar" role="toolbar" aria-label="Bulk actions">
+          <div className="workspace-bulk-count-wrap">
+            <span className="workspace-bulk-badge">{selectedCardIds.size}</span>
+            <span className="workspace-bulk-count-label">
+              {selectedCardIds.size === 1 ? 'card' : 'cards'} selected
+            </span>
+          </div>
+          <div className="workspace-bulk-controls">
+            <select className="workspace-bulk-select" onChange={handleBulkMove} defaultValue="">
+              <option value="" disabled>Move to column…</option>
+              {columns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  → {c.name}
+                </option>
+              ))}
+            </select>
+            <select className="workspace-bulk-select" onChange={handleBulkLabel} defaultValue="">
+              <option value="" disabled>Set label…</option>
+              <option value="bug">🔴 Bug</option>
+              <option value="feature">🔵 Feature</option>
+              <option value="tech-debt">🟡 Tech Debt</option>
+              <option value="research">🟢 Research</option>
+              <option value="improvement">🟣 Improvement</option>
+              <option value="blocked">⚫ Blocked</option>
+              <option value="none">∅ Clear label</option>
+            </select>
+            <select className="workspace-bulk-select" onChange={handleBulkPriority} defaultValue="">
+              <option value="" disabled>Set priority…</option>
+              <option value="p0">🔴 P0 Critical</option>
+              <option value="p1">🟠 P1 High</option>
+              <option value="p2">🟡 P2 Medium</option>
+              <option value="p3">⚪ P3 Low</option>
+              <option value="none">∅ Clear priority</option>
+            </select>
+            <button className="btn btn-sm btn-danger" onClick={handleBulkArchive} title="Archive selected cards">
+              Archive
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => setSelectedCardIds(new Set())}
+              title="Deselect all selected cards"
+            >
+              Deselect all
+            </button>
+          </div>
         </div>
       )}
 

@@ -473,59 +473,77 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .drawer-priority-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: var(--radius-sm);
   background: var(--surface-container);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font: 11px var(--font-sans);
+  font: 600 11px var(--font-sans);
   cursor: pointer;
   transition: all var(--transition);
 }
 
 .drawer-priority-btn:hover {
   background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .drawer-priority-btn.active {
-  /* Dynamic styles injected via style prop for background/border/color */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  font-weight: 700;
 }
 
 /* Due Date */
 .drawer-due-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .drawer-due-input {
-  font-size: 13px;
-  padding: 4px 8px;
+  font: 12px var(--font-mono);
+  padding: 5px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface-sunken);
   color: var(--text-primary);
-  font-family: inherit;
-  color-scheme: dark; /* Or matching theme */
+  color-scheme: inherit;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.drawer-due-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
 
 .drawer-due-status {
   font: 600 11px var(--font-mono);
   color: var(--text-secondary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface-container);
 }
 
 .drawer-due-status.overdue {
   color: var(--error);
+  background: color-mix(in srgb, var(--error) 12%, var(--surface));
+  font-weight: 700;
 }
 
 .drawer-due-status.today {
   color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  font-weight: 700;
 }
 
 /* Label Selector */
@@ -549,10 +567,11 @@
 
 .drawer-label-pill:hover {
   filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .drawer-label-pill.active {
-  /* Dynamic styles injected via style prop */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Checklist */
@@ -563,11 +582,12 @@
 }
 
 .drawer-checklist-progress {
-  font: 600 10px var(--font-mono);
-  padding: 1px 7px;
+  font: 700 10px var(--font-mono);
+  padding: 2px 8px;
   border-radius: 9999px;
   background: var(--surface-container);
   color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .drawer-checklist-section {
@@ -581,17 +601,27 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  transition: border-color var(--transition);
+}
+
+.drawer-checklist-item:hover {
+  border-color: var(--border-strong);
 }
 
 .drawer-checklist-item input[type="checkbox"] {
   cursor: pointer;
+  accent-color: var(--accent);
 }
 
 .drawer-checklist-item span {
   flex: 1;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--text-primary);
+  line-height: 1.4;
 }
 
 .drawer-checklist-item.checked span {
@@ -611,7 +641,7 @@
   border-radius: 3px;
   cursor: pointer;
   font-size: 11px;
-  opacity: 0.5;
+  opacity: 0.6;
   transition: all var(--transition);
 }
 
@@ -623,17 +653,19 @@
 
 .drawer-checklist-add {
   margin-top: 4px;
-  font-size: 13px;
-  padding: 6px 8px;
-  border: 1px dashed var(--border);
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-primary);
   width: 100%;
+  outline: none;
+  transition: border-color var(--transition), background var(--transition);
 }
 
 .drawer-checklist-add:focus {
-  outline: none;
   border-color: var(--border-focus);
   background: var(--surface-sunken);
+  box-shadow: 0 0 0 2px var(--accent-dim);
 }
