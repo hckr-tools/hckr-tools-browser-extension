@@ -7,6 +7,7 @@ import {
 } from '../../shared/toolHistory';
 import { formatRelativeTime } from '../../shared/cloudSync';
 import { copyToClipboard } from '../../shared/clipboard';
+import { saveWorkspaceItem } from '../../shared/workspace';
 import { ToolIcon } from './ToolIcon';
 import './ToolHistoryModal.css';
 
@@ -14,7 +15,9 @@ interface ToolHistoryModalProps {
   open: boolean;
   onClose: () => void;
   initialToolId?: string;
-  onRestore: (entry: ToolHistoryEntry) => void;
+  activeToolId?: string;
+  activeToolTitle?: string;
+  onRestore: (entry: ToolHistoryEntry, customContent?: string, targetToolId?: string) => void;
   cloudSyncEnabled?: boolean;
 }
 
@@ -22,6 +25,8 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
   open,
   onClose,
   initialToolId,
+  activeToolId,
+  activeToolTitle,
   onRestore,
   cloudSyncEnabled,
 }) => {
@@ -30,6 +35,12 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2200);
+  };
 
   const refreshEntries = useCallback(async () => {
     const list = await listToolHistory(undefined, 200);
@@ -94,7 +105,22 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
   const handleCopy = async (id: string, text: string) => {
     await copyToClipboard(text);
     setCopiedId(id);
+    showToast('✓ Copied to clipboard');
     setTimeout(() => setCopiedId(null), 1800);
+  };
+
+  const handleSaveToWorkspace = async (entry: ToolHistoryEntry, content: string) => {
+    try {
+      await saveWorkspaceItem({
+        type: 'text',
+        title: `${entry.toolTitle}: ${entry.action}`,
+        content,
+      });
+      showToast('✓ Saved snippet to Workspace');
+    } catch (err) {
+      console.error('Failed to save to workspace:', err);
+      showToast('Failed to save to workspace');
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -124,6 +150,7 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
   return (
     <div className="tool-history-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="tool-history-modal" role="dialog" aria-modal="true" aria-label="Tool Usage History">
+        {toastMessage && <div className="tool-history-toast" role="status">{toastMessage}</div>}
         {/* Header */}
         <header className="tool-history-header">
           <div className="tool-history-header-left">
@@ -262,12 +289,35 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Preview snippets */}
+                    {/* Preview snippets with quick reuse actions */}
                     <div className="tool-history-snippets">
                       <div className="tool-history-snippet-section">
                         <div className="tool-history-snippet-label-row">
-                          <span className="tool-history-snippet-label">Input</span>
-                          <span className="tool-history-char-count">{entry.input.length} chars</span>
+                          <div className="tool-history-snippet-label-left">
+                            <span className="tool-history-snippet-label">Input</span>
+                            <span className="tool-history-char-count">{entry.input.length} chars</span>
+                          </div>
+                          <div className="tool-history-snippet-quick-actions">
+                            <button
+                              type="button"
+                              className="btn-snippet-action"
+                              onClick={() => {
+                                onRestore(entry, entry.input, entry.toolId);
+                                onClose();
+                              }}
+                              title={`Reuse this input in ${entry.toolTitle}`}
+                            >
+                              ↩ Use
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-snippet-action"
+                              onClick={() => void handleCopy(entry.id, entry.input)}
+                              title="Copy input"
+                            >
+                              {isCopied ? '✓ Copied' : '📋 Copy'}
+                            </button>
+                          </div>
                         </div>
                         <pre className={`tool-history-snippet-pre ${isExpanded ? 'expanded' : ''}`}>
                           <code>{entry.input}</code>
@@ -277,8 +327,31 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
                       {hasOutput && entry.output && (
                         <div className="tool-history-snippet-section">
                           <div className="tool-history-snippet-label-row">
-                            <span className="tool-history-snippet-label">Output</span>
-                            <span className="tool-history-char-count">{entry.output.length} chars</span>
+                            <div className="tool-history-snippet-label-left">
+                              <span className="tool-history-snippet-label">Output</span>
+                              <span className="tool-history-char-count">{entry.output.length} chars</span>
+                            </div>
+                            <div className="tool-history-snippet-quick-actions">
+                              <button
+                                type="button"
+                                className="btn-snippet-action"
+                                onClick={() => {
+                                  onRestore(entry, entry.output!, entry.toolId);
+                                  onClose();
+                                }}
+                                title={`Reuse this output in ${entry.toolTitle}`}
+                              >
+                                ↩ Use Output
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-snippet-action"
+                                onClick={() => void handleCopy(`${entry.id}-out`, entry.output!)}
+                                title="Copy output"
+                              >
+                                {copiedId === `${entry.id}-out` ? '✓ Copied' : '📋 Copy'}
+                              </button>
+                            </div>
                           </div>
                           <pre className={`tool-history-snippet-pre ${isExpanded ? 'expanded' : ''}`}>
                             <code>{entry.output}</code>
@@ -287,19 +360,53 @@ export const ToolHistoryModal: React.FC<ToolHistoryModalProps> = ({
                       )}
                     </div>
 
-                    {/* Actions */}
+                    {/* Full Card Actions */}
                     <div className="tool-history-card-footer">
                       <div className="tool-history-footer-left">
                         <button
                           type="button"
                           className="btn btn-sm btn-primary tool-history-restore-btn"
                           onClick={() => {
-                            onRestore(entry);
+                            onRestore(entry, entry.input, entry.toolId);
                             onClose();
                           }}
-                          title={`Open ${entry.toolTitle} with this input`}
+                          title={`Open ${entry.toolTitle} and load this input`}
                         >
-                          ↩ Restore in {entry.toolTitle}
+                          ↩ Reuse in {entry.toolTitle}
+                        </button>
+                        {hasOutput && entry.output && (
+                          <button
+                            type="button"
+                            className="btn btn-sm tool-history-restore-output-btn"
+                            onClick={() => {
+                              onRestore(entry, entry.output!, entry.toolId);
+                              onClose();
+                            }}
+                            title={`Open ${entry.toolTitle} and load this output`}
+                          >
+                            ↩ Reuse Output
+                          </button>
+                        )}
+                        {activeToolId && activeToolId !== entry.toolId && activeToolId !== 'workspace' && (
+                          <button
+                            type="button"
+                            className="btn btn-sm tool-history-insert-btn"
+                            onClick={() => {
+                              onRestore(entry, entry.output || entry.input, activeToolId);
+                              onClose();
+                            }}
+                            title={`Insert into currently open ${activeToolTitle || 'tool'}`}
+                          >
+                            ⤵ Insert into {activeToolTitle || 'Current Tool'}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn-sm tool-history-workspace-btn"
+                          onClick={() => void handleSaveToWorkspace(entry, entry.output || entry.input)}
+                          title="Save this snippet into active Workspace Context"
+                        >
+                          ⚡ Save to Workspace
                         </button>
                         <button
                           type="button"

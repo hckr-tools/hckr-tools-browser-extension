@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { filterTabs, jumpToTab, listWindowTabs, type BrowserTab } from '../../shared/browserTabs';
+import {
+  closeDuplicateTabs,
+  filterTabs,
+  findDuplicateTabIds,
+  jumpToTab,
+  listWindowTabs,
+  type BrowserTab,
+} from '../../shared/browserTabs';
 import TabFavicon from '../components/TabFavicon';
 import './TabsNavigator.css';
 
@@ -7,7 +14,9 @@ const TabsNavigator: React.FC = () => {
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isClosingDuplicates, setIsClosingDuplicates] = useState(false);
 
   const loadTabs = useCallback(async (showLoading = true) => {
     if (showLoading) {
@@ -62,6 +71,36 @@ const TabsNavigator: React.FC = () => {
   }, [loadTabs]);
 
   const filteredTabs = useMemo(() => filterTabs(tabs, query), [query, tabs]);
+  const duplicateTabIds = useMemo(() => findDuplicateTabIds(tabs), [tabs]);
+  const duplicateIdSet = useMemo(() => new Set(duplicateTabIds), [duplicateTabIds]);
+
+  useEffect(() => {
+    if (!statusMessage) {
+      return;
+    }
+    const timer = window.setTimeout(() => setStatusMessage(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [statusMessage]);
+
+  const handleCloseDuplicates = useCallback(async () => {
+    if (duplicateTabIds.length === 0 || isClosingDuplicates) {
+      return;
+    }
+    setIsClosingDuplicates(true);
+    setStatusMessage(null);
+    setError(null);
+
+    try {
+      const closed = await closeDuplicateTabs(duplicateTabIds);
+      setStatusMessage(`Closed ${closed} duplicate ${closed === 1 ? 'tab' : 'tabs'}.`);
+      await loadTabs(false);
+    } catch (err) {
+      console.error('Failed to close duplicate tabs:', err);
+      setError('Failed to close duplicate tabs. Try refreshing.');
+    } finally {
+      setIsClosingDuplicates(false);
+    }
+  }, [duplicateTabIds, isClosingDuplicates, loadTabs]);
 
   return (
     <section className="tabs-navigator" aria-labelledby="tabs-heading">
@@ -94,11 +133,26 @@ const TabsNavigator: React.FC = () => {
             ? `${filteredTabs.length} of ${tabs.length}`
             : `${tabs.length} ${tabs.length === 1 ? 'tab' : 'tabs'}`}
         </p>
-        <button className="tabs-refresh-button" onClick={() => void loadTabs(true)} disabled={isLoading}>
+        <button
+          className="tabs-close-duplicates-button"
+          onClick={() => void handleCloseDuplicates()}
+          disabled={isLoading || isClosingDuplicates || duplicateTabIds.length === 0}
+          title={
+            duplicateTabIds.length > 0
+              ? `Close ${duplicateTabIds.length} duplicate ${duplicateTabIds.length === 1 ? 'tab' : 'tabs'}`
+              : 'No duplicate tabs found'
+          }
+        >
+          {isClosingDuplicates
+            ? 'Closing…'
+            : `Close duplicates${duplicateTabIds.length > 0 ? ` (${duplicateTabIds.length})` : ''}`}
+        </button>
+        <button className="tabs-refresh-button" onClick={() => void loadTabs(true)} disabled={isLoading || isClosingDuplicates}>
           {isLoading ? 'Loading…' : 'Refresh'}
         </button>
       </div>
 
+      {statusMessage && <p className="tabs-message tabs-success" role="status">{statusMessage}</p>}
       {error && <p className="tabs-message tabs-error" role="alert">{error}</p>}
 
       {!error && !isLoading && tabs.length === 0 && (
@@ -124,6 +178,7 @@ const TabsNavigator: React.FC = () => {
               <span className="browser-tab-title">{tab.title}</span>
               <span className="browser-tab-url">{tab.location || tab.url}</span>
             </span>
+            {duplicateIdSet.has(tab.id) && <span className="browser-tab-duplicate">Duplicate</span>}
             {tab.active && <span className="browser-tab-current">Current</span>}
           </button>
         ))}
@@ -133,3 +188,4 @@ const TabsNavigator: React.FC = () => {
 };
 
 export default TabsNavigator;
+

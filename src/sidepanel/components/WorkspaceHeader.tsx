@@ -14,16 +14,12 @@ interface WorkspaceHeaderProps {
   activeTool?: ToolTab;
   onOpenCommandPalette?: () => void;
   cloudSyncEnabled?: boolean;
-  toolTabMode?: 'tool' | 'history';
-  onSelectToolTabMode?: (mode: 'tool' | 'history') => void;
   historyCount?: number;
   onOpenHistoryModal?: () => void;
 }
 
 const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   activeTool,
-  toolTabMode = 'tool',
-  onSelectToolTabMode,
   historyCount,
   onOpenHistoryModal,
 }) => {
@@ -120,26 +116,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
         ) : (
           <div className="workspace-tool-title-group">
             <h1>{activeTool?.label ?? 'Buffer'}</h1>
-            <div className="tool-view-toggle" role="tablist" aria-label="Tool view">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={toolTabMode === 'tool'}
-                className={`tool-view-tab ${toolTabMode === 'tool' ? 'active' : ''}`}
-                onClick={() => onSelectToolTabMode?.('tool')}
-              >
-                {activeTool?.label ?? 'Tool'}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={toolTabMode === 'history'}
-                className={`tool-view-tab ${toolTabMode === 'history' ? 'active' : ''}`}
-                onClick={() => onSelectToolTabMode?.('history')}
-              >
-                🕒 History {historyCount !== undefined && historyCount > 0 ? `(${historyCount})` : ''}
-              </button>
-            </div>
           </div>
         )}
         {activeTool && (
@@ -156,10 +132,13 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             type="button"
             className="workspace-history-shortcut-btn"
             onClick={onOpenHistoryModal}
-            title="View all tools usage history"
+            title="View all tools usage history and reuse past inputs/outputs"
             aria-label="All tools history"
           >
-            🕒 All History
+            <span>🕒 All History</span>
+            {historyCount !== undefined && historyCount > 0 && (
+              <span className="workspace-history-badge">{historyCount}</span>
+            )}
           </button>
         )}
       </div>

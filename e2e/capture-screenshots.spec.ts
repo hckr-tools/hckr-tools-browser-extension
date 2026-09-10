@@ -6,12 +6,13 @@ const OUTPUT_DIR = '/Users/ashishpatel/pateash/hckr-tools.github.io/static/img/s
 
 test.describe('Generate Tool Screenshots', () => {
   test('Capture screenshots of all sidepanel tools', async ({ sidepanelPage }) => {
-    test.setTimeout(120000);
+    test.setTimeout(180000);
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    await sidepanelPage.setViewportSize({ width: 480, height: 750 });
+    // Full desktop style viewport width & height
+    await sidepanelPage.setViewportSize({ width: 1200, height: 750 });
 
     const capture = async (name: string) => {
-      await sidepanelPage.waitForTimeout(400);
+      await sidepanelPage.waitForTimeout(500);
       await sidepanelPage.screenshot({
         path: path.join(OUTPUT_DIR, `${name}.png`),
         fullPage: false,
@@ -137,6 +138,11 @@ test.describe('Generate Tool Screenshots', () => {
     // 11. Dummy Data
     await sidepanelPage.locator('.tab-item', { hasText: 'Data' }).click();
     await expect(sidepanelPage.locator('.dummy-data-tool')).toBeVisible();
+    const genBtn = sidepanelPage.locator('.data-generate-actions button', { hasText: 'Generate' });
+    if (await genBtn.isVisible()) {
+      await genBtn.click();
+      await sidepanelPage.waitForTimeout(400);
+    }
     await capture('dummy-data');
 
     // 12. Regex Tester

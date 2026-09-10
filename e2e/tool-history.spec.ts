@@ -1,16 +1,10 @@
 import { test, expect } from './fixtures';
 
 test.describe('Tool Usage History & Cloud Sync', () => {
-  test('records JSON formatting in tool history tab and restores it into editor', async ({ sidepanelPage }) => {
+  test('records JSON formatting in history and restores it into editor via All History modal', async ({ sidepanelPage }) => {
     // Navigate to JSON formatter
     const jsonTab = sidepanelPage.locator('.tab-item', { hasText: 'JSON' });
     await jsonTab.click();
-
-    // Verify view toggle is visible in header: [JSON] and [History]
-    const toolTab = sidepanelPage.getByRole('tab', { name: 'JSON', exact: true });
-    const historyTab = sidepanelPage.getByRole('tab', { name: /History/ });
-    await expect(toolTab).toBeVisible();
-    await expect(historyTab).toBeVisible();
 
     // Click Sample button to load and format JSON
     await sidepanelPage.getByRole('button', { name: 'Sample' }).click();
@@ -19,42 +13,37 @@ test.describe('Tool Usage History & Cloud Sync', () => {
     // Click Format button
     await sidepanelPage.getByRole('button', { name: 'Format', exact: true }).click();
 
-    // Verify history tab now displays count
-    await expect(historyTab).toContainText('History');
+    // Verify All History shortcut button in header
+    const allHistoryBtn = sidepanelPage.getByRole('button', { name: 'All tools history' });
+    await expect(allHistoryBtn).toBeVisible();
 
-    // Click on the History tab
-    await historyTab.click();
-    await expect(historyTab).toHaveAttribute('aria-selected', 'true');
+    // Open All History modal
+    await allHistoryBtn.click();
+    const modal = sidepanelPage.locator('.tool-history-modal');
+    await expect(modal).toBeVisible();
 
-    // History content should be displayed
-    const historyView = sidepanelPage.locator('.tool-history-tab');
-    await expect(historyView).toBeVisible();
-
-    const historyCard = historyView.locator('.tool-history-tab-card').first();
+    // History card should be displayed
+    const historyCard = modal.locator('.tool-history-card').first();
     await expect(historyCard).toBeVisible();
     await expect(historyCard).toContainText('Format JSON');
-    await expect(historyCard).toContainText('just now');
 
     // Test search filter
-    const searchInput = historyView.locator('.tool-history-tab-search-input');
+    const searchInput = modal.locator('.tool-history-search-input');
     await searchInput.fill('hckr extension');
     await expect(historyCard).toBeVisible();
 
     // Test restore button
-    const restoreBtn = historyCard.locator('.tab-card-restore-btn');
+    const restoreBtn = historyCard.locator('.tool-history-restore-btn');
     await restoreBtn.click();
 
-    // Should switch back to tool editor tab
-    await expect(toolTab).toHaveAttribute('aria-selected', 'true');
+    // Should close modal and populate JSON editor
+    await expect(modal).not.toBeVisible();
     await expect(sidepanelPage.locator('.json-textarea')).toHaveValue(/hckr extension/);
   });
 
-  test('records YAML/JSON conversion history in its dedicated history tab', async ({ sidepanelPage }) => {
+  test('records YAML/JSON conversion history and allows reusing output in editor', async ({ sidepanelPage }) => {
     // Navigate to YAML tool
     await sidepanelPage.locator('.tab-item', { hasText: 'YAML' }).click();
-
-    const historyTab = sidepanelPage.getByRole('tab', { name: /History/ });
-    await expect(historyTab).toBeVisible();
 
     // Load sample YAML
     await sidepanelPage.getByRole('button', { name: 'Sample' }).click();
@@ -62,15 +51,28 @@ test.describe('Tool Usage History & Cloud Sync', () => {
     // Wait briefly for debounced recordToolUsage
     await sidepanelPage.waitForTimeout(400);
 
-    // Switch to History tab
-    await historyTab.click();
-    const historyCard = sidepanelPage.locator('.tool-history-tab-card').first();
+    // Open All History modal
+    const allHistoryBtn = sidepanelPage.getByRole('button', { name: 'All tools history' });
+    await allHistoryBtn.click();
+
+    const modal = sidepanelPage.locator('.tool-history-modal');
+    await expect(modal).toBeVisible();
+
+    const historyCard = modal.locator('.tool-history-card').first();
     await expect(historyCard).toBeVisible();
     await expect(historyCard).toContainText('YAML → JSON');
     await expect(historyCard).toContainText('hckr-api');
+
+    // Test reuse output button
+    const reuseOutputBtn = historyCard.locator('.tool-history-restore-output-btn');
+    await expect(reuseOutputBtn).toBeVisible();
+    await reuseOutputBtn.click();
+
+    // Should close modal upon restore
+    await expect(modal).not.toBeVisible();
   });
 
-  test('opens global All History modal and filters by tool', async ({ sidepanelPage }) => {
+  test('opens All History modal, filters by tool, and supports saving to workspace and copying', async ({ sidepanelPage }) => {
     // Navigate to JSON and format sample
     await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
     await sidepanelPage.getByRole('button', { name: 'Sample' }).click();
@@ -92,7 +94,17 @@ test.describe('Tool Usage History & Cloud Sync', () => {
     // Search in modal
     const modalSearch = modal.locator('.tool-history-search-input');
     await modalSearch.fill('hckr');
-    await expect(modal.locator('.tool-history-card').first()).toBeVisible();
+    const firstCard = modal.locator('.tool-history-card').first();
+    await expect(firstCard).toBeVisible();
+
+    // Test Save to Workspace button
+    const saveWsBtn = firstCard.locator('.tool-history-workspace-btn');
+    await expect(saveWsBtn).toBeVisible();
+    await saveWsBtn.click();
+
+    // Toast notification should appear
+    await expect(modal.locator('.tool-history-toast')).toBeVisible();
+    await expect(modal.locator('.tool-history-toast')).toContainText(/Saved snippet to Workspace/i);
 
     // Close modal via Close button
     await modal.locator('.tool-history-close-btn').click();
@@ -154,13 +166,15 @@ test.describe('Tool Usage History & Cloud Sync', () => {
     await profileButton.click();
     await sidepanelPage.getByRole('button', { name: 'Sync now' }).click();
 
-    // Go to JSON tool and inspect History tab
-    await sidepanelPage.locator('.tab-item', { hasText: 'JSON' }).click();
-    const historyTab = sidepanelPage.getByRole('tab', { name: /History/ });
-    await historyTab.click();
+    // Open All History modal
+    const allHistoryBtn = sidepanelPage.getByRole('button', { name: 'All tools history' });
+    await allHistoryBtn.click();
 
-    // The remote history entry should have merged into the local history tab!
-    const historyCard = sidepanelPage.locator('.tool-history-tab-card', { hasText: 'cloud' });
+    const modal = sidepanelPage.locator('.tool-history-modal');
+    await expect(modal).toBeVisible();
+
+    // The remote history entry should have merged into the local history!
+    const historyCard = modal.locator('.tool-history-card', { hasText: 'cloud' });
     await expect(historyCard).toBeVisible();
     await expect(historyCard).toContainText('remote');
   });

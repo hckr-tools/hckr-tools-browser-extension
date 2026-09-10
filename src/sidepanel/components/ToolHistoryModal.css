@@ -29,6 +29,7 @@
   flex-direction: column;
   box-shadow: var(--shadow-lg, 0 16px 40px rgba(0, 0, 0, 0.35));
   overflow: hidden;
+  position: relative;
   animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -439,6 +440,98 @@
   border-radius: 4px;
   font-size: 12px;
   transition: all 0.15s ease;
+}
+
+.tool-history-toast {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  font: 600 12px var(--font-sans);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: historyToastIn 160ms ease-out;
+}
+
+@keyframes historyToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.tool-history-snippet-label-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tool-history-snippet-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-snippet-action {
+  font: 600 10px/1 var(--font-sans);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs, 4px);
+  background: var(--surface-container);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition, 0.15s ease);
+}
+
+.btn-snippet-action:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.tool-history-restore-output-btn {
+  background: var(--surface-container);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.tool-history-restore-output-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tool-history-insert-btn {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tool-history-insert-btn:hover {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.tool-history-workspace-btn {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.tool-history-workspace-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .tool-history-delete-btn:hover {

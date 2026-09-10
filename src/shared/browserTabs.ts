@@ -214,3 +214,108 @@ export function filterTabs(tabs: BrowserTab[], query: string): BrowserTab[] {
     [tab.title, tab.url, tab.location].some((value) => value.toLowerCase().includes(needle))
   );
 }
+
+export function normalizeTabUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      const pathname = parsed.pathname.length > 1 && parsed.pathname.endsWith('/')
+        ? parsed.pathname.slice(0, -1)
+        : parsed.pathname;
+      return `${parsed.protocol}//${parsed.host}${pathname}${parsed.search}${parsed.hash}`;
+    }
+    return parsed.href.replace(/\/+$/, '');
+  } catch {
+    return trimmed.endsWith('/') && trimmed.length > 1
+      ? trimmed.slice(0, -1)
+      : trimmed;
+  }
+}
+
+export function findDuplicateTabIds(tabs: BrowserTab[]): number[] {
+  const extensionPrefix = typeof chrome !== 'undefined' && chrome.runtime?.getURL
+    ? chrome.runtime.getURL('')
+    : '';
+
+  const groups = new Map<string, BrowserTab[]>();
+
+  for (const tab of tabs) {
+    if (!tab.url) {
+      continue;
+    }
+    if (extensionPrefix && tab.url.startsWith(extensionPrefix)) {
+      continue;
+    }
+    if (isTabSwitcherUrl(tab.url)) {
+      continue;
+    }
+
+    const normalized = normalizeTabUrl(tab.url);
+    if (!normalized) {
+      continue;
+    }
+
+    const list = groups.get(normalized) || [];
+    list.push(tab);
+    groups.set(normalized, list);
+  }
+
+  const idsToClose: number[] = [];
+
+  for (const group of groups.values()) {
+    if (group.length <= 1) {
+      continue;
+    }
+
+    const activeIndex = group.findIndex((tab) => tab.active);
+    const keepIndex = activeIndex >= 0 ? activeIndex : 0;
+
+    for (let i = 0; i < group.length; i++) {
+      if (i !== keepIndex) {
+        idsToClose.push(group[i].id);
+      }
+    }
+  }
+
+  return idsToClose;
+}
+
+export function getDuplicateTabIdSet(tabs: BrowserTab[]): Set<number> {
+  return new Set(findDuplicateTabIds(tabs));
+}
+
+export async function closeDuplicateTabs(target?: BrowserTab[] | number[] | number): Promise<number> {
+  let idsToClose: number[] = [];
+
+  if (Array.isArray(target)) {
+    if (target.length === 0) {
+      return 0;
+    }
+    if (typeof target[0] === 'number') {
+      idsToClose = target as number[];
+    } else {
+      idsToClose = findDuplicateTabIds(target as BrowserTab[]);
+    }
+  } else {
+    const windowTabs = await listWindowTabs(target);
+    idsToClose = findDuplicateTabIds(windowTabs);
+  }
+
+  if (idsToClose.length === 0) {
+    return 0;
+  }
+
+  try {
+    await chrome.tabs.remove(idsToClose);
+  } catch (err) {
+    console.warn('Failed to close some duplicate tabs:', err);
+  }
+
+  return idsToClose.length;
+}
+

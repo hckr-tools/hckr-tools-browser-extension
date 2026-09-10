@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  closeDuplicateTabs,
   filterTabs,
+  findDuplicateTabIds,
   jumpToTab,
   lastVisitedLabel,
   listHistoryTabs,
@@ -55,6 +57,8 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isClosingDuplicates, setIsClosingDuplicates] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadTabs = useCallback(async () => {
@@ -66,6 +70,7 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
       setError('Unable to read open tabs.');
     }
   }, [windowId]);
+
 
   useEffect(() => {
     if (!open) {
@@ -81,10 +86,42 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
 
   const hasQuery = Boolean(query.trim());
   const filteredOpenTabs = useMemo(() => filterTabs(tabs, query), [query, tabs]);
+  const duplicateTabIds = useMemo(() => findDuplicateTabIds(tabs), [tabs]);
+  const duplicateIdSet = useMemo(() => new Set(duplicateTabIds), [duplicateTabIds]);
   const searchResults = useMemo<TabSearchResult[]>(() => [
     ...filteredOpenTabs.map((tab) => ({ ...tab, source: 'open' as const })),
     ...(hasQuery ? historyTabs : []),
   ], [filteredOpenTabs, hasQuery, historyTabs]);
+
+  useEffect(() => {
+    if (!statusMessage) {
+      return;
+    }
+    const timer = window.setTimeout(() => setStatusMessage(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [statusMessage]);
+
+  const handleCloseDuplicates = useCallback(async () => {
+    if (duplicateTabIds.length === 0 || isClosingDuplicates) {
+      return;
+    }
+    setIsClosingDuplicates(true);
+    setStatusMessage(null);
+    setError(null);
+
+    try {
+      const closed = await closeDuplicateTabs(duplicateTabIds);
+      setStatusMessage(`Closed ${closed} duplicate ${closed === 1 ? 'tab' : 'tabs'}`);
+      await loadTabs();
+      inputRef.current?.focus();
+    } catch (err) {
+      console.error('Failed to close duplicate tabs:', err);
+      setError('Failed to close duplicate tabs.');
+    } finally {
+      setIsClosingDuplicates(false);
+    }
+  }, [duplicateTabIds, isClosingDuplicates, loadTabs]);
+
 
   useEffect(() => {
     if (!open || !hasQuery) {
@@ -261,6 +298,21 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
               aria-label="Search open tabs"
               autoComplete="off"
             />
+            {duplicateTabIds.length > 0 && (
+              <button
+                className="tab-switcher-close-duplicates-btn"
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void handleCloseDuplicates();
+                }}
+                disabled={isClosingDuplicates}
+                title={`Close ${duplicateTabIds.length} duplicate ${duplicateTabIds.length === 1 ? 'tab' : 'tabs'}`}
+                aria-label={`Close ${duplicateTabIds.length} duplicate tabs`}
+              >
+                {isClosingDuplicates ? 'Closing…' : `Close duplicates (${duplicateTabIds.length})`}
+              </button>
+            )}
             {query && (
               <button
                 className="tab-switcher-clear-btn"
@@ -276,6 +328,11 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
               </button>
             )}
           </div>
+          {statusMessage && (
+            <div className="tab-switcher-status-bar" role="status">
+              <span>✓ {statusMessage}</span>
+            </div>
+          )}
         </div>
 
         {error && <p className="tab-switcher-empty" role="alert">{error}</p>}
@@ -310,6 +367,7 @@ const TabSwitcher: React.FC<TabSwitcherProps> = ({
                 <span className="tab-switcher-url">{tab.location || tab.url}</span>
               </span>
               <span className="tab-switcher-actions">
+                {duplicateIdSet.has(tab.id) && <span className="tab-switcher-badge duplicate">Duplicate</span>}
                 {tab.active && <span className="tab-switcher-badge">Current</span>}
                 {shortcut && <span className="tab-switcher-shortcut">{shortcut}</span>}
               </span>

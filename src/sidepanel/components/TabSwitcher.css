@@ -237,6 +237,48 @@
   color: var(--text-primary);
 }
 
+.tab-switcher-close-duplicates-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--surface-container);
+  color: var(--text-primary);
+  font: 600 11px/1.2 var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+
+.tab-switcher-close-duplicates-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.tab-switcher-close-duplicates-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-switcher-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
+  color: var(--success);
+  font: 500 12px/1.2 var(--font-sans);
+  animation: tab-switcher-fade-in 150ms ease-out;
+}
+
+
 /* Section Headings */
 .tab-switcher-section {
   display: flex;
@@ -408,6 +450,19 @@
   border-color: rgba(255, 255, 255, 0.4);
   color: #ffffff;
 }
+
+.tab-switcher-badge.duplicate {
+  border-color: color-mix(in srgb, var(--warning, #eab308) 40%, var(--border));
+  background: color-mix(in srgb, var(--warning, #eab308) 14%, var(--surface));
+  color: var(--warning, #eab308);
+}
+
+.tab-switcher-item.selected .tab-switcher-badge.duplicate {
+  background: rgba(234, 179, 8, 0.35);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}
+
 
 /* 3D Keyboard Shortcut Key Badge */
 .tab-switcher-shortcut {

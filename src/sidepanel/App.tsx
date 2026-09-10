@@ -4,7 +4,6 @@ import TabSwitcher from './components/TabSwitcher';
 import ToolCommandPalette from './components/ToolCommandPalette';
 import WorkspaceHeader from './components/WorkspaceHeader';
 import ToolHistoryModal from './components/ToolHistoryModal';
-import ToolHistoryTab from './components/ToolHistoryTab';
 import { loadPreferences, savePreferences, getPendingInput, saveToolState } from '../shared/storage';
 import { isOpenTabSwitcherHotkey } from '../shared/browserTabs';
 import { getSyncStatus } from '../shared/cloudSync';
@@ -78,9 +77,9 @@ const App: React.FC = () => {
   const [tabSwitcherOpen, setTabSwitcherOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
-  const [toolTabMode, setToolTabMode] = useState<'tool' | 'history'>('tool');
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [toolHistoryCount, setToolHistoryCount] = useState(0);
+  const [totalHistoryCount, setTotalHistoryCount] = useState(0);
+  const [restoreKey, setRestoreKey] = useState(0);
 
   // Load saved active tool and theme on mount
   useEffect(() => {
@@ -101,26 +100,19 @@ const App: React.FC = () => {
     return () => globalThis.removeEventListener('hckr-cloud-sync-changed', refreshSync);
   }, []);
 
-  // Update history count for active tool
+  // Update total history count across all tools
   useEffect(() => {
     const refreshCount = async () => {
-      if (activeToolId === 'workspace') {
-        setToolHistoryCount(0);
-        return;
-      }
-      const list = await listToolHistory(activeToolId);
-      setToolHistoryCount(list.length);
+      const list = await listToolHistory(undefined, 200);
+      setTotalHistoryCount(list.length);
     };
     void refreshCount();
-    const listener = (e: Event) => {
-      const customEvent = e as CustomEvent<{ toolId?: string }>;
-      if (!customEvent.detail?.toolId || customEvent.detail.toolId === activeToolId) {
-        void refreshCount();
-      }
+    const listener = () => {
+      void refreshCount();
     };
     globalThis.addEventListener('hckr-tool-history-changed', listener);
     return () => globalThis.removeEventListener('hckr-tool-history-changed', listener);
-  }, [activeToolId]);
+  }, []);
 
   // Check for pending input from a context-menu action.
   useEffect(() => {
@@ -131,7 +123,6 @@ const App: React.FC = () => {
       if (pending) {
         setActiveToolId(pending.toolId);
         setInitialInput(pending.text);
-        setToolTabMode('tool');
         await savePreferences({ activeToolId: pending.toolId });
       }
     };
@@ -152,16 +143,17 @@ const App: React.FC = () => {
   const handleSelectTool = useCallback(async (toolId: string) => {
     setActiveToolId(toolId);
     setInitialInput(undefined);
-    setToolTabMode('tool');
     await savePreferences({ activeToolId: toolId });
   }, []);
 
-  const handleRestoreHistory = useCallback(async (entry: ToolHistoryEntry) => {
-    setActiveToolId(entry.toolId);
-    setInitialInput(entry.input);
-    setToolTabMode('tool');
-    await saveToolState(entry.toolId, { input: entry.input, options: entry.options });
-    await savePreferences({ activeToolId: entry.toolId });
+  const handleRestoreHistory = useCallback(async (entry: ToolHistoryEntry, customContent?: string, targetToolId?: string) => {
+    const destToolId = targetToolId || entry.toolId;
+    const content = customContent !== undefined ? customContent : entry.input;
+    setActiveToolId(destToolId);
+    setInitialInput(content);
+    setRestoreKey((k) => k + 1);
+    await saveToolState(destToolId, { input: content, options: entry.options });
+    await savePreferences({ activeToolId: destToolId });
   }, []);
 
   const handleToggleTheme = useCallback(async () => {
@@ -218,24 +210,13 @@ const App: React.FC = () => {
           activeTool={activeTool}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           cloudSyncEnabled={cloudSyncEnabled}
-          toolTabMode={toolTabMode}
-          onSelectToolTabMode={setToolTabMode}
-          historyCount={toolHistoryCount}
+          historyCount={totalHistoryCount}
           onOpenHistoryModal={() => setHistoryModalOpen(true)}
         />
         <div className="tool-container-inner">
-          {toolTabMode === 'history' && activeToolId !== 'workspace' ? (
-            <ToolHistoryTab
-              toolId={activeToolId}
-              toolTitle={activeTool?.label || 'Tool'}
-              onRestore={handleRestoreHistory}
-              cloudSyncEnabled={cloudSyncEnabled}
-            />
-          ) : (
-            <Suspense fallback={<div className="tool-loading">Loading tool...</div>}>
-              {ActiveComponent && <ActiveComponent initialInput={initialInput} />}
-            </Suspense>
-          )}
+          <Suspense fallback={<div className="tool-loading">Loading tool...</div>}>
+            {ActiveComponent && <ActiveComponent key={`${activeToolId}-${restoreKey}`} initialInput={initialInput} />}
+          </Suspense>
         </div>
       </main>
       <TabSwitcher open={tabSwitcherOpen} onClose={() => setTabSwitcherOpen(false)} />
@@ -244,6 +225,8 @@ const App: React.FC = () => {
         open={historyModalOpen}
         onClose={() => setHistoryModalOpen(false)}
         initialToolId={activeToolId !== 'workspace' ? activeToolId : undefined}
+        activeToolId={activeToolId}
+        activeToolTitle={activeTool?.label}
         onRestore={handleRestoreHistory}
         cloudSyncEnabled={cloudSyncEnabled}
       />
