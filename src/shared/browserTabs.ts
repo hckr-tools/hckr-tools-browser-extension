@@ -22,7 +22,7 @@ export type TabSearchResult =
   | (BrowserTab & { source: 'open' })
   | HistoryTab;
 
-const HISTORY_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
+const HISTORY_LOOKBACK_MS = 14 * 24 * 60 * 60 * 1000;
 const MAX_HISTORY_RESULTS = 8;
 
 export function isOpenTabSwitcherHotkey(event: {
@@ -318,4 +318,3 @@ export async function closeDuplicateTabs(target?: BrowserTab[] | number[] | numb
 
   return idsToClose.length;
 }
-
