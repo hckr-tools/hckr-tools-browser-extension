@@ -24,7 +24,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
+    "@playwright/test": "^1.63.0",
     "@types/chrome": "^0.0.287",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26.2.0",
