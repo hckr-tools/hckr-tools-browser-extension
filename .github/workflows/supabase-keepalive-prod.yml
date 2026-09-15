@@ -1,0 +1,40 @@
+name: Supabase keepalive (prod)
+
+on:
+  schedule:
+    # Run every 3 hours to ensure activity is recorded even if a run is delayed.
+    - cron: '23 */3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keepalive:
+    name: Record production database activity
+    environment: prod
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Request a minimal database resource
+        env:
+          # Configure these as prod Environment secrets before enabling this workflow.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${SUPABASE_URL:?Missing required SUPABASE_URL Environment secret}"
+          : "${SUPABASE_SERVICE_ROLE_KEY:?Missing required SUPABASE_SERVICE_ROLE_KEY Environment secret}"
+
+          status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --max-time 20 --retry 2 --retry-all-errors \
+            --header "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            "${SUPABASE_URL%/}/rest/v1/workspaces?select=id&limit=1")"
+
+          if [[ "${status}" != '200' ]]; then
+            echo "Production Supabase keepalive request failed with HTTP ${status}."
+            exit 1
+          fi
